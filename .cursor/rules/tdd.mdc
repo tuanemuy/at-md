@@ -1,0 +1,287 @@
+---
+description: テスト駆動開発（TDD）の説明と実践方法
+globs: 
+alwaysApply: true
+---
+
+# テスト駆動開発（TDD）の説明と実践方法
+
+## 基本概念
+
+テスト駆動開発（TDD）とは、以下のサイクルで進める開発手法のことである。
+
+1. Red: まず失敗するテストを書く
+2. Green: テストが通るように最小限の実装をする
+3. Refactor: コードをリファクタリングして改善する
+
+## 重要な考え方
+
+### テストは仕様である
+
+テストコードは実装の仕様を表現したもの。
+
+### Assert-Act-Arrange の順序で考える
+
+1. まず期待する結果（アサーション）を定義
+2. 次に操作（テスト対象の処理）を定義
+3. 最後に準備（テスト環境のセットアップ）を定義
+
+### テスト名は「状況 → 操作 → 結果」の形式で記述する
+
+例: 「有効なトークンの場合にユーザー情報を取得すると成功すること」
+
+### リファクタリングフェーズの重要ツール
+
+テストが通った後のリファクタリングフェーズでは、以下のツールを活用する。
+
+### 1. 静的解析・型チェック
+
+- `deno check <target>`
+- `deno lint <target>`
+
+### 2. デッドコード検出・削除（TSR）
+
+- `deno run -A npm:tsr 'mod\.ts$'`
+
+### 3. コードカバレッジ測定:
+
+- `deno test --coverage=coverage <test_file>`
+- `deno coverage coverage`
+
+## 実践方法
+
+### テストの実装順序
+
+テストコードは以下の順序で実装する。
+
+1. 期待する結果（アサーション）を最初に書く
+2. アサーションの妥当性をユーザーに確認
+3. 確認が取れたら、操作（Act）のコードを書く
+4. 最後に、準備（Arrange）のコードを書く
+
+これは実行順序（Arrange → Act → Assert）とは異なる。実装を結果から始めることで、目的を明確にしてから実装を進められる。
+
+#### 実装例
+
+```typescript
+// @script @tdd
+import { err, ok, Result } from "npm:neverthrow";
+
+// 型定義
+export interface User {
+  id: string;
+  name: string;
+}
+
+export type ApiError =
+  | { type: "unauthorized"; message: string }
+  | { type: "network"; message: string };
+
+// インターフェース定義
+declare function getUser(
+  token: string,
+  id: string,
+): Promise<Result<User, ApiError>>;
+
+import { expect } from "@std/expect";
+import { test } from "@std/testing/bdd";
+
+test("有効なトークンの場合にユーザー情報を取得すると成功すること", async () => {
+  // 1. まず期待する結果を書く
+  const expectedUser: User = {
+    id: "1",
+    name: "Test User",
+  };
+
+  // 2. ここでユーザーに結果の妥当性を確認
+
+  // 3. 次に操作を書く
+  const result = await getUser("valid-token", "1");
+
+  // 4. 最後に準備を書く（この例では不要）
+
+  // アサーション
+  expect(result.isOk()).toBe(true);
+  result.map((user) => {
+    expect(user).toEqual(expectedUser);
+  });
+});
+
+test("無効なトークンの場合にユーザー情報を取得するとエラーになること", async () => {
+  // 1. まず期待する結果を書く
+  const expectedError: ApiError = {
+    type: "unauthorized",
+    message: "Invalid token",
+  };
+
+  // 2. ユーザーに結果の妥当性を確認
+
+  // 3. 次に操作を書く
+  const result = await getUser("invalid-token", "1");
+
+  // アサーション
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error).toEqual(expectedError);
+  });
+});
+```
+
+### テストとアサーションの命名規約
+
+テスト名は以下の形式で記述する。
+
+「{状況}の場合に{操作}をすると{結果}になること」
+
+#### 例
+
+- 「有効なトークンの場合にユーザー情報を取得すると成功すること」
+- 「無効なトークンの場合にユーザー情報を取得するとエラーになること」
+
+## 開発手順の詳細
+
+### 1. 型シグネチャの定義
+
+```typescript
+declare function getUser(
+  token: string,
+  id: string,
+): Promise<Result<User, ApiError>>;
+```
+
+ライブラリの時は `export` をつける。
+
+### 2. テストケースごとに:
+
+#### a. 期待する結果を定義
+
+```typescript
+const expectedUser: User = {
+  id: "1",
+  name: "Test User",
+};
+```
+
+#### b. ユーザーと結果を確認
+
+- この時点で期待する結果が適切か確認
+- 仕様の見直しや追加が必要な場合は、ここで修正
+
+#### c. 操作コードを実装
+
+```typescript
+const result = await getUser("valid-token", "1");
+```
+
+#### d. 必要な準備コードを実装
+
+```typescript
+// 必要な場合のみ
+const mockApi = new MockApi();
+mockApi.setup();
+```
+
+## DenoにおけるTDDの例
+
+Deno におけるテスト駆動開発 (TDD) のプロセスを示す。
+
+### ディレクトリ構成
+
+```
+tdd-example/
+  mod.ts    - 公開インターフェース (再エクスポートのみ)
+  lib.ts    - 実装 (deps.ts からのインポートを使用)
+  mod.test.ts - テストコード
+```
+
+### 全体手順
+
+1. テストを書く: コードの期待される動作を定義するテストケースを `mod.test.ts` に記述
+2. テストの失敗を確認する: 実装がないため、テストが失敗することを確認
+3. コードを実装する: テストケースを満たすコードを `lib.ts` に実装
+4. テストの成功を確認する: テストが成功することを確認
+
+### 落ちるテストを追加するの手順
+
+1. テストが通ることを確認: `deno test -A . --reporter=dot` でテストを実行し、すべてのテストが通ることを確認
+2. 落ちるテストを追加: 新しいテストケースを `mod.test.ts` に追加します。このテストは、まだ実装がないため失敗するはず
+3. テストが落ちることを確認: `deno test -A tdd-example --reporter=dot` でテストを実行し、追加したテストが失敗することを確認
+4. 落ちたテストだけを再実行: `deno test -A tdd-example --reporter=dot --filter <テスト名>` で、落ちたテストだけを再実行。<テスト名> は、失敗したテストの名前で置き換える
+5. 型を通す: `lib.ts` に関数を定義し、 `mod.ts` でre-exportする。実装は `throw new Error("wip")` とする
+6. 実装: `lib.ts` にテストが通る実装を記述する
+
+### リファクタリング
+
+テストが通ったら、ユーザーにリファクタリングを提案する。
+
+- `deno check <target>`
+- `deno lint <target>`
+
+#### コードカバレッジの測定と確認
+
+テストが通った段階でコードカバレッジを測定して、テストがコードの全ての部分をカバーしているか確認することを推奨する。
+
+##### 1. カバレッジデータの収集
+
+```sh
+deno test --coverage=coverage <テストファイル>
+```
+
+カバレッジデータは指定したディレクトリ（この例では `coverage` ）に保存される。
+
+##### 2. カバレッジレポートの生成と確認
+
+```sh
+deno coverage coverage
+```
+
+基本的なカバレッジレポート（ファイルごとのブランチカバレッジとラインカバレッジ）が表示される。
+
+##### 3. より詳細なレポートの確認
+
+```sh
+deno coverage --detailed coverage
+```
+
+ファイルごとの詳細なカバレッジ情報が表示される。
+
+##### 4. HTML形式のレポート生成（オプション）
+
+```sh
+deno coverage --html --output=coverage_html coverage
+```
+
+ブラウザで閲覧可能なHTMLレポートが生成される。
+
+カバレッジが100%でない場合は、テストケースを追加してカバレッジを向上させることを検討すること。
+
+#### デッドコード削除のためのTSRの活用
+
+テストが通った段階で、TSR（TypeScript Remove）を使ってデッドコード（未使用コード）を検出することも推奨する。
+
+##### 1. デッドコードの検出
+
+```sh
+deno run -A npm:tsr 'mod\.ts$'
+```
+
+##### 2. 検出結果を確認
+
+- 未使用のエクスポートやファイルが表示される
+- 注意: テストファイルはエントリーポイントから参照されないため、デッドコードとして検出される
+
+##### 3. ユーザーに削除するか確認
+
+「TSRが以下のデッドコードを検出しました。削除しますか？」と確認し、ユーザーが同意した場合のみ以下のコマンドを実行する。
+
+```sh
+deno run -A npm:tsr --write 'mod\.ts$'
+```
+
+テストファイルを除外したい場合は以下のようにする。
+
+```sh
+deno run -A npm:tsr --write 'mod\.ts$' '.*\.test\.ts$'
+```
+
+デッドコードを削除することで、コードベースがクリーンに保たれ、将来のメンテナンスが容易になる。
