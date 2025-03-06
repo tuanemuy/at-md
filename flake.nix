@@ -19,7 +19,6 @@
         default = pkgs.mkShell {
           buildInputs = [
             pkgs.deno
-            pkgs.vtsls
             pkgs.biome
           ];
         };

@@ -1,7 +1,7 @@
 ---
 description: TypeScriptでコーディングする際のガイドライン
-globs: src/**/*.ts,src/**/*.tsx
-alwaysApply: false
+globs: 
+alwaysApply: true
 ---
 
 # TypeScriptコーディングのガイドライン

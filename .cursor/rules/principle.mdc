@@ -1,5 +1,5 @@
 ---
-description: プロジェクトを進める上での原則です。
+description: プロジェクトを進める上での原則
 globs: 
 alwaysApply: true
 ---
@@ -18,5 +18,8 @@ alwaysApply: true
 - ドメインモデルを常に意識
 
 ## テスト駆動開発 (TDD)
+
+- 以下のファイルに記載されたテスト駆動開発の概念と手順に従う
+- 小さな単位での実装を繰り返す
 
 [tdd.mdc](mdc:.cursor/rules/tdd.mdc)

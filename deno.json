@@ -1,3 +1,32 @@
 {
-  "unstable": ["unsafe-proto"]
-}
+  "tasks": {
+    "test": "deno test -A",
+    "test:watch": "deno test -A --watch",
+    "test:cov": "deno test -A --coverage=coverage && deno coverage coverage",
+    "check": "deno check src/**/*.ts",
+    "lint": "deno lint src/**/*.ts",
+    "check:deps": "deno run -A scripts/check_deps.ts"
+  },
+  "imports": {
+    "neverthrow": "npm:neverthrow@^8.2.0",
+    "@std/expect": "jsr:@std/expect@^0.218.2",
+    "@std/testing": "jsr:@std/testing@^0.218.2"
+  },
+  "lint": {
+    "include": ["src/"],
+    "exclude": ["src/testdata/", "data/fixtures/**/*.ts"],
+    "rules": {
+      "tags": ["recommended"],
+      "include": ["ban-untagged-todo"],
+      "exclude": ["no-unused-vars"]
+    }
+  },
+  "fmt": {
+    "include": ["src/"],
+    "exclude": ["src/testdata/", "data/fixtures/**/*.ts"],
+    "indentWidth": 2,
+    "lineWidth": 80,
+    "semiColons": true,
+    "singleQuote": false
+  }
+} 
