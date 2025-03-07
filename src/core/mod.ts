@@ -1,3 +1,8 @@
+/**
+ * コアモジュール
+ * アプリケーションの中心的な機能を提供します。
+ */
+
 // エラー処理
 export * from "./errors/mod.ts";
 
@@ -11,4 +16,7 @@ export * from "./logging/mod.ts";
 export * from "./common/mod.ts";
 
 // コンテンツ管理
-export * from "./content/mod.ts"; 
+export * from "./content/mod.ts";
+
+// 配信
+export * from "./delivery/mod.ts"; 
