@@ -171,16 +171,31 @@ describe("バージョニングサービス", () => {
       { body: "バージョン2の本文" }
     );
     
+    // バージョン3: メタデータを変更
+    const contentV3 = service.createVersionedContent(
+      contentV2,
+      "commit-3",
+      { 
+        metadata: createContentMetadata({
+          language: "ja",
+          tags: ["v3"],
+          categories: []
+        }) 
+      }
+    );
+    
     // バージョン1に戻す
-    const restoredContent = service.restoreVersion(contentV2, "commit-1");
+    const restoredContent = service.restoreVersion(contentV3, "commit-1");
     
     // 期待値を実際の出力に合わせる
     expect(restoredContent).toBeDefined();
     expect(restoredContent.title).toBe("バージョン1");
-    // 実際の実装では、バージョン2の本文が保持される
-    expect(restoredContent.body).toBe("バージョン2の本文");
-    // メタデータも元のまま
+    // バージョン1の時点では本文は変更されていないので、元の本文が残っているはず
+    expect(restoredContent.body).toBe(originalContent.body);
+    // バージョン1の時点ではメタデータは変更されていないので、元のメタデータが残っているはず
     expect(JSON.stringify(restoredContent.metadata)).toBe(JSON.stringify(originalContent.metadata));
+    // バージョン履歴は保持されているはず
+    expect(restoredContent.versions.length).toBe(contentV3.versions.length);
   });
 
   it("存在しないバージョンを復元しようとするとエラーになること", () => {
@@ -197,5 +212,51 @@ describe("バージョニングサービス", () => {
     expect(() => {
       service.restoreVersion(contentWithVersions, "non-existent");
     }).toThrow();
+  });
+
+  it("複数のバージョンを経た後に中間バージョンに戻せること", () => {
+    const service = new VersioningService();
+    
+    // 初期コンテンツを作成
+    const originalContent = createTestContent();
+    
+    // バージョン1: タイトルを変更
+    const contentV1 = service.createVersionedContent(
+      originalContent,
+      "commit-1",
+      { title: "バージョン1" }
+    );
+    
+    // バージョン2: 本文を変更
+    const contentV2 = service.createVersionedContent(
+      contentV1,
+      "commit-2",
+      { body: "バージョン2の本文" }
+    );
+    
+    // バージョン3: メタデータを変更
+    const contentV3 = service.createVersionedContent(
+      contentV2,
+      "commit-3",
+      { 
+        metadata: createContentMetadata({
+          language: "ja",
+          tags: ["v3"],
+          categories: []
+        }) 
+      }
+    );
+    
+    // バージョン2に戻す
+    const restoredContent = service.restoreVersion(contentV3, "commit-2");
+    
+    // バージョン2の時点での状態を確認
+    expect(restoredContent).toBeDefined();
+    expect(restoredContent.title).toBe("バージョン1"); // バージョン1で変更されたタイトル
+    expect(restoredContent.body).toBe("バージョン2の本文"); // バージョン2で変更された本文
+    // バージョン2の時点ではメタデータは変更されていないので、元のメタデータが残っているはず
+    expect(JSON.stringify(restoredContent.metadata)).toBe(JSON.stringify(originalContent.metadata));
+    // バージョン履歴は保持されているはず
+    expect(restoredContent.versions.length).toBe(contentV3.versions.length);
   });
 }); 
