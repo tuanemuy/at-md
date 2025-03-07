@@ -48,12 +48,12 @@
 
 ### 2.2 配信ドメイン（コアドメイン）
 
-- [ ] 配信関連の値オブジェクト実装
-  - [ ] PublishStatus
-  - [ ] FeedMetadata
-- [ ] 配信エンティティ実装
-  - [ ] Post
-  - [ ] Feed
+- [x] 配信関連の値オブジェクト実装
+  - [x] PublishStatus
+  - [x] FeedMetadata
+- [x] 配信エンティティ実装
+  - [x] Post
+  - [x] Feed
 - [ ] 配信集約実装
   - [ ] PostAggregate
   - [ ] FeedAggregate
