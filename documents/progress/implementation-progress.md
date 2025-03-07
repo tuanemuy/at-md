@@ -34,9 +34,9 @@
 - [x] コンテンツ関連の値オブジェクト実装
   - [x] ContentMetadata
   - [x] Version
-- [ ] コンテンツエンティティ実装
-  - [ ] Content
-  - [ ] Repository
+- [x] コンテンツエンティティ実装
+  - [x] Content
+  - [x] Repository
 - [ ] コンテンツ集約実装
   - [ ] ContentAggregate
   - [ ] RepositoryAggregate
