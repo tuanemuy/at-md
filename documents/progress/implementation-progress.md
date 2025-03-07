@@ -26,6 +26,9 @@
 - [x] ロギング基盤の実装
   - [x] Logger
   - [x] ErrorMetrics
+- [x] ID生成機能の実装
+  - [x] UUIDv7の導入
+  - [x] IdGeneratorインターフェース
 
 ## フェーズ2: コアドメイン実装
 
@@ -40,8 +43,8 @@
 - [x] コンテンツ集約実装
   - [x] ContentAggregate
   - [x] RepositoryAggregate
-- [ ] コンテンツドメインサービス実装
-  - [ ] VersioningService
+- [x] コンテンツドメインサービス実装
+  - [x] VersioningService
 
 ### 2.2 配信ドメイン（コアドメイン）
 
