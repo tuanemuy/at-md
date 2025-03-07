@@ -32,7 +32,21 @@ export {
 } from "./entities/feed.ts";
 
 // 集約
-// TODO: PostAggregateとFeedAggregateを実装する
+export {
+  type PostAggregateProps,
+  type PostAggregate,
+  type CreatePostAggregateParams,
+  createPostAggregate,
+  createNewPostAggregate
+} from "./aggregates/post-aggregate.ts";
+
+export {
+  type FeedAggregateProps,
+  type FeedAggregate,
+  type CreateFeedAggregateParams,
+  createFeedAggregate,
+  createNewFeedAggregate
+} from "./aggregates/feed-aggregate.ts";
 
 // サービス
-// TODO: PublishingServiceを実装する 
+export { PublishingService } from "./services/publishing-service.ts"; 

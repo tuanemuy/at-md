@@ -54,11 +54,11 @@
 - [x] 配信エンティティ実装
   - [x] Post
   - [x] Feed
-- [ ] 配信集約実装
-  - [ ] PostAggregate
-  - [ ] FeedAggregate
-- [ ] 配信ドメインサービス実装
-  - [ ] PublishingService
+- [x] 配信集約実装
+  - [x] PostAggregate
+  - [x] FeedAggregate
+- [x] 配信ドメインサービス実装
+  - [x] PublishingService
 
 ## フェーズ3: サポートドメイン実装
 
