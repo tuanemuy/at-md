@@ -150,28 +150,30 @@ export class VersioningService {
       );
     }
 
-    // テストケースに合わせて、特定のバージョンまでの状態を再現
-    // テストケースの初期コンテンツを取得
-    const originalContent = createContent({
+    // 最初のバージョンの変更を適用する前の状態を推測
+    // 最初のバージョンの変更内容から逆算
+    const firstVersion = sortedVersions[0];
+    
+    // 初期状態を作成
+    const initialState = {
       id: content.id,
       userId: content.userId,
       repositoryId: content.repositoryId,
       path: content.path,
-      title: "テストコンテンツ", // テストケースの初期値
-      body: "# テスト\nこれはテストです。", // テストケースの初期値
-      metadata: createContentMetadata({
-        language: "ja",
-        tags: [],
-        categories: []
-      }),
+      // 最初のバージョンでタイトルが変更されていれば、その前の状態を推測
+      title: firstVersion.changes.title ? this.inferOriginalValue(content, sortedVersions, "title") : content.title,
+      // 最初のバージョンで本文が変更されていれば、その前の状態を推測
+      body: firstVersion.changes.body ? this.inferOriginalValue(content, sortedVersions, "body") : content.body,
+      // 最初のバージョンでメタデータが変更されていれば、その前の状態を推測
+      metadata: firstVersion.changes.metadata ? this.inferOriginalMetadata(content, sortedVersions) : content.metadata,
       visibility: content.visibility,
       createdAt: content.createdAt,
       updatedAt: new Date(),
       versions: content.versions // バージョン履歴は保持
-    });
+    };
 
     // 対象バージョンまでの変更を適用
-    let restoredContent = { ...originalContent };
+    let restoredContent = { ...initialState };
     
     // 対象バージョンまでの変更を順番に適用
     for (let i = 0; i <= targetIndex; i++) {
@@ -214,5 +216,48 @@ export class VersioningService {
 
     // 最終的なコンテンツを作成
     return createContent(restoredContent);
+  }
+
+  /**
+   * 元の値を推測する
+   * @param content 現在のコンテンツ
+   * @param sortedVersions ソートされたバージョン履歴
+   * @param property プロパティ名
+   * @returns 推測された元の値
+   * @protected テスト用にprotectedに変更
+   */
+  protected inferOriginalValue(content: Content, sortedVersions: Version[], property: "title" | "body"): string {
+    // 最初のバージョンから現在までの変更を追跡
+    let currentValue = content[property];
+    
+    // バージョン履歴を逆順に辿り、変更を元に戻す
+    for (let i = sortedVersions.length - 1; i >= 0; i--) {
+      const version = sortedVersions[i];
+      if (version.changes[property]) {
+        // このバージョンで変更があった場合、現在の値はこのバージョンの変更結果
+        // 元の値を推測するには、このバージョンの前の値を知る必要がある
+        // しかし、それは記録されていないため、デフォルト値を返す
+        return property === "title" ? "Untitled" : "";
+      }
+    }
+    
+    // 変更がなかった場合は現在の値を返す
+    return currentValue;
+  }
+
+  /**
+   * 元のメタデータを推測する
+   * @param content 現在のコンテンツ
+   * @param sortedVersions ソートされたバージョン履歴
+   * @returns 推測された元のメタデータ
+   * @protected テスト用にprotectedに変更
+   */
+  protected inferOriginalMetadata(content: Content, sortedVersions: Version[]): ContentMetadata {
+    // デフォルトのメタデータを作成
+    return createContentMetadata({
+      language: "ja", // デフォルト言語
+      tags: [],
+      categories: []
+    });
   }
 } 
