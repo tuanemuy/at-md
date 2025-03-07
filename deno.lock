@@ -5,6 +5,7 @@
     "jsr:@std/expect@~0.218.2": "0.218.2",
     "jsr:@std/fmt@~0.218.2": "0.218.2",
     "jsr:@std/testing@~0.218.2": "0.218.2",
+    "npm:neverthrow@*": "8.2.0",
     "npm:neverthrow@^8.2.0": "8.2.0",
     "npm:uuid@*": "11.1.0",
     "npm:uuidv7@^1.0.2": "1.0.2"
