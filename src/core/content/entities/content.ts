@@ -2,9 +2,9 @@ import { ContentMetadata } from "../value-objects/content-metadata.ts";
 import { Version } from "../value-objects/version.ts";
 
 /**
- * コンテンツの状態を表す型
+ * コンテンツの公開範囲を表す型
  */
-export type ContentStatus = "draft" | "published" | "archived";
+export type ContentVisibility = "private" | "unlisted" | "public";
 
 /**
  * コンテンツエンティティを表すインターフェース
@@ -26,8 +26,8 @@ export interface Content {
   readonly metadata: ContentMetadata;
   /** バージョン履歴 */
   readonly versions: Version[];
-  /** ステータス */
-  readonly status: ContentStatus;
+  /** 公開範囲 */
+  readonly visibility: ContentVisibility;
   /** 作成日時 */
   readonly createdAt: Date;
   /** 更新日時 */
@@ -41,11 +41,11 @@ export interface Content {
   addVersion(version: Version): Content;
 
   /**
-   * ステータスを変更する
-   * @param status 新しいステータス
+   * 公開範囲を変更する
+   * @param visibility 新しい公開範囲
    * @returns 新しいContentインスタンス
    */
-  changeStatus(status: ContentStatus): Content;
+  changeVisibility(visibility: ContentVisibility): Content;
 
   /**
    * メタデータを更新する
@@ -67,7 +67,7 @@ export interface ContentParams {
   body: string;
   metadata: ContentMetadata;
   versions: Version[];
-  status: ContentStatus;
+  visibility: ContentVisibility;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,16 +76,16 @@ export interface ContentParams {
  * Contentを作成する
  * @param params Contentのパラメータ
  * @returns 不変なContentオブジェクト
- * @throws IDが空、または無効なステータスの場合はエラー
+ * @throws IDが空、または無効な公開範囲の場合はエラー
  */
 export function createContent(params: ContentParams): Content {
   if (!params.id) {
     throw new Error("コンテンツIDは必須です");
   }
 
-  const validStatuses: ContentStatus[] = ["draft", "published", "archived"];
-  if (!validStatuses.includes(params.status)) {
-    throw new Error("無効なステータスです");
+  const validVisibilities: ContentVisibility[] = ["private", "unlisted", "public"];
+  if (!validVisibilities.includes(params.visibility)) {
+    throw new Error("無効な公開範囲です");
   }
 
   const content: Content = {
@@ -97,7 +97,7 @@ export function createContent(params: ContentParams): Content {
     body: params.body,
     metadata: params.metadata,
     versions: [...params.versions],
-    status: params.status,
+    visibility: params.visibility,
     createdAt: params.createdAt,
     updatedAt: params.updatedAt,
 
@@ -109,10 +109,10 @@ export function createContent(params: ContentParams): Content {
       });
     },
 
-    changeStatus(status: ContentStatus): Content {
+    changeVisibility(visibility: ContentVisibility): Content {
       return createContent({
         ...this,
-        status,
+        visibility,
         updatedAt: new Date()
       });
     },

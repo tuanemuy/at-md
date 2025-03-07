@@ -20,7 +20,7 @@ describe("Contentエンティティ", () => {
       readingTime: 3
     });
     const versions: Version[] = [];
-    const status = "draft";
+    const visibility = "private";
     const createdAt = new Date("2023-01-01T00:00:00Z");
     const updatedAt = new Date("2023-01-02T00:00:00Z");
 
@@ -34,7 +34,7 @@ describe("Contentエンティティ", () => {
       body,
       metadata,
       versions,
-      status,
+      visibility,
       createdAt,
       updatedAt
     });
@@ -48,7 +48,7 @@ describe("Contentエンティティ", () => {
     expect(content.body).toBe(body);
     expect(content.metadata).toEqual(metadata);
     expect(content.versions).toEqual(versions);
-    expect(content.status).toBe(status);
+    expect(content.visibility).toBe(visibility);
     expect(content.createdAt).toEqual(createdAt);
     expect(content.updatedAt).toEqual(updatedAt);
   });
@@ -68,7 +68,7 @@ describe("Contentエンティティ", () => {
         language: "ja"
       }),
       versions: [],
-      status: "draft",
+      visibility: "private",
       createdAt: new Date("2023-01-01T00:00:00Z"),
       updatedAt: new Date("2023-01-01T00:00:00Z")
     });
@@ -93,7 +93,7 @@ describe("Contentエンティティ", () => {
     expect(updatedContent).not.toBe(content); // 新しいインスタンスが返されること
   });
 
-  it("ステータスを変更できること", () => {
+  it("公開範囲を変更できること", () => {
     // 準備
     const content = createContent({
       id: "content-123",
@@ -108,17 +108,17 @@ describe("Contentエンティティ", () => {
         language: "ja"
       }),
       versions: [],
-      status: "draft",
+      visibility: "private",
       createdAt: new Date("2023-01-01T00:00:00Z"),
       updatedAt: new Date("2023-01-01T00:00:00Z")
     });
 
     // 操作
-    const publishedContent = content.changeStatus("published");
+    const publicContent = content.changeVisibility("public");
 
     // アサーション
-    expect(publishedContent.status).toBe("published");
-    expect(publishedContent).not.toBe(content); // 新しいインスタンスが返されること
+    expect(publicContent.visibility).toBe("public");
+    expect(publicContent).not.toBe(content); // 新しいインスタンスが返されること
   });
 
   it("メタデータを更新できること", () => {
@@ -136,7 +136,7 @@ describe("Contentエンティティ", () => {
         language: "ja"
       }),
       versions: [],
-      status: "draft",
+      visibility: "private",
       createdAt: new Date("2023-01-01T00:00:00Z"),
       updatedAt: new Date("2023-01-01T00:00:00Z")
     });
@@ -172,14 +172,14 @@ describe("Contentエンティティ", () => {
           language: "ja"
         }),
         versions: [],
-        status: "draft",
+        visibility: "private",
         createdAt: new Date(),
         updatedAt: new Date()
       });
     }).toThrow("コンテンツIDは必須です");
   });
 
-  it("無効なステータスの場合はエラーになること", () => {
+  it("無効な公開範囲の場合はエラーになること", () => {
     // 操作と検証
     expect(() => {
       createContent({
@@ -195,10 +195,10 @@ describe("Contentエンティティ", () => {
           language: "ja"
         }),
         versions: [],
-        status: "invalid-status" as any,
+        visibility: "invalid-visibility" as any,
         createdAt: new Date(),
         updatedAt: new Date()
       });
-    }).toThrow("無効なステータスです");
+    }).toThrow("無効な公開範囲です");
   });
 }); 
