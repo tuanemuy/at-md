@@ -2,10 +2,10 @@
   "version": "4",
   "specifiers": {
     "jsr:@std/assert@~0.218.2": "0.218.2",
-    "jsr:@std/expect@0.218.2": "0.218.2",
+    "jsr:@std/expect@~0.218.2": "0.218.2",
     "jsr:@std/fmt@~0.218.2": "0.218.2",
-    "jsr:@std/testing@0.218.2": "0.218.2",
-    "npm:neverthrow@6.1.0": "6.1.0"
+    "jsr:@std/testing@~0.218.2": "0.218.2",
+    "npm:neverthrow@^8.2.0": "8.2.0"
   },
   "jsr": {
     "@std/assert@0.218.2": {
@@ -29,8 +29,14 @@
     }
   },
   "npm": {
-    "neverthrow@6.1.0": {
-      "integrity": "sha512-xNbNjp/6M5vUV+mststgneJN9eJeJCDSYSBTaf3vxgvcKooP+8L0ATFpM8DGfmH7UWKJeoa24Qi33tBP9Ya3zA=="
+    "@rollup/rollup-linux-x64-gnu@4.34.9": {
+      "integrity": "sha512-FwBHNSOjUTQLP4MG7y6rR6qbGw4MFeQnIBrMe161QGaQoBQLqSUEKlHIiVgF3g/mb3lxlxzJOpIBhaP+C+KP2A=="
+    },
+    "neverthrow@8.2.0": {
+      "integrity": "sha512-kOCT/1MCPAxY5iUV3wytNFUMUolzuwd/VF/1KCx7kf6CutrOsTie+84zTGTpgQycjvfLdBBdvBvFLqFD2c0wkQ==",
+      "dependencies": [
+        "@rollup/rollup-linux-x64-gnu"
+      ]
     }
   },
   "remote": {
@@ -68,9 +74,9 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/expect@0.218.2",
-      "jsr:@std/testing@0.218.2",
-      "npm:neverthrow@6.1.0"
+      "jsr:@std/expect@~0.218.2",
+      "jsr:@std/testing@~0.218.2",
+      "npm:neverthrow@^8.2.0"
     ]
   }
 }
