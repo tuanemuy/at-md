@@ -11,7 +11,7 @@ import * as contentSchema from "./schema/content.ts";
 import * as deliverySchema from "./schema/delivery.ts";
 
 // 環境変数からデータベース接続情報を取得
-const DATABASE_URL = Deno.env.get("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/at_md";
+const DATABASE_URL = Deno.env.get("DATABASE_URL")!;
 
 // シングルトンインスタンス
 let dbInstance: DrizzleClient | null = null;

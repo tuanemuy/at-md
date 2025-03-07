@@ -5,7 +5,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: Deno.env.get("DATABASE_URL") || "postgres://test:test@localhost:55432/at-md",
+    url: Deno.env.get("DATABASE_URL")!,
   },
   verbose: true,
   strict: true,
