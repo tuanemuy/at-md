@@ -1,7 +1,7 @@
 import { Content, createContent } from "../entities/content.ts";
 import { ContentMetadata } from "../value-objects/content-metadata.ts";
 import { Version, createVersion } from "../value-objects/version.ts";
-import { v4 as uuidv4 } from "npm:uuid";
+import { generateId } from "../../common/id.ts";
 
 /**
  * コンテンツ集約を表すインターフェース
@@ -63,9 +63,9 @@ export function createContentAggregate(content: Content): ContentAggregate {
     updateTitle(title: string): ContentAggregate {
       // バージョンを作成
       const version = createVersion({
-        id: uuidv4(),
+        id: generateId(),
         contentId: this.content.id,
-        commitId: uuidv4(), // 実際の実装ではGitHubのコミットIDを使用
+        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
         createdAt: new Date(),
         changes: {
           title
@@ -88,9 +88,9 @@ export function createContentAggregate(content: Content): ContentAggregate {
     updateBody(body: string): ContentAggregate {
       // バージョンを作成
       const version = createVersion({
-        id: uuidv4(),
+        id: generateId(),
         contentId: this.content.id,
-        commitId: uuidv4(), // 実際の実装ではGitHubのコミットIDを使用
+        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
         createdAt: new Date(),
         changes: {
           body
@@ -113,9 +113,9 @@ export function createContentAggregate(content: Content): ContentAggregate {
     updateMetadata(metadata: ContentMetadata): ContentAggregate {
       // バージョンを作成
       const version = createVersion({
-        id: uuidv4(),
+        id: generateId(),
         contentId: this.content.id,
-        commitId: uuidv4(), // 実際の実装ではGitHubのコミットIDを使用
+        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
         createdAt: new Date(),
         changes: {
           metadata

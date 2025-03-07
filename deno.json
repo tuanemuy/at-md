@@ -11,7 +11,8 @@
     "neverthrow": "npm:neverthrow@^8.2.0",
     "@std/expect": "jsr:@std/expect@^0.218.2",
     "@std/testing": "jsr:@std/testing@^0.218.2",
-    "uuid": "npm:uuid@^9.0.1"
+    "uuid": "npm:uuid@^9.0.1",
+    "uuidv7": "npm:uuidv7@^1.0.2"
   },
   "lint": {
     "include": ["src/"],
