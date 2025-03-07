@@ -10,7 +10,8 @@
   "imports": {
     "neverthrow": "npm:neverthrow@^8.2.0",
     "@std/expect": "jsr:@std/expect@^0.218.2",
-    "@std/testing": "jsr:@std/testing@^0.218.2"
+    "@std/testing": "jsr:@std/testing@^0.218.2",
+    "uuid": "npm:uuid@^9.0.1"
   },
   "lint": {
     "include": ["src/"],

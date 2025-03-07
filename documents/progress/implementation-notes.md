@@ -45,8 +45,26 @@
 - 各メソッドは新しいインスタンスを返す不変設計
 - ステータスは「active」「inactive」「syncing」の3種類
 
+### コンテンツ集約実装
+
+#### ContentAggregate
+
+- Contentエンティティをラップし、より高レベルの操作を提供
+- タイトル更新、本文更新、メタデータ更新などの操作を提供
+- 各操作はバージョン履歴を自動的に記録
+- 公開範囲の変更（publish、makePrivate、makeUnlisted）をサポート
+- 不変性を保証するためにObject.freezeを使用
+
+#### RepositoryAggregate
+
+- Repositoryエンティティをラップし、より高レベルの操作を提供
+- リポジトリ名更新、デフォルトブランチ変更などの操作を提供
+- 同期関連の操作（startSync、completeSync）をサポート
+- リポジトリの有効化・無効化（activate、deactivate）をサポート
+- 不変性を保証するためにObject.freezeを使用
+
 ### 次のステップ
 
-- コンテンツ集約（ContentAggregate, RepositoryAggregate）の実装
-- 集約はエンティティと値オブジェクトをまとめ、整合性を保証する役割を持つ
+- コンテンツドメインサービス（VersioningService）の実装
+- ドメインサービスはエンティティや集約間の連携を担当
 - TDDアプローチで実装を進める 

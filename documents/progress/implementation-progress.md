@@ -37,9 +37,9 @@
 - [x] コンテンツエンティティ実装
   - [x] Content
   - [x] Repository
-- [ ] コンテンツ集約実装
-  - [ ] ContentAggregate
-  - [ ] RepositoryAggregate
+- [x] コンテンツ集約実装
+  - [x] ContentAggregate
+  - [x] RepositoryAggregate
 - [ ] コンテンツドメインサービス実装
   - [ ] VersioningService
 

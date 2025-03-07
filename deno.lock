@@ -5,7 +5,8 @@
     "jsr:@std/expect@~0.218.2": "0.218.2",
     "jsr:@std/fmt@~0.218.2": "0.218.2",
     "jsr:@std/testing@~0.218.2": "0.218.2",
-    "npm:neverthrow@^8.2.0": "8.2.0"
+    "npm:neverthrow@^8.2.0": "8.2.0",
+    "npm:uuid@*": "11.1.0"
   },
   "jsr": {
     "@std/assert@0.218.2": {
@@ -37,6 +38,9 @@
       "dependencies": [
         "@rollup/rollup-linux-x64-gnu"
       ]
+    },
+    "uuid@11.1.0": {
+      "integrity": "sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A=="
     }
   },
   "remote": {
@@ -76,7 +80,8 @@
     "dependencies": [
       "jsr:@std/expect@~0.218.2",
       "jsr:@std/testing@~0.218.2",
-      "npm:neverthrow@^8.2.0"
+      "npm:neverthrow@^8.2.0",
+      "npm:uuid@^9.0.1"
     ]
   }
 }
