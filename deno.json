@@ -6,8 +6,8 @@
     "check": "deno check src/**/*.ts",
     "lint": "deno lint src/**/*.ts",
     "check:deps": "deno run -A scripts/check_deps.ts",
-    "db:generate": "deno run -A --node-modules-dir npm:drizzle-kit generate",
-    "db:migrate": "deno run -A --node-modules-dir npm:drizzle-kit migrate"
+    "db:generate": "deno run -A --env-file --node-modules-dir npm:drizzle-kit generate",
+    "db:migrate": "deno run -A --env-file src/infrastructure/database/migrate.ts"
   },
   "imports": {
     "@types/pg": "npm:@types/pg@^8.11.11",
@@ -17,6 +17,7 @@
     "@std/expect": "jsr:@std/expect@^0.218.2",
     "@std/testing": "jsr:@std/testing@^0.218.2",
     "pg": "npm:pg@^8.13.3",
+    "postgres": "npm:postgres@^3.4.3",
     "uuid": "npm:uuid@^9.0.1",
     "uuidv7": "npm:uuidv7@^1.0.2"
   },
