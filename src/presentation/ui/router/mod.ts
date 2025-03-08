@@ -1,7 +1,7 @@
 /**
  * ルーターモジュール
  * 
- * URLとアプリケーション状態を同期するためのルーターを提供します。
+ * URLベースのルーティング機能を提供します。
  */
 
-export { Router, type Route, type RouterParams } from "./router.ts"; 
+export * from "./router.ts"; 

@@ -147,7 +147,7 @@ describe("AppRendererのテスト", () => {
   
   it("ホームページが正しくレンダリングされること", () => {
     // ホームページに設定
-    appState.setCurrentPage(Page.HOME);
+    appState.setState(Page.HOME);
     
     // レンダリング
     const html = appRenderer.render();
@@ -201,12 +201,12 @@ describe("AppRendererのテスト", () => {
     };
     
     // リスナーを登録
-    appState.addChangeListener(listener);
+    appState.addListener(listener);
     
-    // 状態を変更（ページとコンテンツIDの2つの状態が変更される）
+    // 状態を変更
     appState.navigateToContentDetail("content-1");
     
     // リスナーが呼び出されたことを検証
-    expect(callCount).toBe(2);
+    expect(callCount).toBe(1);
   });
 }); 

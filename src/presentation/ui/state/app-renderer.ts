@@ -1,10 +1,11 @@
 /**
  * アプリケーションレンダラー
  * 
- * アプリケーションの状態に基づいてUIをレンダリングします。
+ * アプリケーションの状態に基づいてUIをレンダリングする機能を提供します。
+ * 現在の状態に応じて適切なページコンポーネントをレンダリングします。
  */
 
-import { AppState, Page, StateChangeListener } from "./app-state.ts";
+import { AppState, Page } from "./app-state.ts";
 import { HomePage, HomePageProps } from "../pages/home-page.ts";
 import { ContentPage, ContentPageProps } from "../pages/content-page.ts";
 import { UserPage, UserPageProps } from "../pages/user-page.ts";
@@ -16,7 +17,9 @@ import { ContentDetailProps } from "../components/content-detail.ts";
 import { UserDetailProps } from "../components/user-detail.ts";
 import { FeedDetailProps } from "../components/feed-detail.ts";
 
-// アプリケーションレンダラーのプロパティ型定義
+/**
+ * AppRendererの初期化パラメータ
+ */
 export interface AppRendererProps {
   appState: AppState;
   contentListProps: ContentListProps;
@@ -31,211 +34,172 @@ export interface AppRendererProps {
  * アプリケーションレンダラークラス
  */
 export class AppRenderer {
-  private props: AppRendererProps;
-  private stateChangeListener: StateChangeListener;
-  private container: HTMLElement | null = null;
-  public onRender: (() => void) | null = null;
-  
+  private appState: AppState;
+  private contentListProps: ContentListProps;
+  private userListProps: UserListProps;
+  private feedListProps: FeedListProps;
+  private contentDetailProps: ContentDetailProps;
+  private userDetailProps: UserDetailProps;
+  private feedDetailProps: FeedDetailProps;
+
   /**
    * コンストラクタ
-   * @param props アプリケーションレンダラーのプロパティ
+   * @param props 初期化パラメータ
    */
   constructor(props: AppRendererProps) {
-    this.props = props;
-    
-    // 状態変更リスナーを定義
-    this.stateChangeListener = () => {
-      this.renderToContainer();
-    };
+    this.appState = props.appState;
+    this.contentListProps = props.contentListProps;
+    this.userListProps = props.userListProps;
+    this.feedListProps = props.feedListProps;
+    this.contentDetailProps = props.contentDetailProps;
+    this.userDetailProps = props.userDetailProps;
+    this.feedDetailProps = props.feedDetailProps;
   }
-  
+
   /**
-   * 現在の状態に基づいてUIをレンダリングする
-   * @returns HTML文字列
+   * 現在の状態に基づいてUIをレンダリング
+   * @returns レンダリングされたHTML
    */
-  public render(): string {
-    const { appState } = this.props;
-    const currentPage = appState.getCurrentPage();
-    
+  render(): string {
+    const currentPage = this.appState.getCurrentPage();
+
     switch (currentPage) {
       case Page.HOME:
         return this.renderHomePage();
       case Page.CONTENT_DETAIL:
-        return this.renderContentDetailPage();
+        return this.renderContentPage();
       case Page.USER_DETAIL:
-        return this.renderUserDetailPage();
+        return this.renderUserPage();
       case Page.FEED_DETAIL:
-        return this.renderFeedDetailPage();
+        return this.renderFeedPage();
       default:
         return this.renderHomePage();
     }
   }
-  
+
   /**
-   * ホームページをレンダリングする
-   * @returns HTML文字列
+   * ホームページをレンダリング
    */
   private renderHomePage(): string {
-    const { appState, contentListProps, userListProps, feedListProps } = this.props;
-    
-    // ホームページのプロパティを作成
-    const homePageProps: HomePageProps = {
-      contentListProps,
-      userListProps,
-      feedListProps,
-      onContentSelect: (id) => appState.navigateToContentDetail(id),
-      onUserSelect: (id) => appState.navigateToUserDetail(id),
-      onFeedSelect: (id) => appState.navigateToFeedDetail(id),
+    const props: HomePageProps = {
+      contentListProps: this.contentListProps,
+      userListProps: this.userListProps,
+      feedListProps: this.feedListProps,
+      onContentSelect: (contentId: string) => {
+        this.appState.navigateToContentDetail(contentId);
+      },
+      onUserSelect: (userId: string) => {
+        this.appState.navigateToUserDetail(userId);
+      },
+      onFeedSelect: (feedId: string) => {
+        this.appState.navigateToFeedDetail(feedId);
+      },
     };
-    
-    // ホームページをレンダリング
-    const homePage = new HomePage(homePageProps);
+
+    const homePage = new HomePage(props);
     return homePage.render();
   }
-  
+
   /**
-   * コンテンツ詳細ページをレンダリングする
-   * @returns HTML文字列
+   * コンテンツ詳細ページをレンダリング
    */
-  private renderContentDetailPage(): string {
-    const { appState, contentDetailProps } = this.props;
-    
-    // コンテンツ詳細ページのプロパティを作成
-    const contentPageProps: ContentPageProps = {
-      contentDetailProps,
-      onBack: () => appState.navigateToHome(),
-      onEdit: (id) => {
-        // 編集処理（実際の実装では編集ページに遷移するなど）
-        console.log(`Edit content: ${id}`);
+  private renderContentPage(): string {
+    const contentId = this.appState.getSelectedContentId();
+    if (!contentId) {
+      return this.renderHomePage();
+    }
+
+    const props: ContentPageProps = {
+      contentDetailProps: this.contentDetailProps,
+      onBack: () => {
+        this.appState.navigateToHome();
       },
-      onDelete: (id) => {
-        // 削除処理（実際の実装では削除確認後に削除するなど）
-        console.log(`Delete content: ${id}`);
-        appState.navigateToHome();
+      onEdit: (contentId: string) => {
+        // 編集ページへの遷移処理
+        console.log(`Edit content: ${contentId}`);
+      },
+      onDelete: (contentId: string) => {
+        // 削除処理
+        console.log(`Delete content: ${contentId}`);
+        this.appState.navigateToHome();
       },
     };
-    
-    // コンテンツ詳細ページをレンダリング
-    const contentPage = new ContentPage(contentPageProps);
+
+    const contentPage = new ContentPage(props);
     return contentPage.render();
   }
-  
+
   /**
-   * ユーザー詳細ページをレンダリングする
-   * @returns HTML文字列
+   * ユーザー詳細ページをレンダリング
    */
-  private renderUserDetailPage(): string {
-    const { appState, userDetailProps } = this.props;
-    
-    // ユーザー詳細ページのプロパティを作成
-    const userPageProps: UserPageProps = {
-      userDetailProps,
-      onBack: () => appState.navigateToHome(),
-      onEdit: (id) => {
-        // 編集処理（実際の実装では編集ページに遷移するなど）
-        console.log(`Edit user: ${id}`);
+  private renderUserPage(): string {
+    const userId = this.appState.getSelectedUserId();
+    if (!userId) {
+      return this.renderHomePage();
+    }
+
+    const props: UserPageProps = {
+      userDetailProps: this.userDetailProps,
+      onBack: () => {
+        this.appState.navigateToHome();
       },
-      onDelete: (id) => {
-        // 削除処理（実際の実装では削除確認後に削除するなど）
-        console.log(`Delete user: ${id}`);
-        appState.navigateToHome();
+      onEdit: (userId: string) => {
+        // 編集ページへの遷移処理
+        console.log(`Edit user: ${userId}`);
       },
-      onConnectAtProtocol: (id) => {
+      onDelete: (userId: string) => {
+        // 削除処理
+        console.log(`Delete user: ${userId}`);
+        this.appState.navigateToHome();
+      },
+      onConnectAtProtocol: (userId: string) => {
         // AT Protocol連携処理
-        console.log(`Connect AT Protocol for user: ${id}`);
+        console.log(`Connect AT Protocol for user: ${userId}`);
       },
     };
-    
-    // ユーザー詳細ページをレンダリング
-    const userPage = new UserPage(userPageProps);
+
+    const userPage = new UserPage(props);
     return userPage.render();
   }
-  
+
   /**
-   * フィード詳細ページをレンダリングする
-   * @returns HTML文字列
+   * フィード詳細ページをレンダリング
    */
-  private renderFeedDetailPage(): string {
-    const { appState, feedDetailProps } = this.props;
-    
-    // フィード詳細ページのプロパティを作成
-    const feedPageProps: FeedPageProps = {
-      feedDetailProps,
-      onBack: () => appState.navigateToHome(),
-      onEdit: (id) => {
-        // 編集処理（実際の実装では編集ページに遷移するなど）
-        console.log(`Edit feed: ${id}`);
+  private renderFeedPage(): string {
+    const feedId = this.appState.getSelectedFeedId();
+    if (!feedId) {
+      return this.renderHomePage();
+    }
+
+    const props: FeedPageProps = {
+      feedDetailProps: this.feedDetailProps,
+      onBack: () => {
+        this.appState.navigateToHome();
       },
-      onDelete: (id) => {
-        // 削除処理（実際の実装では削除確認後に削除するなど）
-        console.log(`Delete feed: ${id}`);
-        appState.navigateToHome();
+      onEdit: (feedId: string) => {
+        // 編集ページへの遷移処理
+        console.log(`Edit feed: ${feedId}`);
       },
-      onCreatePost: (feedId) => {
+      onDelete: (feedId: string) => {
+        // 削除処理
+        console.log(`Delete feed: ${feedId}`);
+        this.appState.navigateToHome();
+      },
+      onCreatePost: (feedId: string) => {
         // 投稿作成処理
         console.log(`Create post for feed: ${feedId}`);
       },
-      onEditPost: (postId) => {
+      onEditPost: (postId: string) => {
         // 投稿編集処理
         console.log(`Edit post: ${postId}`);
       },
-      onPublishPost: (postId) => {
+      onPublishPost: (postId: string) => {
         // 投稿公開処理
         console.log(`Publish post: ${postId}`);
       },
     };
-    
-    // フィード詳細ページをレンダリング
-    const feedPage = new FeedPage(feedPageProps);
+
+    const feedPage = new FeedPage(props);
     return feedPage.render();
-  }
-  
-  /**
-   * コンテナにレンダリングする
-   */
-  private renderToContainer(): void {
-    if (this.container) {
-      this.container.innerHTML = this.render();
-      
-      // レンダリング後のコールバックを実行
-      if (this.onRender) {
-        this.onRender();
-      }
-    }
-  }
-  
-  /**
-   * 指定したセレクタのコンテナにマウントする
-   * @param selector DOMセレクタ
-   */
-  public mount(selector: string): void {
-    // コンテナを取得
-    this.container = document.querySelector(selector);
-    
-    if (!this.container) {
-      console.error(`Container not found: ${selector}`);
-      return;
-    }
-    
-    // 状態変更リスナーを登録
-    this.props.appState.addChangeListener(this.stateChangeListener);
-    
-    // 初期レンダリング
-    this.renderToContainer();
-  }
-  
-  /**
-   * アンマウントする
-   */
-  public unmount(): void {
-    // 状態変更リスナーを削除
-    this.props.appState.removeChangeListener(this.stateChangeListener);
-    
-    // コンテナをクリア
-    if (this.container) {
-      this.container.innerHTML = '';
-    }
-    
-    this.container = null;
   }
 } 

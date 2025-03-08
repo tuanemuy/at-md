@@ -1,163 +1,170 @@
 /**
- * ルーターのテスト
- * 
- * URLベースのルーティング機能をテストします。
+ * Routerのテスト
  */
 
 import { expect } from "@std/expect";
 import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
-import { Router, RouterProps, Route } from "../../router/router.ts";
+import { Router } from "../../router/router.ts";
 import { AppState, Page } from "../../state/app-state.ts";
 
-// グローバルにwindowとlocationをモック
+// windowオブジェクトのモック
 const mockWindow = {
   location: {
     pathname: "/",
+    search: "",
+    hash: "",
   },
   history: {
-    pushState: (_state: any, _title: string, url: string) => {
-      mockWindow.location.pathname = url;
+    pushState: (_: unknown, __: string, url: string) => {
+      const urlObj = new URL(url, "http://localhost");
+      mockWindow.location.pathname = urlObj.pathname;
+      mockWindow.location.search = urlObj.search;
+      mockWindow.location.hash = urlObj.hash;
     },
   },
-  addEventListener: () => {},
-  removeEventListener: () => {},
+  addEventListener: (_: string, listener: EventListener) => {
+    mockWindow.popStateListener = listener;
+  },
+  removeEventListener: (_: string, __: EventListener) => {
+    mockWindow.popStateListener = null;
+  },
+  dispatchEvent: (event: Event) => {
+    if (event.type === "popstate" && mockWindow.popStateListener) {
+      mockWindow.popStateListener(event);
+      return true;
+    }
+    return false;
+  },
+  popStateListener: null as EventListener | null,
 };
-
-// グローバル変数を設定
-globalThis.window = mockWindow as any;
 
 describe("Routerのテスト", () => {
   let appState: AppState;
   let router: Router;
-  
+
   beforeEach(() => {
     // テスト前に毎回実行される
-    appState = new AppState({ initialPage: Page.HOME });
-    
-    const routes: Route[] = [
-      { path: "/", page: Page.HOME },
-      { path: "/content/:id", page: Page.CONTENT_DETAIL },
-      { path: "/user/:id", page: Page.USER_DETAIL },
-      { path: "/feed/:id", page: Page.FEED_DETAIL },
-    ];
-    
-    const props: RouterProps = {
-      appState,
-      routes,
-    };
-    
-    // パスをリセット
     mockWindow.location.pathname = "/";
+    mockWindow.location.search = "";
+    mockWindow.location.hash = "";
     
-    router = new Router(props);
+    appState = new AppState({ initialPage: Page.HOME });
+    router = new Router(appState, mockWindow as unknown as Window);
   });
-  
+
   afterEach(() => {
     // テスト後に毎回実行される
     router.stop();
-    // URLをリセット
-    mockWindow.location.pathname = "/";
   });
-  
-  it("初期化時に現在のURLに基づいて状態が設定されること", () => {
-    // URLを設定
-    mockWindow.location.pathname = "/content/content-1";
-    
-    // ルーターを初期化
-    router = new Router({
-      appState,
-      routes: [
-        { path: "/", page: Page.HOME },
-        { path: "/content/:id", page: Page.CONTENT_DETAIL },
-        { path: "/user/:id", page: Page.USER_DETAIL },
-        { path: "/feed/:id", page: Page.FEED_DETAIL },
-      ],
-    });
-    
-    // 状態が正しく設定されていることを検証
+
+  it("現在のURLに基づいて初期状態が設定されること", () => {
+    // ホームページのURL
+    mockWindow.location.pathname = "/";
+    router = new Router(appState, mockWindow as unknown as Window);
+    router.start();
+    expect(appState.getCurrentPage()).toBe(Page.HOME);
+
+    // コンテンツ詳細ページのURL
+    mockWindow.location.pathname = "/content";
+    mockWindow.location.search = "?id=content-1";
+    router = new Router(appState, mockWindow as unknown as Window);
+    router.start();
     expect(appState.getCurrentPage()).toBe(Page.CONTENT_DETAIL);
     expect(appState.getSelectedContentId()).toBe("content-1");
-  });
-  
-  it("状態が変更されるとURLが更新されること", () => {
-    // ルーターを開始
+
+    // ユーザー詳細ページのURL
+    mockWindow.location.pathname = "/user";
+    mockWindow.location.search = "?id=user-1";
+    router = new Router(appState, mockWindow as unknown as Window);
     router.start();
-    
+    expect(appState.getCurrentPage()).toBe(Page.USER_DETAIL);
+    expect(appState.getSelectedUserId()).toBe("user-1");
+
+    // フィード詳細ページのURL
+    mockWindow.location.pathname = "/feed";
+    mockWindow.location.search = "?id=feed-1";
+    router = new Router(appState, mockWindow as unknown as Window);
+    router.start();
+    expect(appState.getCurrentPage()).toBe(Page.FEED_DETAIL);
+    expect(appState.getSelectedFeedId()).toBe("feed-1");
+  });
+
+  it("状態が変更されたときにURLが更新されること", () => {
+    router.start();
+
     // コンテンツ詳細ページに遷移
-    appState.navigateToContentDetail("content-2");
-    
-    // URLが更新されていることを検証
-    expect(mockWindow.location.pathname).toBe("/content/content-2");
-    
+    appState.navigateToContentDetail("content-1");
+    expect(mockWindow.location.pathname).toBe("/content");
+    expect(mockWindow.location.search).toBe("?id=content-1");
+
     // ユーザー詳細ページに遷移
     appState.navigateToUserDetail("user-1");
-    
-    // URLが更新されていることを検証
-    expect(mockWindow.location.pathname).toBe("/user/user-1");
-    
+    expect(mockWindow.location.pathname).toBe("/user");
+    expect(mockWindow.location.search).toBe("?id=user-1");
+
     // フィード詳細ページに遷移
     appState.navigateToFeedDetail("feed-1");
-    
-    // URLが更新されていることを検証
-    expect(mockWindow.location.pathname).toBe("/feed/feed-1");
-    
+    expect(mockWindow.location.pathname).toBe("/feed");
+    expect(mockWindow.location.search).toBe("?id=feed-1");
+
     // ホームページに遷移
     appState.navigateToHome();
-    
-    // URLが更新されていることを検証
     expect(mockWindow.location.pathname).toBe("/");
+    expect(mockWindow.location.search).toBe("");
   });
-  
-  it("URLが変更されると状態が更新されること", () => {
-    // ルーターを開始
+
+  it("URLが変更されたときに状態が更新されること", () => {
     router.start();
-    
-    // URLを変更
-    mockWindow.location.pathname = "/content/content-3";
-    
-    // 状態を同期
-    router["syncStateFromUrl"]();
-    
-    // 状態が更新されていることを検証
+
+    // コンテンツ詳細ページのURLに変更
+    mockWindow.location.pathname = "/content";
+    mockWindow.location.search = "?id=content-1";
+    mockWindow.dispatchEvent(new Event("popstate"));
     expect(appState.getCurrentPage()).toBe(Page.CONTENT_DETAIL);
-    expect(appState.getSelectedContentId()).toBe("content-3");
-    
-    // 別のURLに変更
-    mockWindow.location.pathname = "/user/user-2";
-    
-    // 状態を同期
-    router["syncStateFromUrl"]();
-    
-    // 状態が更新されていることを検証
+    expect(appState.getSelectedContentId()).toBe("content-1");
+
+    // ユーザー詳細ページのURLに変更
+    mockWindow.location.pathname = "/user";
+    mockWindow.location.search = "?id=user-1";
+    mockWindow.dispatchEvent(new Event("popstate"));
     expect(appState.getCurrentPage()).toBe(Page.USER_DETAIL);
-    expect(appState.getSelectedUserId()).toBe("user-2");
+    expect(appState.getSelectedUserId()).toBe("user-1");
+
+    // フィード詳細ページのURLに変更
+    mockWindow.location.pathname = "/feed";
+    mockWindow.location.search = "?id=feed-1";
+    mockWindow.dispatchEvent(new Event("popstate"));
+    expect(appState.getCurrentPage()).toBe(Page.FEED_DETAIL);
+    expect(appState.getSelectedFeedId()).toBe("feed-1");
+
+    // ホームページのURLに変更
+    mockWindow.location.pathname = "/";
+    mockWindow.location.search = "";
+    mockWindow.dispatchEvent(new Event("popstate"));
+    expect(appState.getCurrentPage()).toBe(Page.HOME);
   });
-  
-  it("ルーターを停止すると状態変更時にURLが更新されないこと", () => {
-    // ルーターを開始
+
+  it("停止後はURLの変更を監視しないこと", () => {
     router.start();
-    
-    // ルーターを停止
     router.stop();
-    
-    // コンテンツ詳細ページに遷移
-    appState.navigateToContentDetail("content-4");
-    
-    // URLが更新されていないことを検証
-    expect(mockWindow.location.pathname).toBe("/");
+
+    // URLを変更
+    mockWindow.location.pathname = "/content";
+    mockWindow.location.search = "?id=content-1";
+    mockWindow.dispatchEvent(new Event("popstate"));
+
+    // 状態が変更されないこと
+    expect(appState.getCurrentPage()).toBe(Page.HOME);
   });
-  
-  it("マッチするルートがない場合はホームページに遷移すること", () => {
-    // ルーターを開始
+
+  it("未知のパスの場合はホームページに遷移すること", () => {
     router.start();
-    
-    // 存在しないパスにURLを変更
-    mockWindow.location.pathname = "/unknown/path";
-    
-    // 状態を同期
-    router["syncStateFromUrl"]();
-    
-    // ホームページに遷移していることを検証
+
+    // 未知のパスに変更
+    mockWindow.location.pathname = "/unknown";
+    mockWindow.dispatchEvent(new Event("popstate"));
+
+    // ホームページに遷移すること
     expect(appState.getCurrentPage()).toBe(Page.HOME);
   });
 }); 

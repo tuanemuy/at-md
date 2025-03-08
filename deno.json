@@ -30,8 +30,6 @@
     "@std/testing": "jsr:@std/testing@^0.218.2",
     "octokit": "npm:octokit@^4.1.2",
     "pg": "npm:pg@^8.13.3",
-    "postgres": "npm:postgres@^3.4.3",
-    "uuid": "npm:uuid@^9.0.1",
     "uuidv7": "npm:uuidv7@^1.0.2"
   },
   "lint": {

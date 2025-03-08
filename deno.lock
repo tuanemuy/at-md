@@ -52,10 +52,7 @@
     "npm:octokit@^4.1.2": "4.1.2_@octokit+core@6.1.4",
     "npm:pg@*": "8.13.3",
     "npm:pg@^8.13.3": "8.13.3",
-    "npm:postgres@*": "3.4.5",
-    "npm:postgres@^3.4.3": "3.4.5",
     "npm:uuid@*": "11.1.0",
-    "npm:uuid@^9.0.1": "9.0.1",
     "npm:uuidv7@^1.0.2": "1.0.2"
   },
   "jsr": {
@@ -1639,9 +1636,6 @@
     "postgres-range@1.1.4": {
       "integrity": "sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w=="
     },
-    "postgres@3.4.5": {
-      "integrity": "sha512-cDWgoah1Gez9rN3H4165peY9qfpEo+SA61oQv65O3cRUE1pOEoJWwddwcqKE8XZYjbblOJlYDlLV4h67HrEVDg=="
-    },
     "process-nextick-args@2.0.1": {
       "integrity": "sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag=="
     },
@@ -1963,9 +1957,6 @@
     },
     "uuid@11.1.0": {
       "integrity": "sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A=="
-    },
-    "uuid@9.0.1": {
-      "integrity": "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="
     },
     "uuidv7@1.0.2": {
       "integrity": "sha512-8JQkH4ooXnm1JCIhqTMbtmdnYEn6oKukBxHn1Ic9878jMkL7daTI7anTExfY18VRCX7tcdn5quzvCb6EWrR8PA=="
@@ -2443,8 +2434,6 @@
       "npm:neverthrow@^8.2.0",
       "npm:octokit@^4.1.2",
       "npm:pg@^8.13.3",
-      "npm:postgres@^3.4.3",
-      "npm:uuid@^9.0.1",
       "npm:uuidv7@^1.0.2"
     ]
   }
