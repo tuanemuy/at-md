@@ -4,3 +4,4 @@
  */
 
 export * from "./feed-query.ts";
+export * from "./post-query.ts";
