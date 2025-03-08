@@ -1,167 +1,204 @@
 /**
- * アプリケーション状態管理
+ * アプリケーションの状態管理
  * 
- * アプリケーション全体の状態を管理します。
+ * アプリケーション全体の状態を管理し、ページ遷移やデータの選択状態を制御します。
  */
 
-// ページの種類を定義
+// 表示可能なページの種類
 export enum Page {
   HOME = "home",
+  CONTENT_LIST = "content_list",
   CONTENT_DETAIL = "content_detail",
+  CONTENT_EDIT = "content_edit",
+  USER_LIST = "user_list",
   USER_DETAIL = "user_detail",
+  USER_EDIT = "user_edit",
+  FEED_LIST = "feed_list",
   FEED_DETAIL = "feed_detail",
+  FEED_EDIT = "feed_edit",
 }
 
-// 状態変更リスナーの型定義
-export type StateChangeListener = () => void;
-
-// アプリケーション状態のプロパティ型定義
-export interface AppStateProps {
+// AppStateの初期化パラメータ
+export interface AppStateParams {
   initialPage: Page;
+  selectedContentId?: string;
+  selectedUserId?: string;
+  selectedFeedId?: string;
 }
+
+// 状態変更時のリスナー関数の型
+type StateChangeListener = () => void;
 
 /**
- * アプリケーション状態管理クラス
+ * アプリケーションの状態を管理するクラス
  */
 export class AppState {
   private currentPage: Page;
-  private selectedContentId: string | null = null;
-  private selectedUserId: string | null = null;
-  private selectedFeedId: string | null = null;
+  private selectedContentId: string | undefined;
+  private selectedUserId: string | undefined;
+  private selectedFeedId: string | undefined;
   private listeners: StateChangeListener[] = [];
-  
-  /**
-   * コンストラクタ
-   * @param props アプリケーション状態のプロパティ
-   */
-  constructor(props: AppStateProps) {
-    this.currentPage = props.initialPage;
+
+  constructor(params: AppStateParams) {
+    this.currentPage = params.initialPage;
+    this.selectedContentId = params.selectedContentId;
+    this.selectedUserId = params.selectedUserId;
+    this.selectedFeedId = params.selectedFeedId;
   }
-  
+
   /**
-   * 現在のページを取得する
-   * @returns 現在のページ
+   * 状態変更リスナーを追加
+   */
+  public addListener(listener: StateChangeListener): void {
+    this.listeners.push(listener);
+  }
+
+  /**
+   * 状態変更リスナーを削除
+   */
+  public removeListener(listener: StateChangeListener): void {
+    this.listeners = this.listeners.filter(l => l !== listener);
+  }
+
+  /**
+   * リスナーに状態変更を通知
+   */
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => listener());
+  }
+
+  /**
+   * 現在のページを取得
    */
   public getCurrentPage(): Page {
     return this.currentPage;
   }
-  
+
   /**
-   * 現在のページを設定する
-   * @param page 設定するページ
+   * 選択中のコンテンツIDを取得
    */
-  public setCurrentPage(page: Page): void {
-    this.currentPage = page;
-    this.notifyListeners();
-  }
-  
-  /**
-   * 選択中のコンテンツIDを取得する
-   * @returns 選択中のコンテンツID
-   */
-  public getSelectedContentId(): string | null {
+  public getSelectedContentId(): string | undefined {
     return this.selectedContentId;
   }
-  
+
   /**
-   * 選択中のコンテンツIDを設定する
-   * @param id 設定するコンテンツID
+   * 選択中のユーザーIDを取得
    */
-  public setSelectedContentId(id: string | null): void {
-    this.selectedContentId = id;
-    this.notifyListeners();
-  }
-  
-  /**
-   * 選択中のユーザーIDを取得する
-   * @returns 選択中のユーザーID
-   */
-  public getSelectedUserId(): string | null {
+  public getSelectedUserId(): string | undefined {
     return this.selectedUserId;
   }
-  
+
   /**
-   * 選択中のユーザーIDを設定する
-   * @param id 設定するユーザーID
+   * 選択中のフィードIDを取得
    */
-  public setSelectedUserId(id: string | null): void {
-    this.selectedUserId = id;
-    this.notifyListeners();
-  }
-  
-  /**
-   * 選択中のフィードIDを取得する
-   * @returns 選択中のフィードID
-   */
-  public getSelectedFeedId(): string | null {
+  public getSelectedFeedId(): string | undefined {
     return this.selectedFeedId;
   }
-  
+
   /**
-   * 選択中のフィードIDを設定する
-   * @param id 設定するフィードID
-   */
-  public setSelectedFeedId(id: string | null): void {
-    this.selectedFeedId = id;
-    this.notifyListeners();
-  }
-  
-  /**
-   * ホームページに遷移する
+   * ホームページに遷移
    */
   public navigateToHome(): void {
-    this.setCurrentPage(Page.HOME);
+    this.currentPage = Page.HOME;
+    this.notifyListeners();
   }
-  
+
   /**
-   * コンテンツ詳細ページに遷移する
-   * @param contentId コンテンツID
+   * コンテンツ一覧ページに遷移
+   */
+  public navigateToContentList(): void {
+    this.currentPage = Page.CONTENT_LIST;
+    this.notifyListeners();
+  }
+
+  /**
+   * コンテンツ詳細ページに遷移
    */
   public navigateToContentDetail(contentId: string): void {
-    this.setSelectedContentId(contentId);
-    this.setCurrentPage(Page.CONTENT_DETAIL);
+    this.currentPage = Page.CONTENT_DETAIL;
+    this.selectedContentId = contentId;
+    this.notifyListeners();
   }
-  
+
   /**
-   * ユーザー詳細ページに遷移する
-   * @param userId ユーザーID
+   * コンテンツ編集ページに遷移
+   */
+  public navigateToContentEdit(contentId?: string): void {
+    this.currentPage = Page.CONTENT_EDIT;
+    this.selectedContentId = contentId;
+    this.notifyListeners();
+  }
+
+  /**
+   * ユーザー一覧ページに遷移
+   */
+  public navigateToUserList(): void {
+    this.currentPage = Page.USER_LIST;
+    this.notifyListeners();
+  }
+
+  /**
+   * ユーザー詳細ページに遷移
    */
   public navigateToUserDetail(userId: string): void {
-    this.setSelectedUserId(userId);
-    this.setCurrentPage(Page.USER_DETAIL);
+    this.currentPage = Page.USER_DETAIL;
+    this.selectedUserId = userId;
+    this.notifyListeners();
   }
-  
+
   /**
-   * フィード詳細ページに遷移する
-   * @param feedId フィードID
+   * ユーザー編集ページに遷移
+   */
+  public navigateToUserEdit(userId?: string): void {
+    this.currentPage = Page.USER_EDIT;
+    this.selectedUserId = userId;
+    this.notifyListeners();
+  }
+
+  /**
+   * フィード一覧ページに遷移
+   */
+  public navigateToFeedList(): void {
+    this.currentPage = Page.FEED_LIST;
+    this.notifyListeners();
+  }
+
+  /**
+   * フィード詳細ページに遷移
    */
   public navigateToFeedDetail(feedId: string): void {
-    this.setSelectedFeedId(feedId);
-    this.setCurrentPage(Page.FEED_DETAIL);
+    this.currentPage = Page.FEED_DETAIL;
+    this.selectedFeedId = feedId;
+    this.notifyListeners();
   }
-  
+
   /**
-   * 状態変更リスナーを追加する
-   * @param listener 追加するリスナー
+   * フィード編集ページに遷移
    */
-  public addChangeListener(listener: StateChangeListener): void {
-    this.listeners.push(listener);
+  public navigateToFeedEdit(feedId?: string): void {
+    this.currentPage = Page.FEED_EDIT;
+    this.selectedFeedId = feedId;
+    this.notifyListeners();
   }
-  
+
   /**
-   * 状態変更リスナーを削除する
-   * @param listener 削除するリスナー
+   * 状態を直接設定（ルーターなどの外部からの更新用）
    */
-  public removeChangeListener(listener: StateChangeListener): void {
-    this.listeners = this.listeners.filter(l => l !== listener);
-  }
-  
-  /**
-   * すべてのリスナーに状態変更を通知する
-   */
-  private notifyListeners(): void {
-    for (const listener of this.listeners) {
-      listener();
+  public setState(page: Page, contentId?: string, userId?: string, feedId?: string): void {
+    this.currentPage = page;
+    
+    if (contentId !== undefined) {
+      this.selectedContentId = contentId;
     }
+    
+    if (userId !== undefined) {
+      this.selectedUserId = userId;
+    }
+    
+    if (feedId !== undefined) {
+      this.selectedFeedId = feedId;
+    }
+    
+    this.notifyListeners();
   }
 } 
