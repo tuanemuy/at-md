@@ -95,7 +95,10 @@
 ### 4.2 配信アプリケーションサービス
 
 - [x] 配信リポジトリインターフェース定義
-- [ ] 配信関連コマンドハンドラー実装
+- [x] 配信関連コマンドハンドラー実装
+  - [x] CreateFeedCommandHandler
+  - [x] UpdateFeedCommandHandler
+  - [x] DeleteFeedCommandHandler
 - [ ] 配信関連クエリハンドラー実装
 - [ ] 配信スケジューリングサービス実装
 
