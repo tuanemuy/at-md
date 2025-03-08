@@ -99,7 +99,10 @@
   - [x] CreateFeedCommandHandler
   - [x] UpdateFeedCommandHandler
   - [x] DeleteFeedCommandHandler
-- [ ] 配信関連クエリハンドラー実装
+- [x] 配信関連クエリハンドラー実装
+  - [x] GetFeedByIdQueryHandler
+  - [x] GetFeedsByUserIdQueryHandler
+  - [x] GetFeedByNameQueryHandler
 - [ ] 配信スケジューリングサービス実装
 
 ### 4.3 アカウント管理アプリケーションサービス
