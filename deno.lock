@@ -42,6 +42,8 @@
     "npm:graphql@*": "16.10.0",
     "npm:graphql@^16.8.1": "16.10.0",
     "npm:hono@^4.7.4": "4.7.4",
+    "npm:marked@*": "15.0.7",
+    "npm:marked@^12.0.1": "12.0.2",
     "npm:neverthrow@*": "8.2.0",
     "npm:neverthrow@^8.2.0": "8.2.0",
     "npm:octokit@*": "4.1.2_@octokit+core@6.1.4",
@@ -1223,6 +1225,12 @@
     "lru-cache@10.4.3": {
       "integrity": "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="
     },
+    "marked@12.0.2": {
+      "integrity": "sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q=="
+    },
+    "marked@15.0.7": {
+      "integrity": "sha512-dgLIeKGLx5FwziAnsk4ONoGwHwGPJzselimvlVskE9XLN4Orv9u2VA3GWw/lYUqjfA0rUT/6fqKwfZJapP9BEg=="
+    },
     "minimatch@5.1.6": {
       "integrity": "sha512-lKwV/1brpG6mBUFHtb7NUmtABCb2WZZmm2wNiOA5hAb8VdCS4B3dtMWyvcoViccwAW/COERjXLt0zP1zXUN26g==",
       "dependencies": [
@@ -2121,6 +2129,7 @@
       "npm:graphql-yoga@^5.2.0",
       "npm:graphql@^16.8.1",
       "npm:hono@^4.7.4",
+      "npm:marked@^12.0.1",
       "npm:neverthrow@^8.2.0",
       "npm:octokit@^4.1.2",
       "npm:pg@^8.13.3",
