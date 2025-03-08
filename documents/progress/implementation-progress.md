@@ -123,7 +123,10 @@
   - [x] GetUserByEmailQueryHandler
   - [x] GetUserByDidQueryHandler
   - [x] GetUserByHandleQueryHandler
-- [ ] 外部サービス連携サービス実装
+- [x] 外部サービス連携サービス実装
+  - [x] GitHubApiAdapter連携
+  - [x] AtProtocolAdapter連携
+  - [x] ObsidianAdapter連携
 
 ### 4.4 表示アプリケーションサービス
 
@@ -159,8 +162,17 @@
 ### 5.2 外部サービス連携
 
 - [x] GitHub連携
+  - [x] GitHubApiAdapterインターフェース定義
+  - [x] OctokitGitHubApiAdapter実装
+  - [x] テスト実装
 - [x] AT Protocol連携
+  - [x] AtProtocolAdapterインターフェース定義
+  - [x] BskyAtProtocolAdapter実装
+  - [x] テスト実装
 - [x] Obsidian連携
+  - [x] ObsidianAdapterインターフェース定義
+  - [x] FsObsidianAdapter実装
+  - [x] テスト実装
 
 ## フェーズ6: プレゼンテーションレイヤー実装
 
@@ -206,4 +218,4 @@
 
 ## 最終更新日
 
-2024年8月3日
+2024年8月4日

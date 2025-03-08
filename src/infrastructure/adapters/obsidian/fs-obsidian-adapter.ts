@@ -64,6 +64,20 @@ export class FsObsidianAdapter implements ObsidianAdapter {
 
     try {
       const fullPath = this.joinPaths(this.vaultPath, path);
+      
+      // ファイルが存在するか確認
+      try {
+        const stat = await Deno.stat(fullPath);
+        if (!stat.isFile) {
+          return err(new ObsidianError(`指定されたパスはファイルではありません: ${path}`));
+        }
+      } catch (error) {
+        if (error instanceof Deno.errors.NotFound) {
+          return err(new ObsidianError(`ノートが見つかりませんでした: ${path}`));
+        }
+        throw error;
+      }
+      
       const content = await Deno.readTextFile(fullPath);
       
       // ノート情報を解析
@@ -91,6 +105,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       
       return ok(note);
     } catch (error) {
+      console.error("ノート取得エラー:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       return err(new ObsidianError(`ノートを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
@@ -124,14 +139,33 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       let fileContent = content;
       if (frontMatter && Object.keys(frontMatter).length > 0) {
         const yamlFrontMatter = this.createYamlFrontMatter(frontMatter);
-        fileContent = `---\n${yamlFrontMatter}---\n\n${content}`;
+        fileContent = `---\n${yamlFrontMatter}\n---\n\n${content}`;
       }
       
       // ファイルに書き込む
       await Deno.writeTextFile(fullPath, fileContent);
       
       // 保存したノートの情報を返す
-      return this.getNote(path);
+      const noteResult = await this.getNote(path);
+      if (noteResult.isErr()) {
+        // getNote が失敗した場合は、基本的な情報だけでも返す
+        const name = this.getNameFromPath(path);
+        const note: ObsidianNote = {
+          path,
+          name: name || path.split("/").pop()?.replace(/\.md$/, "") || "Untitled",
+          content,
+          frontMatter,
+          tags: frontMatter?.tags && Array.isArray(frontMatter.tags) 
+            ? [...frontMatter.tags as string[]] 
+            : [],
+          links: [],
+          backlinks: [],
+          createdAt: new Date(),
+          modifiedAt: new Date(),
+        };
+        return ok(note);
+      }
+      return noteResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return err(new ObsidianError(`ノートを保存できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
@@ -389,6 +423,8 @@ export class FsObsidianAdapter implements ObsidianAdapter {
         cleanContent = content.substring(frontMatterMatch[0].length);
       } catch (error) {
         console.warn("フロントマターの解析に失敗しました:", error);
+        // エラーが発生しても処理を続行
+        frontMatter = {};
       }
     }
     
@@ -401,8 +437,8 @@ export class FsObsidianAdapter implements ObsidianAdapter {
     }
     
     // フロントマターのタグも追加
-    if (frontMatter && Array.isArray(frontMatter.tags)) {
-      tags.push(...frontMatter.tags);
+    if (frontMatter && frontMatter.tags && Array.isArray(frontMatter.tags)) {
+      tags.push(...(frontMatter.tags as string[]));
     }
     
     // リンクを抽出
@@ -446,7 +482,8 @@ export class FsObsidianAdapter implements ObsidianAdapter {
         const arrayItems: string[] = [];
         let j = i + 1;
         while (j < lines.length && lines[j].trim().startsWith("-")) {
-          arrayItems.push(lines[j].trim().substring(1).trim());
+          const itemValue = lines[j].trim().substring(1).trim();
+          arrayItems.push(itemValue);
           j++;
         }
         if (arrayItems.length > 0) {
