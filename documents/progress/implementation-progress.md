@@ -117,7 +117,12 @@
 - [x] アカウント関連コマンドハンドラー実装
   - [x] CreateUserCommandHandler
   - [x] テスト実装
-- [ ] アカウント関連クエリハンドラー実装
+- [x] アカウント関連クエリハンドラー実装
+  - [x] GetUserByIdQueryHandler
+  - [x] GetUserByUsernameQueryHandler
+  - [x] GetUserByEmailQueryHandler
+  - [x] GetUserByDidQueryHandler
+  - [x] GetUserByHandleQueryHandler
 - [ ] 外部サービス連携サービス実装
 
 ### 4.4 表示アプリケーションサービス
