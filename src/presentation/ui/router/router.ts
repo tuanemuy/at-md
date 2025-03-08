@@ -143,6 +143,7 @@ export class Router {
     }
 
     // URLを更新（履歴に追加）
+    // @ts-ignore: Window型にhistoryプロパティが存在することを保証
     this.window.history.pushState({}, "", url);
   }
 } 

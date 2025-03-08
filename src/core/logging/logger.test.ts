@@ -41,21 +41,21 @@ describe("ロガー", () => {
       expect(warnCalled).toBe(true);
       expect(errorCalled).toBe(true);
       
-      expect(debugArgs[0]).toContain("[DEBUG]");
       expect(debugArgs[0]).toContain("[TestLogger]");
-      expect(debugArgs[1]).toBe("デバッグメッセージ");
+      expect(debugArgs[0]).toContain("[DEBUG]");
+      expect(debugArgs[0]).toContain("デバッグメッセージ");
       
-      expect(infoArgs[0]).toContain("[INFO]");
       expect(infoArgs[0]).toContain("[TestLogger]");
-      expect(infoArgs[1]).toBe("情報メッセージ");
+      expect(infoArgs[0]).toContain("[INFO]");
+      expect(infoArgs[0]).toContain("情報メッセージ");
       
-      expect(warnArgs[0]).toContain("[WARN]");
       expect(warnArgs[0]).toContain("[TestLogger]");
-      expect(warnArgs[1]).toBe("警告メッセージ");
+      expect(warnArgs[0]).toContain("[WARN]");
+      expect(warnArgs[0]).toContain("警告メッセージ");
       
-      expect(errorArgs[0]).toContain("[ERROR]");
       expect(errorArgs[0]).toContain("[TestLogger]");
-      expect(errorArgs[1]).toBe("エラーメッセージ");
+      expect(errorArgs[0]).toContain("[ERROR]");
+      expect(errorArgs[0]).toContain("エラーメッセージ");
     } finally {
       // コンソールメソッドを元に戻す
       console.debug = originalConsole.debug;
@@ -123,10 +123,10 @@ describe("ロガー", () => {
       
       // アサーション
       expect(infoArgs.length).toBeGreaterThan(0);
-      expect(infoArgs[0]).toContain("[INFO]");
       expect(infoArgs[0]).toContain("[TestLogger]");
-      expect(infoArgs[1]).toBe("ユーザーログイン");
-      expect(infoArgs[2]).toBe(context);
+      expect(infoArgs[0]).toContain("[INFO]");
+      expect(infoArgs[0]).toContain("ユーザーログイン");
+      expect(infoArgs[1]).toBe(context);
     } finally {
       // コンソールメソッドを元に戻す
       console.info = originalConsole.info;

@@ -5,6 +5,7 @@
 
 import { AtIdentifier, createAtIdentifier } from "../value-objects/mod.ts";
 import { UserAggregate } from "../aggregates/mod.ts";
+import { UserRepository } from "../../../application/account/repositories/user-repository.ts";
 
 /**
  * 認証サービスのインターフェース
@@ -62,7 +63,7 @@ export interface TokenVerificationResult {
   /**
    * ユーザーID（検証成功時のみ）
    */
-  userId?: string;
+  userId?: string | null;
   
   /**
    * ATプロトコル識別子（検証成功時のみ）
@@ -76,6 +77,42 @@ export interface TokenVerificationResult {
 }
 
 /**
+ * ATプロトコルクライアントインターフェース
+ */
+export interface AtProtocolClient {
+  /**
+   * 認証コードをアクセストークンに交換する
+   * @param authCode 認証コード
+   * @returns 交換結果
+   */
+  exchangeAuthCode(authCode: string): Promise<{
+    success: boolean;
+    accessToken?: string;
+    error?: string;
+  }>;
+
+  /**
+   * ユーザー情報を取得する
+   * @param accessToken アクセストークン
+   * @returns ユーザー情報
+   */
+  getUserInfo(accessToken: string): Promise<{
+    did: string;
+    handle?: string;
+  }>;
+}
+
+/**
+ * トークンペイロードの型定義
+ */
+interface TokenPayload {
+  userId: string | null;
+  did: string;
+  handle?: string;
+  exp: number;
+}
+
+/**
  * 認証サービスの実装
  */
 export class AuthServiceImpl implements AuthService {
@@ -83,20 +120,20 @@ export class AuthServiceImpl implements AuthService {
    * ユーザーリポジトリ
    * 実際の実装では、インフラストラクチャ層で提供されるリポジトリを使用します。
    */
-  private userRepository: any;
+  private userRepository: UserRepository;
   
   /**
    * ATプロトコルクライアント
    * 実際の実装では、インフラストラクチャ層で提供されるクライアントを使用します。
    */
-  private atProtocolClient: any;
+  private atProtocolClient: AtProtocolClient;
   
   /**
    * コンストラクタ
    * @param userRepository ユーザーリポジトリ
    * @param atProtocolClient ATプロトコルクライアント
    */
-  constructor(userRepository: any, atProtocolClient: any) {
+  constructor(userRepository: UserRepository, atProtocolClient: AtProtocolClient) {
     this.userRepository = userRepository;
     this.atProtocolClient = atProtocolClient;
   }
@@ -120,7 +157,7 @@ export class AuthServiceImpl implements AuthService {
       }
       
       // ATプロトコルからユーザー情報を取得
-      const userInfo = await this.atProtocolClient.getUserInfo(atProtocolResponse.accessToken);
+      const userInfo = await this.atProtocolClient.getUserInfo(atProtocolResponse.accessToken!);
       
       if (!userInfo.did) {
         return {
@@ -133,10 +170,10 @@ export class AuthServiceImpl implements AuthService {
       const atIdentifier = createAtIdentifier(userInfo.did, userInfo.handle);
       
       // ユーザーが存在するか確認
-      const existingUser = await this.userRepository.findByAtIdentifier(atIdentifier.value);
+      const existingUser = await this.userRepository.findByDid(atIdentifier.value);
       
       // 認証トークンを生成
-      const token = this.generateToken(existingUser ? existingUser.id : null, atIdentifier);
+      const token = this.generateToken(existingUser ? existingUser.user.id : null, atIdentifier);
       
       return {
         success: true,
@@ -222,12 +259,12 @@ export class AuthServiceImpl implements AuthService {
    * @param token 認証トークン
    * @returns デコードされたペイロード
    */
-  private decodeToken(token: string): any {
+  private decodeToken(token: string): TokenPayload | null {
     try {
       // 簡易的なトークンデコード（実際のアプリケーションでは使用しないでください）
       // Denoでは、atob()を使用してBase64デコードを行います
       const jsonString = atob(token);
-      const payload = JSON.parse(jsonString);
+      const payload = JSON.parse(jsonString) as TokenPayload;
       return payload;
     } catch (error) {
       return null;

@@ -195,14 +195,22 @@ export class DrizzleUserRepository implements UserRepository {
    * @param user データベースのユーザー
    * @returns ユーザー集約
    */
-  private mapToUserAggregate(user: any): UserAggregate {
+  private mapToUserAggregate(user: {
+    id: string;
+    username: string;
+    email: string;
+    atDid: string;
+    atHandle: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }): UserAggregate {
     return createUserAggregate({
       id: user.id,
       username: user.username,
       email: user.email,
       atIdentifier: {
         did: user.atDid,
-        handle: user.atHandle
+        handle: user.atHandle ?? undefined
       },
       createdAt: user.createdAt,
       updatedAt: user.updatedAt

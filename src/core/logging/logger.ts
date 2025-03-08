@@ -12,10 +12,10 @@ export enum LogLevel {
  * ロガーインターフェース
  */
 export interface ILogger {
-  debug(message: string, ...args: any[]): void;
-  info(message: string, ...args: any[]): void;
-  warn(message: string, ...args: any[]): void;
-  error(message: string, ...args: any[]): void;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
 }
 
 /**
@@ -31,38 +31,46 @@ export class Logger implements ILogger {
   }
   
   /**
-   * デバッグログを出力
+   * デバッグレベルのログを出力する
+   * @param message メッセージ
+   * @param args 追加の引数
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.DEBUG)) {
-      console.debug(`[DEBUG] [${this.name}]:`, message, ...args);
+      console.debug(`[${this.name}] [DEBUG] ${message}`, ...args);
     }
   }
   
   /**
-   * 情報ログを出力
+   * 情報レベルのログを出力する
+   * @param message メッセージ
+   * @param args 追加の引数
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.INFO)) {
-      console.info(`[INFO] [${this.name}]:`, message, ...args);
+      console.info(`[${this.name}] [INFO] ${message}`, ...args);
     }
   }
   
   /**
-   * 警告ログを出力
+   * 警告レベルのログを出力する
+   * @param message メッセージ
+   * @param args 追加の引数
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.WARN)) {
-      console.warn(`[WARN] [${this.name}]:`, message, ...args);
+      console.warn(`[${this.name}] [WARN] ${message}`, ...args);
     }
   }
   
   /**
-   * エラーログを出力
+   * エラーレベルのログを出力する
+   * @param message メッセージ
+   * @param args 追加の引数
    */
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     if (this.shouldLog(LogLevel.ERROR)) {
-      console.error(`[ERROR] [${this.name}]:`, message, ...args);
+      console.error(`[${this.name}] [ERROR] ${message}`, ...args);
     }
   }
   

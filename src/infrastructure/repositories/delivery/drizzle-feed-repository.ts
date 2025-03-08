@@ -4,24 +4,26 @@
  */
 
 import { eq, and, SQL } from "drizzle-orm";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { FeedRepository } from "../../../application/delivery/repositories/feed-repository.ts";
 import { FeedAggregate, createFeedAggregate, createNewFeedAggregate } from "../../../core/delivery/aggregates/feed-aggregate.ts";
 import { Feed, createFeed } from "../../../core/delivery/entities/feed.ts";
 import { FeedMetadata, createFeedMetadata } from "../../../core/delivery/value-objects/feed-metadata.ts";
 import { feeds } from "../../database/schema/display.ts";
+import { Schema } from "../../database/schema/mod.ts";
 
 /**
  * DrizzleFeedRepository
  * フィードリポジトリのDrizzle実装
  */
 export class DrizzleFeedRepository implements FeedRepository {
-  private db: any;
+  private db: NodePgDatabase<Record<string, unknown>>;
 
   /**
    * コンストラクタ
    * @param db Drizzleデータベース
    */
-  constructor(db: any) {
+  constructor(db: NodePgDatabase<Record<string, unknown>>) {
     this.db = db;
   }
 
@@ -74,12 +76,12 @@ export class DrizzleFeedRepository implements FeedRepository {
           filteredResult = filteredResult.slice(0, options.limit);
         }
         
-        return filteredResult.map((feedData: any) => this.mapToFeedAggregate(feedData));
+        return filteredResult.map((feedData) => this.mapToFeedAggregate(feedData));
       }
       
       // 通常のクエリ実行
       const result = await query.execute();
-      return result.map((feedData: any) => this.mapToFeedAggregate(feedData));
+      return result.map((feedData) => this.mapToFeedAggregate(feedData));
     } catch (error) {
       console.error("ユーザーIDによるフィードの検索中にエラーが発生しました:", error);
       throw error;
@@ -187,7 +189,15 @@ export class DrizzleFeedRepository implements FeedRepository {
    * @param feedData データベースのフィードデータ
    * @returns フィード集約
    */
-  private mapToFeedAggregate(feedData: any): FeedAggregate {
+  private mapToFeedAggregate(feedData: {
+    id: string;
+    userId: string;
+    name: string;
+    description: string;
+    isDefault: boolean;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+  }): FeedAggregate {
     // メタデータを作成
     const metadata = createFeedMetadata({
       type: "personal",
@@ -202,8 +212,8 @@ export class DrizzleFeedRepository implements FeedRepository {
       name: feedData.name,
       metadata,
       postIds: [],
-      createdAt: new Date(feedData.createdAt),
-      updatedAt: new Date(feedData.updatedAt)
+      createdAt: feedData.createdAt instanceof Date ? feedData.createdAt : new Date(feedData.createdAt),
+      updatedAt: feedData.updatedAt instanceof Date ? feedData.updatedAt : new Date(feedData.updatedAt)
     });
 
     // フィード集約を作成して返す

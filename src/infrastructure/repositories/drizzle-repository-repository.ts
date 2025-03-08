@@ -159,7 +159,15 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
    * @param repository データベースのリポジトリ
    * @returns リポジトリ集約
    */
-  private mapToRepositoryAggregate(repository: any): RepositoryAggregate {
+  private mapToRepositoryAggregate(repository: {
+    id: string;
+    userId: string;
+    name: string;
+    description: string;
+    githubUrl: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): RepositoryAggregate {
     // まずリポジトリエンティティを作成
     const repositoryEntity = createRepository({
       id: repository.id,
