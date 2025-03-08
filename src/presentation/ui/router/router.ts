@@ -6,13 +6,30 @@
  * 状態が変更されたときにURLを更新します。
  */
 
-import { AppState, Page } from "../state/app-state.ts";
+import { IAppState, Page } from "../state/app-state.ts";
+
+/**
+ * ルーターインターフェース
+ */
+export interface IRouter {
+  /**
+   * ルーターを開始
+   * URLの変更を監視し、状態の変更を監視します
+   */
+  start(): void;
+
+  /**
+   * ルーターを停止
+   * URLと状態の同期を停止します
+   */
+  stop(): void;
+}
 
 /**
  * URLルーティングを管理するクラス
  */
-export class Router {
-  private appState: AppState;
+export class Router implements IRouter {
+  private appState: IAppState;
   private window: Window;
   private isRunning = false;
 
@@ -21,7 +38,7 @@ export class Router {
    * @param appState アプリケーション状態
    * @param window ウィンドウオブジェクト
    */
-  constructor(appState: AppState, window: Window = globalThis.window) {
+  constructor(appState: IAppState, window: Window = globalThis.window) {
     this.appState = appState;
     this.window = window;
   }

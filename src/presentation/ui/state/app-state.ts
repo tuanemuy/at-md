@@ -35,9 +35,87 @@ export interface AppStateProps {
 export type StateChangeListener = () => void;
 
 /**
+ * アプリケーション状態管理インターフェース
+ */
+export interface IAppState {
+  /**
+   * 現在のページを取得
+   * @returns 現在のページ
+   */
+  getCurrentPage(): Page;
+
+  /**
+   * 選択中のコンテンツIDを取得
+   * @returns 選択中のコンテンツID
+   */
+  getSelectedContentId(): string | undefined;
+
+  /**
+   * 選択中のユーザーIDを取得
+   * @returns 選択中のユーザーID
+   */
+  getSelectedUserId(): string | undefined;
+
+  /**
+   * 選択中のフィードIDを取得
+   * @returns 選択中のフィードID
+   */
+  getSelectedFeedId(): string | undefined;
+
+  /**
+   * 状態を設定
+   * @param page ページ
+   * @param contentId コンテンツID
+   * @param userId ユーザーID
+   * @param feedId フィードID
+   */
+  setState(
+    page: Page,
+    contentId?: string,
+    userId?: string,
+    feedId?: string
+  ): void;
+
+  /**
+   * コンテンツ詳細ページに遷移
+   * @param contentId コンテンツID
+   */
+  navigateToContentDetail(contentId: string): void;
+
+  /**
+   * ユーザー詳細ページに遷移
+   * @param userId ユーザーID
+   */
+  navigateToUserDetail(userId: string): void;
+
+  /**
+   * フィード詳細ページに遷移
+   * @param feedId フィードID
+   */
+  navigateToFeedDetail(feedId: string): void;
+
+  /**
+   * ホームページに遷移
+   */
+  navigateToHome(): void;
+
+  /**
+   * 状態変更リスナーを追加
+   * @param listener リスナー関数
+   */
+  addListener(listener: StateChangeListener): void;
+
+  /**
+   * 状態変更リスナーを削除
+   * @param listener 削除するリスナー関数
+   */
+  removeListener(listener: StateChangeListener): void;
+}
+
+/**
  * アプリケーション状態管理クラス
  */
-export class AppState {
+export class AppState implements IAppState {
   private currentPage: Page;
   private selectedContentId?: string;
   private selectedUserId?: string;

@@ -4,6 +4,12 @@
  * ユーザーインターフェースに関するコンポーネントやユーティリティを提供します。
  */
 
+// アプリケーションエントリーポイント
+export * from "./app.ts";
+
+// 依存性注入
+export * from "./di/container.ts";
+
 // コンポーネント
 export * from "./components/mod.ts";
 
