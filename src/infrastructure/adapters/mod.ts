@@ -4,4 +4,5 @@
  */
 
 export * from "./github/mod.ts";
-export * from "./atproto/mod.ts"; 
+export * from "./atproto/mod.ts";
+export * from "./obsidian/mod.ts";
