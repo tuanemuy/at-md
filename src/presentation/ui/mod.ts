@@ -14,4 +14,7 @@ export * from "./components/user-detail.ts";
 
 // フィード管理UI
 export * from "./components/feed-list.ts";
-export * from "./components/feed-detail.ts"; 
+export * from "./components/feed-detail.ts";
+
+// ページコンポーネント
+export * from "./pages/mod.ts"; 
