@@ -106,7 +106,9 @@
   - [x] GetPostByIdQueryHandler
   - [x] GetPostByContentIdQueryHandler
   - [x] GetPostsByUserIdQueryHandler
-- [ ] 配信スケジューリングサービス実装
+- [x] 配信スケジューリングサービス実装
+  - [x] PublishingSchedulingService
+  - [x] DefaultPublishingSchedulingService
 
 ### 4.3 アカウント管理アプリケーションサービス
 
