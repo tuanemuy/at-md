@@ -23,6 +23,7 @@
     "graphql-tag": "npm:graphql-tag@^2.12.6",
     "graphql-yoga": "npm:graphql-yoga@^5.2.0",
     "hono": "npm:hono@^4.7.4",
+    "jsdom": "npm:jsdom@^26.0.0",
     "marked": "npm:marked@^12.0.1",
     "neverthrow": "npm:neverthrow@^8.2.0",
     "@std/expect": "jsr:@std/expect@^0.218.2",
