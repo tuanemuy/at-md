@@ -1,33 +1,33 @@
 /**
- * ポストリポジトリインターフェース
- * ポストの永続化を担当するリポジトリのインターフェース
+ * 投稿リポジトリインターフェース
+ * 投稿の永続化を担当するリポジトリのインターフェース
  */
 
 import { PostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
 
 /**
- * ポストリポジトリインターフェース
+ * 投稿リポジトリインターフェース
  */
 export interface PostRepository {
   /**
-   * IDによってポストを検索する
-   * @param id ポストID
-   * @returns ポスト集約、存在しない場合はnull
+   * IDによって投稿を検索する
+   * @param id 投稿ID
+   * @returns 投稿集約、存在しない場合はnull
    */
   findById(id: string): Promise<PostAggregate | null>;
   
   /**
-   * コンテンツIDによってポストを検索する
+   * コンテンツIDによって投稿を検索する
    * @param contentId コンテンツID
-   * @returns ポスト集約、存在しない場合はnull
+   * @returns 投稿集約、存在しない場合はnull
    */
   findByContentId(contentId: string): Promise<PostAggregate | null>;
   
   /**
-   * ユーザーIDによってポストを検索する
+   * ユーザーIDによって投稿を検索する
    * @param userId ユーザーID
    * @param options 検索オプション
-   * @returns ポスト集約の配列
+   * @returns 投稿集約の配列
    */
   findByUserId(userId: string, options?: {
     limit?: number;
@@ -36,15 +36,15 @@ export interface PostRepository {
   }): Promise<PostAggregate[]>;
   
   /**
-   * ポストを保存する
-   * @param postAggregate ポスト集約
-   * @returns 保存されたポスト集約
+   * 投稿を保存する
+   * @param postAggregate 投稿集約
+   * @returns 保存された投稿集約
    */
   save(postAggregate: PostAggregate): Promise<PostAggregate>;
   
   /**
-   * ポストを削除する
-   * @param id ポストID
+   * 投稿を削除する
+   * @param id 投稿ID
    * @returns 削除に成功した場合はtrue、それ以外はfalse
    */
   delete(id: string): Promise<boolean>;

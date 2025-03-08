@@ -1,5 +1,6 @@
 /**
- * コンテンツ管理アプリケーションモジュール
+ * コンテンツ管理アプリケーションサービスモジュール
+ * コンテンツの管理に関するアプリケーションサービスを提供します。
  */
 
 // リポジトリインターフェース
@@ -9,4 +10,7 @@ export * from "./repositories/mod.ts";
 export * from "./commands/mod.ts";
 
 // クエリ
-export * from "./queries/mod.ts"; 
+export * from "./queries/mod.ts";
+
+// サービス
+export * from "./services/mod.ts"; 
