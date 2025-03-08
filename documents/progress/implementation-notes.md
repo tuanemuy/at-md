@@ -94,58 +94,43 @@
 
 ## 2024年3月7日
 
-### 表示ドメインの実装完了
+### 表示アプリケーションサービスの実装完了
 
-- 表示関連の値オブジェクト（PageMetadata、RenderingOptions）を実装
-- 表示エンティティ（Page、ViewTemplate）を実装
-- 表示集約（PageAggregate）を実装
-- レンダリングサービス（RenderingService、DefaultRenderingService）を実装
-- すべてのクラスは不変設計に基づいて実装
-- レンダリングサービスはマークダウンのレンダリングやOGイメージの生成などの機能を提供
-- 実際のマークダウンパーサーやテンプレートエンジンの統合は今後の課題
+- 表示リポジトリインターフェース（PageRepository、TemplateRepository）を定義
+- 表示関連クエリハンドラー（GetPageByIdQueryHandler、GetPageBySlugQueryHandler、GetPageByContentIdQueryHandler、GetTemplateByIdQueryHandler、GetAllTemplatesQueryHandler）を実装
+- マークダウンレンダリングサービス（MarkdownRenderingService）を実装
+- GetPageByIdQueryHandlerのテストを実装
 
-#### PageMetadata値オブジェクト
+#### PageRepositoryインターフェース
 
-- 説明、OGイメージ、キーワード、正規URL、公開日時、更新日時などのプロパティを持つ
-- すべてのプロパティはオプショナル
-- 不変性を保証するためにObject.freezeを使用
+- ページの検索（ID、スラッグ、コンテンツID）、保存、削除などの操作を定義
+- Result型を使用して成功/失敗を表現
+- エラー型としてInfrastructureErrorを使用
 
-#### RenderingOptions値オブジェクト
+#### TemplateRepositoryインターフェース
 
-- テーマ、コードハイライト、目次、シンタックスハイライトテーマ、数式レンダリング、ダイアグラムレンダリングなどのプロパティを持つ
-- デフォルト値を提供するcreateDefaultメソッドを実装
-- 不変性を保証するためにObject.freezeを使用
+- テンプレートの検索（ID、名前）、すべてのテンプレート取得、保存、削除などの操作を定義
+- Result型を使用して成功/失敗を表現
+- エラー型としてInfrastructureErrorを使用
 
-#### Pageエンティティ
+#### 表示関連クエリハンドラー
 
-- ID、コンテンツID、スラッグ、タイトル、コンテンツ、テンプレートID、メタデータ、作成日時、更新日時などのプロパティを持つ
-- タイトル更新、コンテンツ更新、スラッグ更新、テンプレート変更、メタデータ更新などのメソッドを提供
-- 各メソッドは新しいインスタンスを返す不変設計
+- ページ取得クエリハンドラー（ID、スラッグ、コンテンツID）を実装
+- テンプレート取得クエリハンドラー（ID、すべて）を実装
+- リポジトリからのエラーを適切にハンドリング
+- エンティティが見つからない場合はEntityNotFoundErrorを返す
 
-#### ViewTemplateエンティティ
+#### MarkdownRenderingService
 
-- ID、名前、説明、レイアウト、コンポーネント、作成日時、更新日時などのプロパティを持つ
-- 名前更新、説明更新、レイアウト変更、コンポーネント追加/削除/更新などのメソッドを提供
-- 各メソッドは新しいインスタンスを返す不変設計
-
-#### PageAggregate集約
-
-- ページエンティティとレンダリングオプションを管理
-- ファクトリーメソッドとして静的なcreateメソッドを提供
-- ページの更新操作とレンダリングオプションの更新操作を提供
-- 正規URLや最終更新日時などの派生データを取得するメソッドを提供
-
-#### RenderingService
-
-- ページのレンダリング、マークダウンのレンダリング、OGイメージの生成などの機能を提供するインターフェース
-- DefaultRenderingServiceとして基本的な実装を提供
-- 実際の実装では、マークダウンパーサーやテンプレートエンジンを使用して高度なレンダリングを行う予定
+- コアドメインのRenderingServiceを使用してマークダウンのレンダリングを行う
+- マークダウンのレンダリング、ページのレンダリング、OGイメージの生成などの機能を提供
+- 例外をキャッチしてResult型でラップ
 
 ### 次のステップ
 
-- アカウント管理ドメインの実装
-- アカウント関連の値オブジェクト、エンティティ、集約、サービスの設計と実装
-- TDDアプローチで実装を進める 
+- 表示関連クエリハンドラーの残りのテストを実装
+- マークダウンレンダリングサービスのテストを実装
+- インフラストラクチャレイヤーの実装（DrizzlePageRepository、DrizzleTemplateRepository）
 
 ## 2024年5月15日
 

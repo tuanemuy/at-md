@@ -108,9 +108,17 @@
 
 ### 4.4 表示アプリケーションサービス
 
-- [ ] 表示リポジトリインターフェース定義
-- [ ] 表示関連クエリハンドラー実装
-- [ ] マークダウンレンダリングサービス実装
+- [x] 表示リポジトリインターフェース定義
+  - [x] PageRepository
+  - [x] TemplateRepository
+- [x] 表示関連クエリハンドラー実装
+  - [x] GetPageByIdQueryHandler
+  - [x] GetPageBySlugQueryHandler
+  - [x] GetPageByContentIdQueryHandler
+  - [x] GetTemplateByIdQueryHandler
+  - [x] GetAllTemplatesQueryHandler
+- [x] マークダウンレンダリングサービス実装
+  - [x] MarkdownRenderingService
 
 ## フェーズ5: インフラストラクチャレイヤー実装
 
@@ -120,6 +128,10 @@
 - [x] リポジトリ実装
   - [x] ContentRepository インターフェース定義
   - [x] DrizzleContentRepository 実装
+  - [x] PageRepository インターフェース定義
+  - [x] DrizzlePageRepository 実装
+  - [x] TemplateRepository インターフェース定義
+  - [x] DrizzleTemplateRepository 実装
   - [x] リポジトリのテスト実装（単体テスト・統合テスト）
   - [x] ドメインイベント発行機能の実装
   - [x] トランザクション管理の実装
@@ -144,7 +156,7 @@
 - [ ] コンテンツ管理UI
 - [ ] 配信管理UI
 - [ ] アカウント管理UI
-- [ ] 表示UI
+- [x] 表示UI
 
 ## フェーズ7: テストと品質保証
 
@@ -175,4 +187,4 @@
 
 ## 最終更新日
 
-2024年5月16日 
+2024年5月17日 
