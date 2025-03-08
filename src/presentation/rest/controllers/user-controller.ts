@@ -14,7 +14,7 @@ import {
   CreateUserCommand 
 } from "../../../application/account/commands/create-user-command.ts";
 import { UserAggregate } from "../../../core/account/aggregates/user-aggregate.ts";
-import { v4 as uuidv4 } from "npm:uuid";
+import { generateId } from "../../../core/common/id.ts";
 
 /**
  * ユーザーコントローラー
@@ -76,7 +76,7 @@ export class UserController {
       
       const command: CreateUserCommand = {
         name: "CreateUser",
-        id: uuidv4(),
+        id: generateId(),
         username: body.username,
         email: body.email,
         atIdentifier: {

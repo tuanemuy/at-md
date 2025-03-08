@@ -17,6 +17,7 @@ import { CreateContentCommandHandler } from "../../../application/content/comman
 import { DrizzleUserRepository } from "../../../infrastructure/repositories/drizzle-user-repository.ts";
 import { DrizzleContentRepository } from "../../../infrastructure/repositories/drizzle-content-repository.ts";
 import { DrizzleRepositoryRepository } from "../../../infrastructure/repositories/drizzle-repository-repository.ts";
+import { db } from "../../../infrastructure/database/db.ts";
 
 /**
  * Honoアプリケーションを作成する
@@ -38,7 +39,7 @@ export function createApp() {
   
   // リポジトリの初期化
   const userRepository = new DrizzleUserRepository();
-  const contentRepository = new DrizzleContentRepository();
+  const contentRepository = new DrizzleContentRepository(db);
   const repositoryRepository = new DrizzleRepositoryRepository();
   
   // クエリハンドラーとコマンドハンドラーの初期化

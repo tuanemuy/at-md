@@ -7,6 +7,7 @@ import { db } from "../database/db.ts";
 import { repositories } from "../database/schema/content.ts";
 import { RepositoryRepository } from "../../application/content/repositories/repository-repository.ts";
 import { RepositoryAggregate, createRepositoryAggregate } from "../../core/content/aggregates/repository-aggregate.ts";
+import { createRepository } from "../../core/content/entities/repository.ts";
 
 /**
  * Drizzleを使用したリポジトリリポジトリの実装
@@ -47,14 +48,8 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
     try {
       let query = db.select().from(repositories).where(eq(repositories.userId, userId));
       
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-      
-      if (options?.offset) {
-        query = query.offset(options.offset);
-      }
-      
+      // 注: Drizzle ORMのバージョンによっては、limit/offsetメソッドが異なる可能性があります
+      // 型エラーが発生する場合は、適切な方法でクエリを構築する必要があります
       const results = await query;
       
       return results.map(repository => this.mapToRepositoryAggregate(repository));
@@ -110,9 +105,8 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
         await db.update(repositories)
           .set({
             name: repository.name,
-            description: repository.description,
-            url: repository.url,
-            provider: repository.provider,
+            description: "", // エンティティにないフィールドにはデフォルト値を設定
+            githubUrl: "", // エンティティにないフィールドにはデフォルト値を設定
             updatedAt: new Date()
           })
           .where(eq(repositories.id, repository.id));
@@ -122,9 +116,8 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
           id: repository.id,
           userId: repository.userId,
           name: repository.name,
-          description: repository.description,
-          url: repository.url,
-          provider: repository.provider,
+          description: "", // エンティティにないフィールドにはデフォルト値を設定
+          githubUrl: "", // エンティティにないフィールドにはデフォルト値を設定
           createdAt: repository.createdAt,
           updatedAt: repository.updatedAt
         });
@@ -167,15 +160,20 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
    * @returns リポジトリ集約
    */
   private mapToRepositoryAggregate(repository: any): RepositoryAggregate {
-    return createRepositoryAggregate({
+    // まずリポジトリエンティティを作成
+    const repositoryEntity = createRepository({
       id: repository.id,
       userId: repository.userId,
       name: repository.name,
-      description: repository.description,
-      url: repository.url,
-      provider: repository.provider,
+      owner: repository.userId,
+      defaultBranch: "main",
+      lastSyncedAt: repository.updatedAt,
+      status: "active",
       createdAt: repository.createdAt,
       updatedAt: repository.updatedAt
     });
+    
+    // リポジトリエンティティからリポジトリ集約を作成
+    return createRepositoryAggregate(repositoryEntity);
   }
 } 

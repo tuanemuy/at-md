@@ -14,7 +14,7 @@ import {
   CreateContentCommand 
 } from "../../../application/content/commands/create-content-command.ts";
 import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { v4 as uuidv4 } from "npm:uuid";
+import { generateId } from "../../../core/common/id.ts";
 
 /**
  * コンテンツコントローラー

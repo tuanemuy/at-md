@@ -4,12 +4,13 @@
 
 import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { generateId } from "../../../core/common/id.ts";
 
 /**
  * コンテンツテーブル
  */
 export const contents = pgTable('contents', {
-  id: text('id').primaryKey(),
+  id: text('id').primaryKey().$defaultFn(() => generateId()),
   userId: text('user_id').notNull(),
   repositoryId: text('repository_id').notNull(),
   path: text('path').notNull(),
@@ -24,7 +25,7 @@ export const contents = pgTable('contents', {
  * コンテンツメタデータテーブル
  */
 export const contentMetadata = pgTable('content_metadata', {
-  id: text('id').primaryKey(),
+  id: text('id').primaryKey().$defaultFn(() => generateId()),
   contentId: text('content_id').notNull().references(() => contents.id, { onDelete: 'cascade' }),
   tags: jsonb('tags').notNull().default('[]'),
   categories: jsonb('categories').notNull().default('[]'),
@@ -37,7 +38,7 @@ export const contentMetadata = pgTable('content_metadata', {
  * リポジトリテーブル
  */
 export const repositories = pgTable('repositories', {
-  id: text('id').primaryKey(),
+  id: text('id').primaryKey().$defaultFn(() => generateId()),
   userId: text('user_id').notNull(),
   name: text('name').notNull(),
   description: text('description').notNull().default(''),

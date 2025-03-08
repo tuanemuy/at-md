@@ -4,13 +4,14 @@
  */
 
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { generateId } from "../../../core/common/id.ts";
 
 /**
  * ユーザーテーブル
  */
 export const users = pgTable("users", {
   // ユーザーID
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => generateId()),
   
   // ユーザー名
   username: text("username").notNull().unique(),
