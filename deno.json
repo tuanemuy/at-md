@@ -5,6 +5,7 @@
     "test": "deno test -A",
     "test:watch": "deno test -A --watch",
     "test:cov": "deno test -A --coverage=coverage && deno coverage coverage",
+    "test:repo": "deno run -A scripts/run_repository_tests.ts",
     "check": "deno check src/**/*.ts",
     "lint": "deno lint src/**/*.ts",
     "check:deps": "deno run -A scripts/check_deps.ts",

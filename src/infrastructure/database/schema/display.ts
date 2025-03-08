@@ -35,15 +35,14 @@ export const templates = pgTable('templates', {
 
 /**
  * フィードテーブル
+ * 注意: 実際のデータベースには slug, tags, isPublic カラムがなく、代わりに is_default カラムがあります
  */
 export const feeds = pgTable('feeds', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
   userId: text('user_id').notNull(),
   name: text('name').notNull(),
-  slug: text('slug').notNull(),
   description: text('description').notNull().default(''),
-  tags: jsonb('tags').notNull().default('[]'),
-  isPublic: boolean('is_public').notNull().default(false),
+  isDefault: boolean('is_default').notNull().default(false),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
