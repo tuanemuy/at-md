@@ -1,5 +1,7 @@
 {
   "tasks": {
+    "start": "deno run -A --env-file src/main.ts",
+    "dev": "deno run -A --env-file --watch src/main.ts",
     "test": "deno test -A",
     "test:watch": "deno test -A --watch",
     "test:cov": "deno test -A --coverage=coverage && deno coverage coverage",
@@ -12,9 +14,11 @@
   "imports": {
     "@atproto/api": "npm:@atproto/api@^0.14.9",
     "@octokit/webhooks": "npm:@octokit/webhooks@^13.7.4",
+    "@std/http": "jsr:@std/http@^1.0.13",
     "@types/pg": "npm:@types/pg@^8.11.11",
     "drizzle-kit": "npm:drizzle-kit@^0.27.2",
     "drizzle-orm": "npm:drizzle-orm@^0.36.0",
+    "hono": "npm:hono@^4.7.4",
     "neverthrow": "npm:neverthrow@^8.2.0",
     "@std/expect": "jsr:@std/expect@^0.218.2",
     "@std/testing": "jsr:@std/testing@^0.218.2",
