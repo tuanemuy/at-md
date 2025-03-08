@@ -71,10 +71,17 @@
 
 ### 3.2 表示ドメイン
 
-- [ ] 表示関連の値オブジェクト実装
-- [ ] 表示エンティティ実装
-- [ ] 表示集約実装
-- [ ] レンダリングサービス実装
+- [x] 表示関連の値オブジェクト実装
+  - [x] PageMetadata
+  - [x] RenderingOptions
+- [x] 表示エンティティ実装
+  - [x] Page
+  - [x] ViewTemplate
+- [x] 表示集約実装
+  - [x] PageAggregate
+- [x] レンダリングサービス実装
+  - [x] RenderingService
+  - [x] DefaultRenderingService
 
 ## フェーズ4: アプリケーションレイヤー実装
 
