@@ -55,7 +55,12 @@ export class Router implements IRouter {
     this.isRunning = true;
 
     // 現在のURLに基づいて初期状態を設定
-    this.syncStateFromUrl();
+    // URLが空の場合（"/"のみの場合）は、初期状態を維持する
+    const pathname = this.window.location.pathname;
+    const search = this.window.location.search;
+    if (pathname !== "/" || search !== "") {
+      this.syncStateFromUrl();
+    }
 
     // 状態変更時にURLを更新するリスナーを追加
     this.appState.addListener(this.syncUrlFromState.bind(this));

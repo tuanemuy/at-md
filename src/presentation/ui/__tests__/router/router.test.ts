@@ -4,8 +4,8 @@
 
 import { expect } from "@std/expect";
 import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
-import { Router } from "../../router/router.ts";
-import { AppState, Page } from "../../state/app-state.ts";
+import { IRouter, Router } from "../../router/router.ts";
+import { IAppState, AppState, Page } from "../../state/app-state.ts";
 
 // windowオブジェクトのモック
 const mockWindow = {
@@ -39,8 +39,8 @@ const mockWindow = {
 };
 
 describe("Routerのテスト", () => {
-  let appState: AppState;
-  let router: Router;
+  let appState: IAppState;
+  let router: IRouter;
 
   beforeEach(() => {
     // テスト前に毎回実行される

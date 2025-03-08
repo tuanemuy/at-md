@@ -59,9 +59,18 @@ export class DIContainer implements IDIContainer {
     appStateProps?: AppStateProps,
     window?: Window
   ): DIContainer {
+    // インスタンスが存在しない場合は新しいインスタンスを作成
     if (!DIContainer.instance) {
       DIContainer.instance = new DIContainer(appStateProps, window);
+      return DIContainer.instance;
     }
+    
+    // パラメータが指定された場合は新しいインスタンスを作成
+    if (appStateProps || window) {
+      DIContainer.reset();
+      DIContainer.instance = new DIContainer(appStateProps, window);
+    }
+    
     return DIContainer.instance;
   }
 
