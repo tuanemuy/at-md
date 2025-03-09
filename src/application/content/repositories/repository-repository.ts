@@ -4,6 +4,9 @@
  */
 
 import { RepositoryAggregate } from "../../../core/content/aggregates/repository-aggregate.ts";
+import { TransactionContext } from "../../../infrastructure/database/unit-of-work.ts";
+import { Result } from "../../../deps.ts";
+import { InfrastructureError } from "../../../core/errors/base.ts";
 
 /**
  * リポジトリリポジトリインターフェース
@@ -43,9 +46,31 @@ export interface RepositoryRepository {
   save(repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate>;
   
   /**
+   * トランザクション内でリポジトリを保存する
+   * @param repositoryAggregate リポジトリ集約
+   * @param context トランザクションコンテキスト
+   * @returns 保存されたリポジトリ集約の結果
+   */
+  saveWithTransaction(
+    repositoryAggregate: RepositoryAggregate, 
+    context: TransactionContext
+  ): Promise<Result<RepositoryAggregate, InfrastructureError>>;
+  
+  /**
    * リポジトリを削除する
    * @param id リポジトリID
    * @returns 削除に成功した場合はtrue、それ以外はfalse
    */
   delete(id: string): Promise<boolean>;
+  
+  /**
+   * トランザクション内でリポジトリを削除する
+   * @param id リポジトリID
+   * @param context トランザクションコンテキスト
+   * @returns 削除結果
+   */
+  deleteWithTransaction(
+    id: string, 
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>>;
 } 

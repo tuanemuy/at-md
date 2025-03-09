@@ -547,6 +547,113 @@ async function main() {
 main().catch(console.error);
 ```
 
+## トランザクション管理の改善
+
+### ユニットオブワークパターンの導入
+
+トランザクション管理を改善するために、ユニットオブワークパターンを導入しました。このパターンは、複数のリポジトリ操作を一つのトランザクションで実行するための仕組みを提供します。
+
+#### 実装内容
+
+1. **ユニットオブワークインターフェース**
+
+`src/infrastructure/database/unit-of-work.ts` にユニットオブワークのインターフェースを定義しました。
+
+```typescript
+export interface UnitOfWork {
+  begin(): Promise<Result<TransactionContext, InfrastructureError>>;
+  commit(context: TransactionContext): Promise<Result<void, InfrastructureError>>;
+  rollback(context: TransactionContext): Promise<Result<void, InfrastructureError>>;
+  executeInTransaction<T>(work: (context: TransactionContext) => Promise<Result<T, InfrastructureError>>): Promise<Result<T, InfrastructureError>>;
+}
+```
+
+2. **PostgreSQL実装**
+
+`src/infrastructure/database/postgres-unit-of-work.ts` にPostgreSQLを使用したユニットオブワークの実装を追加しました。
+
+```typescript
+export class PostgresUnitOfWork implements UnitOfWork {
+  private activeTransactions = new Map<string, PostgresTransactionContext>();
+
+  constructor(private readonly pool: pg.Pool) {}
+
+  async begin(): Promise<Result<TransactionContext, InfrastructureError>> {
+    // トランザクションを開始する実装
+  }
+
+  async commit(context: TransactionContext): Promise<Result<void, InfrastructureError>> {
+    // トランザクションをコミットする実装
+  }
+
+  async rollback(context: TransactionContext): Promise<Result<void, InfrastructureError>> {
+    // トランザクションをロールバックする実装
+  }
+
+  async executeInTransaction<T>(
+    work: (context: TransactionContext) => Promise<Result<T, InfrastructureError>>
+  ): Promise<Result<T, InfrastructureError>> {
+    // トランザクション内で処理を実行する実装
+  }
+}
+```
+
+3. **リポジトリインターフェースの拡張**
+
+リポジトリインターフェースにトランザクション対応のメソッドを追加しました。
+
+```typescript
+// ContentRepositoryインターフェース
+export interface ContentRepository {
+  // 既存のメソッド
+  
+  // トランザクション対応のメソッド
+  saveWithTransaction(
+    contentAggregate: ContentAggregate, 
+    context: TransactionContext
+  ): Promise<Result<ContentAggregate, InfrastructureError>>;
+  
+  deleteWithTransaction(
+    id: string, 
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>>;
+}
+```
+
+4. **リポジトリ実装の拡張**
+
+`DrizzleContentRepository` クラスにトランザクション対応のメソッドを実装しました。
+
+```typescript
+// DrizzleContentRepositoryクラス
+async saveWithTransaction(
+  contentAggregate: ContentAggregate,
+  context: TransactionContext
+): Promise<Result<ContentAggregate, InfrastructureError>> {
+  // トランザクション内でコンテンツを保存する実装
+}
+
+async deleteWithTransaction(
+  id: string,
+  context: TransactionContext
+): Promise<Result<boolean, InfrastructureError>> {
+  // トランザクション内でコンテンツを削除する実装
+}
+```
+
+### 利点
+
+1. **一貫性の確保**: 複数のリポジトリ操作を一つのトランザクションで実行することで、データの一貫性を確保できます。
+2. **エラーハンドリングの改善**: トランザクション内でエラーが発生した場合、自動的にロールバックされるため、データの整合性が保たれます。
+3. **コードの可読性向上**: トランザクション管理のロジックがユニットオブワークに集約されるため、ビジネスロジックがクリーンになります。
+4. **テスト容易性**: トランザクションコンテキストをモック化することで、トランザクション管理のテストが容易になります。
+
+### 今後の課題
+
+1. **他のリポジトリへの適用**: 他のリポジトリ実装にもトランザクション対応のメソッドを追加する必要があります。
+2. **サービス層での活用**: アプリケーションサービス層でユニットオブワークを活用し、複数のリポジトリ操作を一つのトランザクションで実行するようにします。
+3. **エラーハンドリングの強化**: トランザクション失敗時のエラーハンドリングをさらに強化し、適切なエラーメッセージを提供します。
+
 ## 次のフェーズの計画
 
 ### フェーズ2: コア改善

@@ -4,6 +4,9 @@
  */
 
 import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
+import { TransactionContext } from "../../../infrastructure/database/unit-of-work.ts";
+import { Result } from "../../../deps.ts";
+import { InfrastructureError } from "../../../core/errors/base.ts";
 
 /**
  * コンテンツリポジトリインターフェース
@@ -56,9 +59,31 @@ export interface ContentRepository {
   save(contentAggregate: ContentAggregate): Promise<ContentAggregate>;
   
   /**
+   * トランザクション内でコンテンツを保存する
+   * @param contentAggregate コンテンツ集約
+   * @param context トランザクションコンテキスト
+   * @returns 保存されたコンテンツ集約の結果
+   */
+  saveWithTransaction(
+    contentAggregate: ContentAggregate, 
+    context: TransactionContext
+  ): Promise<Result<ContentAggregate, InfrastructureError>>;
+  
+  /**
    * コンテンツを削除する
    * @param id コンテンツID
    * @returns 削除に成功した場合はtrue、それ以外はfalse
    */
   delete(id: string): Promise<boolean>;
+  
+  /**
+   * トランザクション内でコンテンツを削除する
+   * @param id コンテンツID
+   * @param context トランザクションコンテキスト
+   * @returns 削除結果
+   */
+  deleteWithTransaction(
+    id: string, 
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>>;
 } 

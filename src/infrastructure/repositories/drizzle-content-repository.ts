@@ -10,6 +10,10 @@ import { eq, and, type NodePgDatabase } from "../../deps.ts";
 import { contents, contentMetadata } from "../database/schema/content.ts";
 import { ContentCreatedEvent, ContentUpdatedEvent, ContentDeletedEvent } from "../../core/content/events/content-events.ts";
 import { EventBus } from "../../core/common/events/domain-event.ts";
+import { Result, ok, err } from "../../deps.ts";
+import { InfrastructureError } from "../../core/errors/base.ts";
+import { TransactionContext } from "../database/unit-of-work.ts";
+import { PostgresTransactionContext } from "../database/postgres-unit-of-work.ts";
 
 /**
  * スキーマの型定義
@@ -266,159 +270,126 @@ export class DrizzleContentRepository implements ContentRepository {
   }
   
   /**
-   * コンテンツを保存する
-   * 新規作成または更新を行う
+   * トランザクション内でコンテンツを保存する
    * @param contentAggregate コンテンツ集約
-   * @returns 保存されたコンテンツ集約
-   * @throws RepositoryError データベース操作に失敗した場合
+   * @param context トランザクションコンテキスト
+   * @returns 保存されたコンテンツ集約の結果
    */
-  async save(contentAggregate: ContentAggregate): Promise<ContentAggregate> {
+  async saveWithTransaction(
+    contentAggregate: ContentAggregate,
+    context: TransactionContext
+  ): Promise<Result<ContentAggregate, InfrastructureError>> {
     try {
+      // PostgreSQLのトランザクションコンテキストにキャスト
+      const pgContext = context as PostgresTransactionContext;
+      if (!pgContext.client) {
+        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
+      }
+
       // 既存のコンテンツを検索
       const existingContent = await this.findById(contentAggregate.content.id);
       const isNewContent = existingContent === null;
       
-      // トランザクションを開始
-      const result = await this.db.transaction(async (tx) => {
-        // コンテンツを保存
-        await tx.insert(contents)
-          .values({
-            id: contentAggregate.content.id,
-            userId: contentAggregate.content.userId,
-            repositoryId: contentAggregate.content.repositoryId,
-            path: contentAggregate.content.path,
-            title: contentAggregate.content.title,
-            body: contentAggregate.content.body,
-            visibility: contentAggregate.content.visibility,
-            createdAt: contentAggregate.content.createdAt,
-            updatedAt: contentAggregate.content.updatedAt
-          })
-          .onConflictDoUpdate({
-            target: contents.id,
-            set: {
-              title: contentAggregate.content.title,
-              body: contentAggregate.content.body,
-              visibility: contentAggregate.content.visibility,
-              updatedAt: contentAggregate.content.updatedAt
-            }
-          });
-        
-        // メタデータを保存
-        if (isNewContent) {
-          // 新規作成の場合はINSERT
-          await tx.insert(contentMetadata)
-            .values({
-              id: contentAggregate.content.id,
-              contentId: contentAggregate.content.id,
-              tags: contentAggregate.content.metadata.tags,
-              categories: contentAggregate.content.metadata.categories,
-              language: contentAggregate.content.metadata.language,
-              createdAt: contentAggregate.content.createdAt,
-              updatedAt: contentAggregate.content.updatedAt
-            });
-        } else {
-          // 更新の場合はUPDATE
-          await tx.update(contentMetadata)
-            .set({
-              tags: contentAggregate.content.metadata.tags,
-              categories: contentAggregate.content.metadata.categories,
-              language: contentAggregate.content.metadata.language,
-              updatedAt: contentAggregate.content.updatedAt
-            })
-            .where(eq(contentMetadata.id, contentAggregate.content.id));
-        }
-        
-        return contentAggregate;
-      });
+      // コンテンツを保存
+      await pgContext.client.query(
+        `INSERT INTO contents (
+          id, user_id, repository_id, path, title, body, visibility, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET
+          title = $5,
+          body = $6,
+          visibility = $7,
+          updated_at = $9`,
+        [
+          contentAggregate.content.id,
+          contentAggregate.content.userId,
+          contentAggregate.content.repositoryId,
+          contentAggregate.content.path,
+          contentAggregate.content.title,
+          contentAggregate.content.body,
+          contentAggregate.content.visibility,
+          contentAggregate.content.createdAt.toISOString(),
+          contentAggregate.content.updatedAt.toISOString()
+        ]
+      );
       
-      // ドメインイベントを発行
-      const eventBus = EventBus.getInstance();
+      // メタデータを保存
       if (isNewContent) {
-        // 新規作成の場合
-        eventBus.publish(new ContentCreatedEvent(contentAggregate.content));
+        // 新規作成の場合はINSERT
+        await pgContext.client.query(
+          `INSERT INTO content_metadata (
+            id, content_id, tags, categories, language, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            contentAggregate.content.id,
+            contentAggregate.content.id,
+            JSON.stringify(contentAggregate.content.metadata.tags),
+            JSON.stringify(contentAggregate.content.metadata.categories),
+            contentAggregate.content.metadata.language,
+            contentAggregate.content.createdAt.toISOString(),
+            contentAggregate.content.updatedAt.toISOString()
+          ]
+        );
       } else {
-        // 更新の場合
-        const updatedFields: string[] = [];
-        
-        if (existingContent && existingContent.content.title !== contentAggregate.content.title) {
-          updatedFields.push('title');
-        }
-        
-        if (existingContent && existingContent.content.body !== contentAggregate.content.body) {
-          updatedFields.push('body');
-        }
-        
-        if (existingContent && existingContent.content.visibility !== contentAggregate.content.visibility) {
-          updatedFields.push('visibility');
-        }
-        
-        if (existingContent && JSON.stringify(existingContent.content.metadata) !== JSON.stringify(contentAggregate.content.metadata)) {
-          updatedFields.push('metadata');
-        }
-        
-        if (updatedFields.length > 0) {
-          eventBus.publish(new ContentUpdatedEvent(contentAggregate.content, updatedFields));
-        }
+        // 更新の場合はUPDATE
+        await pgContext.client.query(
+          `UPDATE content_metadata SET
+            tags = $1,
+            categories = $2,
+            language = $3,
+            updated_at = $4
+          WHERE id = $5`,
+          [
+            JSON.stringify(contentAggregate.content.metadata.tags),
+            JSON.stringify(contentAggregate.content.metadata.categories),
+            contentAggregate.content.metadata.language,
+            contentAggregate.content.updatedAt.toISOString(),
+            contentAggregate.content.id
+          ]
+        );
       }
       
-      return result;
-    } catch (error) {
-      const repositoryError: RepositoryError = {
-        code: "SAVE_ERROR",
-        message: `コンテンツの保存に失敗しました: ${contentAggregate.content.id}`,
-        cause: error
-      };
-      console.error(repositoryError);
-      throw repositoryError;
+      return ok(contentAggregate);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return err(new InfrastructureError(`コンテンツの保存に失敗しました: ${errorMessage}`));
     }
   }
-  
+
   /**
-   * コンテンツを削除する
+   * トランザクション内でコンテンツを削除する
    * @param id コンテンツID
-   * @returns 削除に成功した場合はtrue、それ以外はfalse
-   * @throws RepositoryError データベース操作に失敗した場合
+   * @param context トランザクションコンテキスト
+   * @returns 削除結果
    */
-  async delete(id: string): Promise<boolean> {
+  async deleteWithTransaction(
+    id: string,
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>> {
     try {
-      // 削除前にコンテンツ情報を取得（イベント発行用）
-      const contentToDelete = await this.findById(id);
-      if (!contentToDelete) {
-        return false;
+      // PostgreSQLのトランザクションコンテキストにキャスト
+      const pgContext = context as PostgresTransactionContext;
+      if (!pgContext.client) {
+        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
       }
+
+      // メタデータを削除
+      await pgContext.client.query(
+        "DELETE FROM content_metadata WHERE content_id = $1",
+        [id]
+      );
       
-      // トランザクションを開始
-      const result = await this.db.transaction(async (tx) => {
-        // メタデータを削除
-        await tx.delete(contentMetadata)
-          .where(eq(contentMetadata.contentId, id));
-        
-        // コンテンツを削除
-        const deleteResult = await tx.delete(contents)
-          .where(eq(contents.id, id));
-        
-        return deleteResult && deleteResult.rowCount ? deleteResult.rowCount > 0 : false;
-      });
+      // コンテンツを削除
+      const result = await pgContext.client.query(
+        "DELETE FROM contents WHERE id = $1",
+        [id]
+      );
       
-      // 削除に成功した場合、ドメインイベントを発行
-      if (result && contentToDelete) {
-        const eventBus = EventBus.getInstance();
-        eventBus.publish(new ContentDeletedEvent(
-          id,
-          contentToDelete.content.userId,
-          contentToDelete.content.repositoryId
-        ));
-      }
-      
-      return result;
-    } catch (error) {
-      const repositoryError: RepositoryError = {
-        code: "DELETE_ERROR",
-        message: `コンテンツの削除に失敗しました: ${id}`,
-        cause: error
-      };
-      console.error(repositoryError);
-      throw repositoryError;
+      const rowCount = result.rowCount || 0;
+      return ok(rowCount > 0);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return err(new InfrastructureError(`コンテンツの削除に失敗しました: ${errorMessage}`));
     }
   }
 } 
