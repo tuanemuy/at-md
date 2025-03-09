@@ -1,16 +1,12 @@
+import { Result, err, ok } from "../deps.ts";
+import { DomainError } from "../../errors/base.ts";
 import { ContentMetadata } from "./content-metadata.ts";
+import { versionSchema, contentChangesSchema, ContentChangesSchema } from "../schemas/content-schemas.ts";
 
 /**
  * コンテンツの変更内容を表す型
  */
-export interface ContentChanges {
-  /** タイトルの変更 */
-  title?: string;
-  /** 本文の変更 */
-  body?: string;
-  /** メタデータの変更（部分的な変更も可能） */
-  metadata?: Partial<ContentMetadata>;
-}
+export type ContentChanges = ContentChangesSchema;
 
 /**
  * コンテンツのバージョンを表す値オブジェクト
@@ -40,33 +36,40 @@ export interface VersionParams {
 }
 
 /**
+ * バージョン作成エラー
+ */
+export class VersionCreationError extends DomainError {
+  constructor(message: string) {
+    super(`バージョンの作成に失敗しました: ${message}`);
+  }
+}
+
+/**
  * Versionを作成する
  * @param params Versionのパラメータ
- * @returns 不変なVersionオブジェクト
- * @throws IDが空、コンテンツIDが空、コミットIDが空、または変更内容が空の場合はエラー
+ * @returns 不変なVersionオブジェクトを含むResult、またはエラー
  */
-export function createVersion(params: VersionParams): Version {
-  if (!params.id) {
-    throw new Error("バージョンIDは必須です");
+export function createVersion(params: VersionParams): Result<Version, DomainError> {
+  // Zodスキーマを使用してバリデーション
+  const validationResult = versionSchema.safeParse(params);
+  
+  if (!validationResult.success) {
+    return err(new VersionCreationError(validationResult.error.message));
   }
 
-  if (!params.contentId) {
-    throw new Error("コンテンツIDは必須です");
+  // 変更内容のバリデーション
+  const changesValidation = contentChangesSchema.safeParse(params.changes);
+  if (!changesValidation.success) {
+    return err(new VersionCreationError(`変更内容が無効です: ${changesValidation.error.message}`));
   }
 
-  if (!params.commitId) {
-    throw new Error("コミットIDは必須です");
-  }
-
-  if (!params.changes || Object.keys(params.changes).length === 0) {
-    throw new Error("変更内容は少なくとも1つ以上必要です");
-  }
-
-  return Object.freeze({
+  const version: Version = {
     id: params.id,
     contentId: params.contentId,
     commitId: params.commitId,
     createdAt: params.createdAt,
     changes: { ...params.changes },
-  });
+  };
+
+  return ok(Object.freeze(version));
 } 

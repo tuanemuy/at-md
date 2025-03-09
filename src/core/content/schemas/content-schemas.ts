@@ -31,19 +31,42 @@ export type ContentVisibilitySchema = z.infer<typeof contentVisibilitySchema>;
 export const contentMetadataSchema = z.object({
   tags: tagsSchema,
   categories: categoriesSchema,
+  publishedAt: dateSchema.optional(),
+  lastPublishedAt: dateSchema.optional(),
+  excerpt: z.string().optional(),
+  featuredImage: z.string().url().optional(),
   language: languageSchema,
-  readingTime: readingTimeSchema
+  readingTime: readingTimeSchema.optional()
 });
 export type ContentMetadataSchema = z.infer<typeof contentMetadataSchema>;
+
+/**
+ * コンテンツの変更内容を表すスキーマ
+ */
+export const contentChangesSchema = z.object({
+  title: titleSchema.optional(),
+  body: bodySchema.optional(),
+  metadata: z.object({
+    tags: tagsSchema.optional(),
+    categories: categoriesSchema.optional(),
+    language: languageSchema.optional(),
+    readingTime: readingTimeSchema.optional()
+  }).partial().optional()
+}).refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "変更内容は少なくとも1つ以上必要です" }
+);
+export type ContentChangesSchema = z.infer<typeof contentChangesSchema>;
 
 /**
  * バージョンのスキーマ
  */
 export const versionSchema = z.object({
   id: z.string().min(1),
+  contentId: contentIdSchema,
   commitId: z.string().min(1),
-  message: z.string(),
-  createdAt: dateSchema
+  createdAt: dateSchema,
+  changes: contentChangesSchema
 });
 export type VersionSchema = z.infer<typeof versionSchema>;
 

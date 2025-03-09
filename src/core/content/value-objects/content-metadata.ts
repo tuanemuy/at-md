@@ -1,3 +1,7 @@
+import { Result, err, ok } from "../deps.ts";
+import { DomainError } from "../../errors/base.ts";
+import { contentMetadataSchema } from "../schemas/content-schemas.ts";
+
 /**
  * コンテンツのメタデータを表す値オブジェクト
  */
@@ -35,17 +39,28 @@ export interface ContentMetadataParams {
 }
 
 /**
+ * メタデータ作成エラー
+ */
+export class MetadataCreationError extends DomainError {
+  constructor(message: string) {
+    super(`メタデータの作成に失敗しました: ${message}`);
+  }
+}
+
+/**
  * ContentMetadataを作成する
  * @param params ContentMetadataのパラメータ
- * @returns 不変なContentMetadataオブジェクト
- * @throws 言語が空文字列の場合はエラー
+ * @returns 不変なContentMetadataオブジェクトを含むResult、またはエラー
  */
-export function createContentMetadata(params: ContentMetadataParams): ContentMetadata {
-  if (!params.language) {
-    throw new Error("言語は必須です");
+export function createContentMetadata(params: ContentMetadataParams): Result<ContentMetadata, DomainError> {
+  // Zodスキーマを使用してバリデーション
+  const validationResult = contentMetadataSchema.safeParse(params);
+  
+  if (!validationResult.success) {
+    return err(new MetadataCreationError(validationResult.error.message));
   }
 
-  return Object.freeze({
+  const metadata: ContentMetadata = {
     tags: [...params.tags],
     categories: [...params.categories],
     publishedAt: params.publishedAt,
@@ -54,5 +69,7 @@ export function createContentMetadata(params: ContentMetadataParams): ContentMet
     featuredImage: params.featuredImage,
     language: params.language,
     readingTime: params.readingTime,
-  });
+  };
+
+  return ok(Object.freeze(metadata));
 } 

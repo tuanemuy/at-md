@@ -1,10 +1,17 @@
+import { Result, err, ok } from "../deps.ts";
 import { ContentMetadata } from "../value-objects/content-metadata.ts";
 import { Version } from "../value-objects/version.ts";
+import { 
+  contentSchema, 
+  contentVisibilitySchema, 
+  ContentVisibilitySchema 
+} from "../schemas/content-schemas.ts";
+import { DomainError } from "../../errors/base.ts";
 
 /**
  * コンテンツの公開範囲を表す型
  */
-export type ContentVisibility = "private" | "unlisted" | "public";
+export type ContentVisibility = ContentVisibilitySchema;
 
 /**
  * コンテンツエンティティを表すインターフェース
@@ -38,21 +45,21 @@ export interface Content {
    * @param version 追加するバージョン
    * @returns 新しいContentインスタンス
    */
-  addVersion(version: Version): Content;
+  addVersion(version: Version): Result<Content, DomainError>;
 
   /**
    * 公開範囲を変更する
    * @param visibility 新しい公開範囲
    * @returns 新しいContentインスタンス
    */
-  changeVisibility(visibility: ContentVisibility): Content;
+  changeVisibility(visibility: ContentVisibility): Result<Content, DomainError>;
 
   /**
    * メタデータを更新する
    * @param metadata 新しいメタデータ
    * @returns 新しいContentインスタンス
    */
-  updateMetadata(metadata: ContentMetadata): Content;
+  updateMetadata(metadata: ContentMetadata): Result<Content, DomainError>;
 }
 
 /**
@@ -73,19 +80,25 @@ export interface ContentParams {
 }
 
 /**
+ * コンテンツ作成エラー
+ */
+export class ContentCreationError extends DomainError {
+  constructor(message: string) {
+    super(`コンテンツの作成に失敗しました: ${message}`);
+  }
+}
+
+/**
  * Contentを作成する
  * @param params Contentのパラメータ
- * @returns 不変なContentオブジェクト
- * @throws IDが空、または無効な公開範囲の場合はエラー
+ * @returns 不変なContentオブジェクトを含むResult、またはエラー
  */
-export function createContent(params: ContentParams): Content {
-  if (!params.id) {
-    throw new Error("コンテンツIDは必須です");
-  }
-
-  const validVisibilities: ContentVisibility[] = ["private", "unlisted", "public"];
-  if (!validVisibilities.includes(params.visibility)) {
-    throw new Error("無効な公開範囲です");
+export function createContent(params: ContentParams): Result<Content, DomainError> {
+  // Zodスキーマを使用してバリデーション
+  const validationResult = contentSchema.safeParse(params);
+  
+  if (!validationResult.success) {
+    return err(new ContentCreationError(validationResult.error.message));
   }
 
   const content: Content = {
@@ -101,7 +114,7 @@ export function createContent(params: ContentParams): Content {
     createdAt: params.createdAt,
     updatedAt: params.updatedAt,
 
-    addVersion(version: Version): Content {
+    addVersion(version: Version): Result<Content, DomainError> {
       return createContent({
         ...this,
         versions: [...this.versions, version],
@@ -109,7 +122,13 @@ export function createContent(params: ContentParams): Content {
       });
     },
 
-    changeVisibility(visibility: ContentVisibility): Content {
+    changeVisibility(visibility: ContentVisibility): Result<Content, DomainError> {
+      // 公開範囲のバリデーション
+      const validationResult = contentVisibilitySchema.safeParse(visibility);
+      if (!validationResult.success) {
+        return err(new ContentCreationError(`無効な公開範囲です: ${validationResult.error.message}`));
+      }
+      
       return createContent({
         ...this,
         visibility,
@@ -117,7 +136,7 @@ export function createContent(params: ContentParams): Content {
       });
     },
 
-    updateMetadata(metadata: ContentMetadata): Content {
+    updateMetadata(metadata: ContentMetadata): Result<Content, DomainError> {
       return createContent({
         ...this,
         metadata,
@@ -126,5 +145,5 @@ export function createContent(params: ContentParams): Content {
     }
   };
 
-  return Object.freeze(content);
+  return ok(Object.freeze(content));
 } 
