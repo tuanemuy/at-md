@@ -9,14 +9,16 @@
 import { expect } from "@std/expect";
 import { describe, it, beforeEach } from "@std/testing/bdd";
 import { DrizzleContentRepository } from "./drizzle-content-repository.ts";
-import { ContentAggregate } from "../../core/content/aggregates/content-aggregate.ts";
-import { createContent } from "../../core/content/entities/content.ts";
+import { ContentAggregate, createContentAggregate } from "../../core/content/aggregates/content-aggregate.ts";
+import { Content, createContent } from "../../core/content/entities/content.ts";
 import { createContentMetadata } from "../../core/content/value-objects/content-metadata.ts";
 import { generateId } from "../../core/common/id.ts";
 import { eq, and } from "drizzle-orm";
 import { contents, contentMetadata } from "../database/schema/content.ts";
 import { RepositoryError } from "./drizzle-content-repository.ts";
 import { ContentRepository } from "../../application/content/repositories/content-repository.ts";
+import { Result, ok, err } from "neverthrow";
+import { InfrastructureError } from "../../core/errors/base.ts";
 
 /**
  * 簡易的なモックリポジトリ
@@ -55,12 +57,22 @@ class MockContentRepository implements ContentRepository {
     status?: string;
   }): Promise<ContentAggregate[]> {
     const results: ContentAggregate[] = [];
+    
     for (const id in this.contentStore) {
       const aggregate = this.contentStore[id];
       if (aggregate.content.userId === userId) {
         results.push(aggregate);
       }
     }
+    
+    // オプションによるフィルタリング
+    if (options) {
+      const { limit, offset } = options;
+      const start = offset || 0;
+      const end = limit ? start + limit : undefined;
+      return results.slice(start, end);
+    }
+    
     return results;
   }
   
@@ -73,12 +85,22 @@ class MockContentRepository implements ContentRepository {
     status?: string;
   }): Promise<ContentAggregate[]> {
     const results: ContentAggregate[] = [];
+    
     for (const id in this.contentStore) {
       const aggregate = this.contentStore[id];
       if (aggregate.content.repositoryId === repositoryId) {
         results.push(aggregate);
       }
     }
+    
+    // オプションによるフィルタリング
+    if (options) {
+      const { limit, offset } = options;
+      const start = offset || 0;
+      const end = limit ? start + limit : undefined;
+      return results.slice(start, end);
+    }
+    
     return results;
   }
   
@@ -102,10 +124,34 @@ class MockContentRepository implements ContentRepository {
   }
   
   /**
-   * テスト用にデータをクリア
+   * すべてのコンテンツを削除する（テスト用）
    */
   clearAll(): void {
     this.contentStore = {};
+  }
+  
+  /**
+   * トランザクション内でコンテンツを保存する
+   */
+  async saveWithTransaction(contentAggregate: ContentAggregate, _context: any): Promise<Result<ContentAggregate, InfrastructureError>> {
+    try {
+      const saved = await this.save(contentAggregate);
+      return ok(saved);
+    } catch (error) {
+      return err(new InfrastructureError(`コンテンツの保存に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+    }
+  }
+  
+  /**
+   * トランザクション内でコンテンツを削除する
+   */
+  async deleteWithTransaction(id: string, _context: any): Promise<Result<boolean, InfrastructureError>> {
+    try {
+      const result = await this.delete(id);
+      return ok(result);
+    } catch (error) {
+      return err(new InfrastructureError(`コンテンツの削除に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+    }
   }
 }
 
@@ -124,33 +170,35 @@ describe("DrizzleContentRepository", () => {
   // テスト用のコンテンツ集約を作成する関数
   function createTestContentAggregate(): ContentAggregate {
     const id = generateId();
-    const content = createContent({
+    const metadataResult = createContentMetadata({
+      tags: ["test", "markdown"],
+      categories: ["documentation"],
+      language: "ja"
+    });
+    
+    if (metadataResult.isErr()) {
+      throw new Error(`メタデータの作成に失敗しました: ${metadataResult.error.message}`);
+    }
+    
+    const contentResult = createContent({
       id,
       userId: "test-user-id",
       repositoryId: "test-repo-id",
       path: `test/path-${id}.md`,
       title: `Test Content ${id}`,
       body: `# Test Content ${id}\n\nThis is a test content.`,
-      metadata: createContentMetadata({
-        tags: ["test", "markdown"],
-        categories: ["documentation"],
-        language: "ja"
-      }),
+      metadata: metadataResult.value,
       visibility: "private",
       versions: [],
       createdAt: new Date(),
       updatedAt: new Date()
     });
     
-    return {
-      content,
-      updateTitle: () => createTestContentAggregate(),
-      updateBody: () => createTestContentAggregate(),
-      updateMetadata: () => createTestContentAggregate(),
-      publish: () => createTestContentAggregate(),
-      makePrivate: () => createTestContentAggregate(),
-      makeUnlisted: () => createTestContentAggregate()
-    };
+    if (contentResult.isErr()) {
+      throw new Error(`コンテンツの作成に失敗しました: ${contentResult.error.message}`);
+    }
+    
+    return createContentAggregate(contentResult.value);
   }
   
   // 各テストの前に実行

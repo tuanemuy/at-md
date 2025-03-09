@@ -12,7 +12,7 @@ import * as displaySchema from "./schema/display.ts";
 import * as userSchema from "./schema/user.ts";
 
 // 環境変数からデータベース接続情報を取得
-const DATABASE_URL = Deno.env.get("DATABASE_URL") || "postgres://postgres:postgres@localhost:5432/at_md";
+const DATABASE_URL = Deno.env.get("DATABASE_URL") || "postgres://test:test@localhost:55432/at-md";
 
 // 接続オプション
 const connectionOptions = {

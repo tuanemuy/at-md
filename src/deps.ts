@@ -20,4 +20,7 @@ export { describe, it, beforeEach, afterEach, beforeAll, afterAll } from "@std/t
 export { Result, ok, err } from "npm:neverthrow";
 
 // バリデーション
-export { z } from "npm:zod"; 
+export { z } from "npm:zod";
+
+// 環境変数
+export { config as dotenvConfig } from "npm:dotenv"; 

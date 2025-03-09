@@ -9,6 +9,18 @@ import { RepositoryRepository } from "../../src/application/content/repositories
 import { ContentAggregate, createContentAggregate } from "../../src/core/content/aggregates/content-aggregate.ts";
 import { RepositoryAggregate } from "../../src/core/content/aggregates/repository-aggregate.ts";
 import { createTestContent, createTestRepository, createTestContentAggregate } from "./test-data-factory.ts";
+import { Result, ok, err } from "../../src/deps.ts";
+import { InfrastructureError } from "../../src/core/errors/base.ts";
+import { TransactionContext } from "../../src/infrastructure/database/unit-of-work.ts";
+
+/**
+ * モックトランザクションコンテキストを作成する
+ */
+export function createMockTransactionContext(): TransactionContext {
+  return {
+    id: "mock-transaction-id"
+  };
+}
 
 /**
  * モックコンテンツリポジトリを作成する
@@ -42,8 +54,20 @@ export function createMockContentRepository(
     save: async (contentAggregate: ContentAggregate): Promise<ContentAggregate> => {
       return contentAggregate;
     },
+    saveWithTransaction: async (
+      contentAggregate: ContentAggregate,
+      _context: TransactionContext
+    ): Promise<Result<ContentAggregate, InfrastructureError>> => {
+      return ok(contentAggregate);
+    },
     delete: async (id: string): Promise<boolean> => {
       return true;
+    },
+    deleteWithTransaction: async (
+      _id: string,
+      _context: TransactionContext
+    ): Promise<Result<boolean, InfrastructureError>> => {
+      return ok(true);
     },
     ...overrides
   };
@@ -86,8 +110,20 @@ export function createMockRepositoryRepository(
     save: async (repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> => {
       return repositoryAggregate;
     },
+    saveWithTransaction: async (
+      repositoryAggregate: RepositoryAggregate,
+      _context: TransactionContext
+    ): Promise<Result<RepositoryAggregate, InfrastructureError>> => {
+      return ok(repositoryAggregate);
+    },
     delete: async (id: string): Promise<boolean> => {
       return true;
+    },
+    deleteWithTransaction: async (
+      _id: string,
+      _context: TransactionContext
+    ): Promise<Result<boolean, InfrastructureError>> => {
+      return ok(true);
     },
     ...overrides
   };

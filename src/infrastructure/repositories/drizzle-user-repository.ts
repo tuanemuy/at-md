@@ -8,6 +8,10 @@ import { users } from "../database/schema/user.ts";
 import { UserRepository } from "../../application/account/repositories/user-repository.ts";
 import { UserAggregate, createUserAggregate } from "../../core/account/aggregates/user-aggregate.ts";
 import { createUsername, createEmail, createAtIdentifier } from "../../core/account/value-objects/mod.ts";
+import { Result, ok, err } from "../../deps.ts";
+import { InfrastructureError } from "../../core/errors/base.ts";
+import { TransactionContext } from "../database/unit-of-work.ts";
+import { PostgresTransactionContext } from "../database/postgres-unit-of-work.ts";
 
 /**
  * Drizzleを使用したユーザーリポジトリの実装
@@ -215,5 +219,97 @@ export class DrizzleUserRepository implements UserRepository {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });
+  }
+
+  /**
+   * トランザクション内でユーザーを保存する
+   * @param userAggregate ユーザー集約
+   * @param context トランザクションコンテキスト
+   * @returns 保存されたユーザー集約の結果
+   */
+  async saveWithTransaction(
+    userAggregate: UserAggregate,
+    context: TransactionContext
+  ): Promise<Result<UserAggregate, InfrastructureError>> {
+    try {
+      // PostgreSQLのトランザクションコンテキストにキャスト
+      const pgContext = context as PostgresTransactionContext;
+      if (!pgContext.client) {
+        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
+      }
+
+      const user = userAggregate.user;
+      
+      // 既存のユーザーを確認
+      const existingUser = await this.findById(user.id);
+      
+      if (existingUser) {
+        // 更新
+        await pgContext.client.query(
+          `UPDATE users 
+           SET username = $1, email = $2, at_did = $3, at_handle = $4, updated_at = $5
+           WHERE id = $6`,
+          [
+            user.username.value,
+            user.email.value,
+            user.atIdentifier.value,
+            user.atIdentifier.handle,
+            new Date().toISOString(),
+            user.id
+          ]
+        );
+      } else {
+        // 新規作成
+        await pgContext.client.query(
+          `INSERT INTO users (id, username, email, at_did, at_handle, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            user.id,
+            user.username.value,
+            user.email.value,
+            user.atIdentifier.value,
+            user.atIdentifier.handle,
+            user.createdAt.toISOString(),
+            user.updatedAt.toISOString()
+          ]
+        );
+      }
+      
+      return ok(userAggregate);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return err(new InfrastructureError(`ユーザーの保存に失敗しました: ${errorMessage}`));
+    }
+  }
+
+  /**
+   * トランザクション内でユーザーを削除する
+   * @param id ユーザーID
+   * @param context トランザクションコンテキスト
+   * @returns 削除結果
+   */
+  async deleteWithTransaction(
+    id: string,
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>> {
+    try {
+      // PostgreSQLのトランザクションコンテキストにキャスト
+      const pgContext = context as PostgresTransactionContext;
+      if (!pgContext.client) {
+        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
+      }
+
+      // ユーザーを削除
+      const result = await pgContext.client.query(
+        "DELETE FROM users WHERE id = $1",
+        [id]
+      );
+      
+      const rowCount = result.rowCount || 0;
+      return ok(rowCount > 0);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return err(new InfrastructureError(`ユーザーの削除に失敗しました: ${errorMessage}`));
+    }
   }
 } 

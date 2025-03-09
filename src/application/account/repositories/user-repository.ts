@@ -4,6 +4,9 @@
  */
 
 import { UserAggregate } from "../../../core/account/aggregates/user-aggregate.ts";
+import { TransactionContext } from "../../../infrastructure/database/unit-of-work.ts";
+import { Result } from "../../../deps.ts";
+import { InfrastructureError } from "../../../core/errors/base.ts";
 
 /**
  * ユーザーリポジトリインターフェース
@@ -52,9 +55,31 @@ export interface UserRepository {
   save(userAggregate: UserAggregate): Promise<UserAggregate>;
   
   /**
+   * トランザクション内でユーザーを保存する
+   * @param userAggregate ユーザー集約
+   * @param context トランザクションコンテキスト
+   * @returns 保存されたユーザー集約の結果
+   */
+  saveWithTransaction(
+    userAggregate: UserAggregate, 
+    context: TransactionContext
+  ): Promise<Result<UserAggregate, InfrastructureError>>;
+  
+  /**
    * ユーザーを削除する
    * @param id ユーザーID
    * @returns 削除に成功した場合はtrue、それ以外はfalse
    */
   delete(id: string): Promise<boolean>;
+  
+  /**
+   * トランザクション内でユーザーを削除する
+   * @param id ユーザーID
+   * @param context トランザクションコンテキスト
+   * @returns 削除結果
+   */
+  deleteWithTransaction(
+    id: string, 
+    context: TransactionContext
+  ): Promise<Result<boolean, InfrastructureError>>;
 } 
