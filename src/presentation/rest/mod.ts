@@ -1,10 +1,16 @@
 /**
- * RESTful APIモジュール
- * RESTful APIの機能をエクスポートします。
+ * プレゼンテーション層のRESTコンテキスト公開API
+ * 
+ * RESTコンテキストが外部に公開するAPIを定義します。
  */
 
-export * from "./app/mod.ts";
-export * from "./controllers/mod.ts";
-export * from "./dtos/mod.ts";
-export * from "./middlewares/mod.ts";
-export * from "./routes/mod.ts"; 
+// アプリケーション
+export * from "./app/app.ts";
+
+// コントローラー
+export * from "./controllers/user-controller.ts";
+export * from "./controllers/content-controller.ts";
+
+// ルート
+export * from "./routes/user-routes.ts";
+export * from "./routes/content-routes.ts"; 

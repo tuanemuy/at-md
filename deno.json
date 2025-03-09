@@ -9,6 +9,7 @@
     "check": "deno check src/**/*.ts",
     "lint": "deno lint src/**/*.ts",
     "check:deps": "deno run -A scripts/check_deps.ts",
+    "check:circular": "deno run -A scripts/check_circular.ts",
     "db:generate": "deno run -A --env-file --node-modules-dir npm:drizzle-kit generate",
     "db:migrate": "deno run -A --env-file src/infrastructure/database/migrate.ts"
   },

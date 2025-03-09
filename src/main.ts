@@ -3,9 +3,11 @@
  */
 
 import { serve } from "jsr:@std/http@^0.218.2/server";
-import { createApp } from "./presentation/rest/app/app.ts";
+import { createApp } from "./presentation/mod.ts";
+import { dotenvConfig } from "./deps.ts";
 
 // 環境変数の読み込み
+dotenvConfig();
 const PORT = parseInt(Deno.env.get("PORT") || "8000");
 const HOST = Deno.env.get("HOST") || "localhost";
 
