@@ -17,4 +17,7 @@ export { expect } from "@std/expect";
 export { describe, it, beforeEach, afterEach, beforeAll, afterAll } from "@std/testing/bdd";
 
 // ユーティリティ
-export { Result, ok, err } from "npm:neverthrow"; 
+export { Result, ok, err } from "npm:neverthrow";
+
+// バリデーション
+export { z } from "npm:zod"; 

@@ -15,7 +15,9 @@
   "imports": {
     "@atproto/api": "npm:@atproto/api@^0.14.9",
     "@octokit/webhooks": "npm:@octokit/webhooks@^13.7.4",
+    "@std/fs": "jsr:@std/fs@^1.0.14",
     "@std/http": "jsr:@std/http@^1.0.13",
+    "@std/path": "jsr:@std/path@^1.0.8",
     "@types/pg": "npm:@types/pg@^8.11.11",
     "drizzle-kit": "npm:drizzle-kit@^0.27.2",
     "drizzle-orm": "npm:drizzle-orm@^0.36.0",
@@ -30,7 +32,8 @@
     "@std/testing": "jsr:@std/testing@^0.218.2",
     "octokit": "npm:octokit@^4.1.2",
     "pg": "npm:pg@^8.13.3",
-    "uuidv7": "npm:uuidv7@^1.0.2"
+    "uuidv7": "npm:uuidv7@^1.0.2",
+    "zod": "npm:zod@^3.24.2"
   },
   "lint": {
     "include": ["src/"],
