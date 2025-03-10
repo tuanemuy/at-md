@@ -64,7 +64,7 @@ class MockUserRepository implements UserRepository {
   
   async findByDid(did: string): Promise<UserAggregate | null> {
     for (const user of this.users.values()) {
-      if (user.user.atIdentifier.did === did) {
+      if (user.user.atIdentifier.value === did) {
         return user;
       }
     }

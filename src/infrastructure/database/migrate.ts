@@ -7,7 +7,7 @@
 
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import postgres from "npm:postgres";
 import { Logger } from "../../core/logging/logger.ts";
 
 // データベース接続文字列

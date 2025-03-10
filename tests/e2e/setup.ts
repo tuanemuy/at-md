@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 /**
  * E2Eテスト用のセットアップファイル
  * 
@@ -22,23 +24,23 @@ export function setupBrowserEnvironment(): void {
   });
 
   // グローバルオブジェクトにブラウザAPIをセット
-  global.window = dom.window as any;
-  global.document = dom.window.document;
-  global.navigator = dom.window.navigator;
-  global.location = dom.window.location;
-  global.history = dom.window.history;
-  global.localStorage = dom.window.localStorage;
-  global.sessionStorage = dom.window.sessionStorage;
-  global.CustomEvent = dom.window.CustomEvent;
-  global.Event = dom.window.Event;
-  global.HTMLElement = dom.window.HTMLElement;
-  global.Element = dom.window.Element;
-  global.Node = dom.window.Node;
+  globalThis.window = dom.window as any;
+  globalThis.document = dom.window.document;
+  globalThis.navigator = dom.window.navigator;
+  globalThis.location = dom.window.location;
+  globalThis.history = dom.window.history;
+  globalThis.localStorage = dom.window.localStorage;
+  globalThis.sessionStorage = dom.window.sessionStorage;
+  globalThis.CustomEvent = dom.window.CustomEvent;
+  globalThis.Event = dom.window.Event;
+  globalThis.HTMLElement = dom.window.HTMLElement;
+  globalThis.Element = dom.window.Element;
+  globalThis.Node = dom.window.Node;
 
   // コンソールログのモック
   const originalConsoleLog = console.log;
   console.log = (...args: any[]) => {
-    if (process.env.DEBUG) {
+    if (Deno.env.get("DEBUG")) {
       originalConsoleLog(...args);
     }
   };

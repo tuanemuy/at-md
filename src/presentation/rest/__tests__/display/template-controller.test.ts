@@ -219,7 +219,7 @@ Deno.test("TemplateController", async (t) => {
           });
 
           if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
+            return new Response(JSON.stringify({ error: String((result.error as any).message || 'Unknown error') }), {
               status: 500,
               headers: { "Content-Type": "application/json" },
             });

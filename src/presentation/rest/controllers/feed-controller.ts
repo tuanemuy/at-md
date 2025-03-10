@@ -8,11 +8,11 @@ import { Result } from "npm:neverthrow";
 import { 
   GetFeedByIdQueryHandler, 
   GetFeedByIdQuery 
-} from "../../../application/delivery/queries/get-feed-by-id-query.ts";
+} from "../../../application/delivery/queries/feed-query.ts";
 import { 
   GetFeedsByUserIdQueryHandler, 
   GetFeedsByUserIdQuery 
-} from "../../../application/delivery/queries/get-feeds-by-user-id-query.ts";
+} from "../../../application/delivery/queries/feed-query.ts";
 import { 
   CreateFeedCommandHandler, 
   CreateFeedCommand 
@@ -30,7 +30,7 @@ export class FeedController {
   
   /**
    * コンストラクタ
-   * @param getFeedByIdQueryHandler フィードID取得クエリハンドラー
+   * @param getFeedByIdQueryHandler フィード取得クエリハンドラー
    * @param getFeedsByUserIdQueryHandler ユーザーIDによるフィード取得クエリハンドラー
    * @param createFeedCommandHandler フィード作成コマンドハンドラー
    */
@@ -46,10 +46,10 @@ export class FeedController {
   
   /**
    * IDによるフィード取得
-   * @param c Honoコンテキスト
+   * @param c コンテキスト
    * @returns レスポンス
    */
-  async getFeedById(c: Context): Promise<Response> {
+  async getFeedById(c: Context<any, any>): Promise<Response> {
     const id = c.req.param("id");
     
     if (!id) {
@@ -70,15 +70,19 @@ export class FeedController {
       return c.json({ error: result.error.message }, 500);
     }
     
+    if (!result.value) {
+      return c.json({ error: "フィードが見つかりませんでした" }, 404);
+    }
+    
     return c.json(result.value.feed);
   }
   
   /**
    * ユーザーIDによるフィード取得
-   * @param c Honoコンテキスト
+   * @param c コンテキスト
    * @returns レスポンス
    */
-  async getFeedsByUserId(c: Context): Promise<Response> {
+  async getFeedsByUserId(c: Context<any, any>): Promise<Response> {
     const userId = c.req.param("userId");
     
     if (!userId) {
@@ -98,15 +102,15 @@ export class FeedController {
       return c.json({ error: result.error.message }, 500);
     }
     
-    return c.json(result.value.map((feed: FeedAggregate) => feed.feed));
+    return c.json(result.value.map(feed => feed.feed));
   }
   
   /**
    * フィード作成
-   * @param c Honoコンテキスト
+   * @param c コンテキスト
    * @returns レスポンス
    */
-  async createFeed(c: Context): Promise<Response> {
+  async createFeed(c: Context<any, any>): Promise<Response> {
     try {
       const body = await c.req.json();
       
@@ -120,13 +124,13 @@ export class FeedController {
         feedName: body.name,
         description: body.description || "",
         tags: body.tags || [],
-        isPublic: body.isPublic !== undefined ? body.isPublic : false
+        isPublic: body.isPublic !== undefined ? body.isPublic : true
       };
       
       const result = await this.createFeedCommandHandler.execute(command);
       
       if (result.isErr()) {
-        return c.json({ error: result.error.message }, 400);
+        return c.json({ error: result.error.message }, 500);
       }
       
       return c.json(result.value.feed, 201);

@@ -40,7 +40,7 @@ export class Renderer {
    * レンダリングを開始する
    */
   public start(): void {
-    this.props.appState.addChangeListener(this.stateChangeListener);
+    this.props.appState.addListener(this.stateChangeListener);
     this.render();
   }
   
@@ -48,7 +48,7 @@ export class Renderer {
    * レンダリングを停止する
    */
   public stop(): void {
-    this.props.appState.removeChangeListener(this.stateChangeListener);
+    this.props.appState.removeListener(this.stateChangeListener);
   }
   
   /**

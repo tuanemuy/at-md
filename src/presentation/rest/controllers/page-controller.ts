@@ -34,14 +34,13 @@ export class PageController {
   }
 
   /**
-   * ページIDによるページ取得
-   * 
+   * IDによるページ取得
    * @param c コンテキスト
    * @returns レスポンス
    */
-  async getPageById(c: Context): Promise<Response> {
+  async getPageById(c: Context<any, any>): Promise<Response> {
     try {
-      const id = c.params.id;
+      const id = c.req.param('id');
       if (!id) {
         return new Response(JSON.stringify({ error: "Page ID is required" }), {
           status: 400,
@@ -50,7 +49,6 @@ export class PageController {
       }
 
       const result = await this.getPageByIdQueryHandler.execute({
-        name: "GetPageById",
         id,
       });
 
@@ -65,8 +63,9 @@ export class PageController {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
@@ -74,14 +73,13 @@ export class PageController {
   }
 
   /**
-   * スラグによるページ取得
-   * 
+   * スラッグによるページ取得
    * @param c コンテキスト
    * @returns レスポンス
    */
-  async getPageBySlug(c: Context): Promise<Response> {
+  async getPageBySlug(c: Context<any, any>): Promise<Response> {
     try {
-      const slug = c.params.slug;
+      const slug = c.req.param('slug');
       if (!slug) {
         return new Response(JSON.stringify({ error: "Page slug is required" }), {
           status: 400,
@@ -90,7 +88,6 @@ export class PageController {
       }
 
       const result = await this.getPageBySlugQueryHandler.execute({
-        name: "GetPageBySlug",
         slug,
       });
 
@@ -105,8 +102,9 @@ export class PageController {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
@@ -115,13 +113,12 @@ export class PageController {
 
   /**
    * コンテンツIDによるページ取得
-   * 
    * @param c コンテキスト
    * @returns レスポンス
    */
-  async getPageByContentId(c: Context): Promise<Response> {
+  async getPageByContentId(c: Context<any, any>): Promise<Response> {
     try {
-      const contentId = c.params.contentId;
+      const contentId = c.req.param('contentId');
       if (!contentId) {
         return new Response(JSON.stringify({ error: "Content ID is required" }), {
           status: 400,
@@ -130,7 +127,6 @@ export class PageController {
       }
 
       const result = await this.getPageByContentIdQueryHandler.execute({
-        name: "GetPageByContentId",
         contentId,
       });
 
@@ -145,8 +141,9 @@ export class PageController {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });

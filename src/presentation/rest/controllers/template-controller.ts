@@ -29,14 +29,13 @@ export class TemplateController {
   }
 
   /**
-   * テンプレートIDによるテンプレート取得
-   * 
+   * IDによるテンプレート取得
    * @param c コンテキスト
    * @returns レスポンス
    */
-  async getTemplateById(c: Context): Promise<Response> {
+  async getTemplateById(c: Context<any, any>): Promise<Response> {
     try {
-      const id = c.req.param("id");
+      const id = c.req.param('id');
       if (!id) {
         return new Response(JSON.stringify({ error: "Template ID is required" }), {
           status: 400,
@@ -45,7 +44,6 @@ export class TemplateController {
       }
 
       const result = await this.getTemplateByIdQueryHandler.execute({
-        name: "GetTemplateById",
         id,
       });
 
@@ -60,8 +58,9 @@ export class TemplateController {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
@@ -69,20 +68,17 @@ export class TemplateController {
   }
 
   /**
-   * すべてのテンプレート取得
-   * 
+   * 全テンプレート取得
    * @param c コンテキスト
    * @returns レスポンス
    */
-  async getAllTemplates(c: Context): Promise<Response> {
+  async getAllTemplates(c: Context<any, any>): Promise<Response> {
     try {
-      const result = await this.getAllTemplatesQueryHandler.execute({
-        name: "GetAllTemplates",
-      });
+      const result = await this.getAllTemplatesQueryHandler.execute({});
 
       if (result.isErr()) {
         return new Response(JSON.stringify({ error: result.error.message }), {
-          status: 500,
+          status: 404,
           headers: { "Content-Type": "application/json" },
         });
       }
@@ -91,8 +87,9 @@ export class TemplateController {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
-    } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return new Response(JSON.stringify({ error: errorMessage }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });

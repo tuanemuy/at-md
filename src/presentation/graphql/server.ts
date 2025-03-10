@@ -4,7 +4,7 @@
  * GraphQLサーバーの設定と起動処理を提供します。
  */
 
-import { createYoga } from "graphql-yoga";
+import { createYoga, createSchema } from "npm:graphql-yoga";
 import { typeDefs } from "./schema/mod.ts";
 import { resolvers } from "./resolvers/mod.ts";
 
@@ -88,11 +88,13 @@ export function createGraphQLServer(
   queryHandlers: QueryHandlers,
   commandHandlers: CommandHandlers
 ) {
+  const schema = createSchema({
+    typeDefs,
+    resolvers,
+  });
+
   return createYoga({
-    schema: {
-      typeDefs,
-      resolvers,
-    },
+    schema,
     context: {
       queryHandlers,
       commandHandlers,

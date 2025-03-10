@@ -1,10 +1,10 @@
 /**
  * GraphQLスキーマのエントリーポイント
  * 
- * 各ドメインのスキーマを統合して提供します。
+ * 各ドメインのスキーマを統合して、アプリケーション全体のスキーマを定義します。
  */
 
-import { default as gql } from "graphql-tag";
+import { gql } from "npm:graphql-tag";
 
 // 基本的な型定義
 const baseTypeDefs = gql`

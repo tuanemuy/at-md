@@ -4,6 +4,8 @@
  * アプリケーションのホームページを表示するコンポーネントをテストします。
  */
 
+/// <reference lib="dom" />
+
 import { expect } from "@std/expect";
 import { describe, it, beforeEach } from "@std/testing/bdd";
 import { HomePage, HomePageProps } from "../../pages/home-page.ts";
@@ -17,6 +19,8 @@ const mockContents = [
     id: "content-1",
     title: "テスト記事1",
     body: "これはテスト記事1の本文です。",
+    path: "/path/to/content-1",
+    visibility: "public",
     tags: ["test", "article"],
     createdAt: "2024-08-01T00:00:00Z",
     updatedAt: "2024-08-01T00:00:00Z",
@@ -25,6 +29,8 @@ const mockContents = [
     id: "content-2",
     title: "テスト記事2",
     body: "これはテスト記事2の本文です。",
+    path: "/path/to/content-2",
+    visibility: "public",
     tags: ["test", "draft"],
     createdAt: "2024-08-02T00:00:00Z",
     updatedAt: "2024-08-02T00:00:00Z",
