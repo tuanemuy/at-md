@@ -1,8 +1,38 @@
 import { ContentMetadata } from "../value-objects/content-metadata.ts";
 import { Version } from "../value-objects/version.ts";
+import { 
+  contentSchema, 
+  ContentSchema, 
+  contentVisibilitySchema,
+  CreateContentParamsSchema
+} from "../schemas/content-schemas.ts";
+import { Result, ok, err } from "../deps.ts";
+import { DomainError } from "../../errors/base.ts";
+import { generateId } from "../../common/id.ts";
+
+/**
+ * ドメインバリデーションエラー
+ * Zodによるバリデーションエラーを扱うためのエラークラス
+ */
+export class DomainValidationError extends DomainError {
+  readonly details: unknown;
+
+  constructor(message: string, details?: unknown) {
+    super(message);
+    this.name = "DomainValidationError";
+    this.details = details;
+  }
+}
+
+/**
+ * コンテンツIDの型
+ * 文字列リテラル型を使用して型安全性を向上
+ */
+export type ContentId = string & { readonly __brand: unique symbol };
 
 /**
  * コンテンツの公開範囲を表す型
+ * 文字列リテラル型を使用して型安全性を向上
  */
 export type ContentVisibility = "private" | "unlisted" | "public";
 
@@ -11,7 +41,7 @@ export type ContentVisibility = "private" | "unlisted" | "public";
  */
 export interface Content {
   /** コンテンツID */
-  readonly id: string;
+  readonly id: ContentId;
   /** ユーザーID */
   readonly userId: string;
   /** リポジトリID */
@@ -56,10 +86,10 @@ export interface Content {
 }
 
 /**
- * Contentを作成するための入力パラメータ
+ * コンテンツエンティティのパラメータ
  */
-export interface ContentParams {
-  id: string;
+export type ContentParams = {
+  id: ContentId;
   userId: string;
   repositoryId: string;
   path: string;
@@ -70,24 +100,46 @@ export interface ContentParams {
   visibility: ContentVisibility;
   createdAt: Date;
   updatedAt: Date;
+};
+
+/**
+ * 文字列をContentId型に変換する
+ * @param id 文字列ID
+ * @returns ContentId型のID
+ */
+export function createContentId(id: string): Result<ContentId, DomainValidationError> {
+  if (!id || id.trim() === "") {
+    return err(new DomainValidationError("コンテンツIDは空にできません"));
+  }
+  return ok(id as ContentId);
 }
 
 /**
- * Contentを作成する
- * @param params Contentのパラメータ
- * @returns 不変なContentオブジェクト
- * @throws IDが空、または無効な公開範囲の場合はエラー
+ * 新しいContentIdを生成する
+ * @returns ContentId型のID
  */
-export function createContent(params: ContentParams): Content {
+export function generateContentId(): Result<ContentId, DomainValidationError> {
+  const id = generateId();
+  return createContentId(id);
+}
+
+/**
+ * コンテンツエンティティを作成する
+ * @param params コンテンツパラメータ
+ * @returns コンテンツエンティティ
+ */
+export function createContent(params: ContentParams): Result<Content, DomainValidationError> {
+  // 基本的なバリデーション
   if (!params.id) {
-    throw new Error("コンテンツIDは必須です");
+    return err(new DomainValidationError("コンテンツIDは必須です"));
   }
 
   const validVisibilities: ContentVisibility[] = ["private", "unlisted", "public"];
   if (!validVisibilities.includes(params.visibility)) {
-    throw new Error("無効な公開範囲です");
+    return err(new DomainValidationError("無効な公開範囲です"));
   }
 
+  // コンテンツエンティティの実装
   const content: Content = {
     id: params.id,
     userId: params.userId,
@@ -102,29 +154,82 @@ export function createContent(params: ContentParams): Content {
     updatedAt: params.updatedAt,
 
     addVersion(version: Version): Content {
-      return createContent({
+      const result = createContent({
         ...this,
         versions: [...this.versions, version],
         updatedAt: new Date()
       });
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      return result.value;
     },
 
     changeVisibility(visibility: ContentVisibility): Content {
-      return createContent({
+      // 公開範囲のバリデーション
+      if (!validVisibilities.includes(visibility)) {
+        throw new DomainValidationError("無効な公開範囲です");
+      }
+
+      const result = createContent({
         ...this,
         visibility,
         updatedAt: new Date()
       });
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      return result.value;
     },
 
     updateMetadata(metadata: ContentMetadata): Content {
-      return createContent({
+      const result = createContent({
         ...this,
         metadata,
         updatedAt: new Date()
       });
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      return result.value;
     }
   };
 
-  return Object.freeze(content);
+  return ok(content);
+}
+
+/**
+ * コンテンツエンティティを検証する
+ * @param content 検証対象のコンテンツ
+ * @returns 検証結果
+ */
+export function validateContent(content: unknown): Result<Content, DomainValidationError> {
+  if (typeof content !== 'object' || content === null) {
+    return err(new DomainValidationError("コンテンツの検証に失敗しました: オブジェクトではありません"));
+  }
+  
+  // 必須プロパティの存在チェック
+  const requiredProps = ['id', 'userId', 'repositoryId', 'path', 'title', 'body', 'metadata', 'versions', 'visibility', 'createdAt', 'updatedAt'];
+  for (const prop of requiredProps) {
+    if (!(prop in content)) {
+      return err(new DomainValidationError(`コンテンツの検証に失敗しました: ${prop}プロパティがありません`));
+    }
+  }
+  
+  // Content型として扱う
+  const contentObj = content as Content;
+  
+  // 公開範囲のバリデーション
+  const validVisibilities: ContentVisibility[] = ["private", "unlisted", "public"];
+  if (!validVisibilities.includes(contentObj.visibility)) {
+    return err(new DomainValidationError("無効な公開範囲です"));
+  }
+  
+  return ok(contentObj);
 } 

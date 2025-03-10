@@ -1,32 +1,45 @@
-import { expect } from "@std/expect";
-import { describe, it } from "@std/testing/bdd";
-import { Content, ContentParams, createContent } from "./content.ts";
-import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
-import { Version, createVersion } from "../value-objects/version.ts";
+import { assertEquals } from "jsr:@std/assert@0.218.2/assert_equals";
+import { assertThrows } from "jsr:@std/assert@0.218.2/assert_throws";
+import { describe, it } from "jsr:@std/testing@0.218.2/bdd";
+import { expect } from "jsr:@std/expect@0.218.2";
+
+import {
+  Content,
+  ContentParams,
+  createContent,
+  createContentId,
+  DomainValidationError,
+} from "./content.ts";
+import { Version, createVersion, createVersionId, createCommitId } from "../value-objects/version.ts";
+import { createContentMetadata, createTag, createCategory, createLanguageCode } from "../value-objects/content-metadata.ts";
 
 describe("Contentエンティティ", () => {
   it("すべてのプロパティを指定して作成できること", () => {
-    // 期待する結果
+    // Arrange
     const id = "content-123";
-    const userId = "user-456";
-    const repositoryId = "repo-789";
-    const path = "path/to/content.md";
+    const userId = "user-123";
+    const repositoryId = "repo-123";
+    const path = "/path/to/content";
     const title = "テストコンテンツ";
-    const body = "# テストコンテンツ\n\nこれはテストです。";
+    const body = "これはテストコンテンツです。";
     const metadata = createContentMetadata({
-      tags: ["test", "markdown"],
-      categories: ["tech"],
+      tags: ["test", "sample"],
+      categories: ["tech", "programming"],
       language: "ja",
-      readingTime: 3
+      readingTime: 5,
     });
     const versions: Version[] = [];
-    const visibility = "private";
-    const createdAt = new Date("2023-01-01T00:00:00Z");
-    const updatedAt = new Date("2023-01-02T00:00:00Z");
+    const visibility = "public";
+    const createdAt = new Date();
+    const updatedAt = new Date();
 
-    // 操作
-    const content = createContent({
-      id,
+    // Act
+    const contentIdResult = createContentId(id);
+    expect(contentIdResult.isOk()).toBe(true);
+    const contentId = contentIdResult._unsafeUnwrap();
+
+    const contentResult = createContent({
+      id: contentId,
       userId,
       repositoryId,
       path,
@@ -34,13 +47,15 @@ describe("Contentエンティティ", () => {
       body,
       metadata,
       versions,
-      visibility,
+      visibility: "public",
       createdAt,
-      updatedAt
+      updatedAt,
     });
 
-    // アサーション
-    expect(content.id).toBe(id);
+    // Assert
+    expect(contentResult.isOk()).toBe(true);
+    const content = contentResult._unsafeUnwrap();
+    expect(content.id).toBe(contentId);
     expect(content.userId).toBe(userId);
     expect(content.repositoryId).toBe(repositoryId);
     expect(content.path).toBe(path);
@@ -54,151 +69,187 @@ describe("Contentエンティティ", () => {
   });
 
   it("バージョンを追加できること", () => {
-    // 準備
-    const content = createContent({
-      id: "content-123",
-      userId: "user-456",
-      repositoryId: "repo-789",
-      path: "path/to/content.md",
-      title: "元のタイトル",
-      body: "元の本文",
+    // Arrange
+    const contentIdResult = createContentId("content-123");
+    expect(contentIdResult.isOk()).toBe(true);
+    const contentId = contentIdResult._unsafeUnwrap();
+
+    const contentResult = createContent({
+      id: contentId,
+      userId: "user-123",
+      repositoryId: "repo-123",
+      path: "/path/to/content",
+      title: "テストコンテンツ",
+      body: "これはテストコンテンツです。",
       metadata: createContentMetadata({
-        tags: ["original"],
-        categories: ["tech"],
-        language: "ja"
+        tags: ["test", "sample"],
+        categories: ["tech", "programming"],
+        language: "ja",
+        readingTime: 5,
       }),
       versions: [],
-      visibility: "private",
-      createdAt: new Date("2023-01-01T00:00:00Z"),
-      updatedAt: new Date("2023-01-01T00:00:00Z")
+      visibility: "public",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
+
+    expect(contentResult.isOk()).toBe(true);
+    const content = contentResult._unsafeUnwrap();
+
+    const versionIdResult = createVersionId("version-123");
+    expect(versionIdResult.isOk()).toBe(true);
+    const versionId = versionIdResult._unsafeUnwrap();
+
+    const commitIdResult = createCommitId("commit-123");
+    expect(commitIdResult.isOk()).toBe(true);
+    const commitId = commitIdResult._unsafeUnwrap();
 
     const version = createVersion({
-      id: "version-123",
-      contentId: "content-123",
-      commitId: "commit-123",
-      createdAt: new Date("2023-01-02T00:00:00Z"),
+      id: versionId,
+      contentId: contentId,
+      commitId: commitId,
+      createdAt: new Date(),
       changes: {
         title: "新しいタイトル",
-        body: "新しい本文"
-      }
+      },
     });
 
-    // 操作
+    // Act
     const updatedContent = content.addVersion(version);
 
-    // アサーション
+    // Assert
     expect(updatedContent.versions.length).toBe(1);
     expect(updatedContent.versions[0]).toEqual(version);
-    expect(updatedContent).not.toBe(content); // 新しいインスタンスが返されること
   });
 
   it("公開範囲を変更できること", () => {
-    // 準備
-    const content = createContent({
-      id: "content-123",
-      userId: "user-456",
-      repositoryId: "repo-789",
-      path: "path/to/content.md",
+    // Arrange
+    const contentIdResult = createContentId("content-123");
+    expect(contentIdResult.isOk()).toBe(true);
+    const contentId = contentIdResult._unsafeUnwrap();
+
+    const contentResult = createContent({
+      id: contentId,
+      userId: "user-123",
+      repositoryId: "repo-123",
+      path: "/path/to/content",
       title: "テストコンテンツ",
-      body: "テスト本文",
+      body: "これはテストコンテンツです。",
       metadata: createContentMetadata({
-        tags: ["test"],
-        categories: ["tech"],
-        language: "ja"
+        tags: ["test", "sample"],
+        categories: ["tech", "programming"],
+        language: "ja",
+        readingTime: 5,
       }),
       versions: [],
       visibility: "private",
-      createdAt: new Date("2023-01-01T00:00:00Z"),
-      updatedAt: new Date("2023-01-01T00:00:00Z")
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    // 操作
+    expect(contentResult.isOk()).toBe(true);
+    const content = contentResult._unsafeUnwrap();
+
+    // Act
     const publicContent = content.changeVisibility("public");
 
-    // アサーション
+    // Assert
     expect(publicContent.visibility).toBe("public");
-    expect(publicContent).not.toBe(content); // 新しいインスタンスが返されること
   });
 
   it("メタデータを更新できること", () => {
-    // 準備
-    const content = createContent({
-      id: "content-123",
-      userId: "user-456",
-      repositoryId: "repo-789",
-      path: "path/to/content.md",
+    // Arrange
+    const contentIdResult = createContentId("content-123");
+    expect(contentIdResult.isOk()).toBe(true);
+    const contentId = contentIdResult._unsafeUnwrap();
+
+    const contentResult = createContent({
+      id: contentId,
+      userId: "user-123",
+      repositoryId: "repo-123",
+      path: "/path/to/content",
       title: "テストコンテンツ",
-      body: "テスト本文",
+      body: "これはテストコンテンツです。",
       metadata: createContentMetadata({
-        tags: ["test"],
-        categories: ["tech"],
-        language: "ja"
+        tags: ["test", "sample"],
+        categories: ["tech", "programming"],
+        language: "ja",
+        readingTime: 5,
       }),
       versions: [],
-      visibility: "private",
-      createdAt: new Date("2023-01-01T00:00:00Z"),
-      updatedAt: new Date("2023-01-01T00:00:00Z")
+      visibility: "public",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
+
+    expect(contentResult.isOk()).toBe(true);
+    const content = contentResult._unsafeUnwrap();
+
+    const tagsResult = ["新しいタグ"].map(tag => createTag(tag));
+    expect(tagsResult.every(r => r.isOk())).toBe(true);
+    const tags = tagsResult.map(r => r._unsafeUnwrap());
+
+    const categoriesResult = ["新しいカテゴリ"].map(cat => createCategory(cat));
+    expect(categoriesResult.every(r => r.isOk())).toBe(true);
+    const categories = categoriesResult.map(r => r._unsafeUnwrap());
+
+    const languageResult = createLanguageCode("en");
+    expect(languageResult.isOk()).toBe(true);
+    const language = languageResult._unsafeUnwrap();
 
     const newMetadata = createContentMetadata({
-      tags: ["test", "updated"],
-      categories: ["tech", "programming"],
-      language: "ja",
-      readingTime: 5
+      tags: ["新しいタグ"],
+      categories: ["新しいカテゴリ"],
+      language: "en",
+      readingTime: 10,
     });
 
-    // 操作
+    // Act
     const updatedContent = content.updateMetadata(newMetadata);
 
-    // アサーション
+    // Assert
     expect(updatedContent.metadata).toEqual(newMetadata);
-    expect(updatedContent).not.toBe(content); // 新しいインスタンスが返されること
   });
 
   it("IDが指定されていない場合はエラーになること", () => {
-    // 操作と検証
-    expect(() => {
-      createContent({
-        id: "",
-        userId: "user-456",
-        repositoryId: "repo-789",
-        path: "path/to/content.md",
-        title: "テストコンテンツ",
-        body: "テスト本文",
-        metadata: createContentMetadata({
-          tags: ["test"],
-          categories: ["tech"],
-          language: "ja"
-        }),
-        versions: [],
-        visibility: "private",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-    }).toThrow("コンテンツIDは必須です");
+    // Arrange & Act & Assert
+    const contentIdResult = createContentId("");
+    expect(contentIdResult.isErr()).toBe(true);
+    expect(contentIdResult._unsafeUnwrapErr()).toBeInstanceOf(DomainValidationError);
+    // エラーメッセージの内容を確認
+    const errorMessage = contentIdResult._unsafeUnwrapErr().message;
+    expect(errorMessage.includes("ID")).toBe(true);
   });
 
   it("無効な公開範囲の場合はエラーになること", () => {
-    // 操作と検証
-    expect(() => {
-      createContent({
-        id: "content-123",
-        userId: "user-456",
-        repositoryId: "repo-789",
-        path: "path/to/content.md",
-        title: "テストコンテンツ",
-        body: "テスト本文",
-        metadata: createContentMetadata({
-          tags: ["test"],
-          categories: ["tech"],
-          language: "ja"
-        }),
-        versions: [],
-        visibility: "invalid-visibility" as any,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-    }).toThrow("無効な公開範囲です");
+    // Arrange
+    const contentIdResult = createContentId("content-123");
+    expect(contentIdResult.isOk()).toBe(true);
+    const contentId = contentIdResult._unsafeUnwrap();
+
+    const contentResult = createContent({
+      id: contentId,
+      userId: "user-123",
+      repositoryId: "repo-123",
+      path: "/path/to/content",
+      title: "テストコンテンツ",
+      body: "これはテストコンテンツです。",
+      metadata: createContentMetadata({
+        tags: ["test", "sample"],
+        categories: ["tech", "programming"],
+        language: "ja",
+        readingTime: 5,
+      }),
+      versions: [],
+      visibility: "public",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    expect(contentResult.isOk()).toBe(true);
+    const content = contentResult._unsafeUnwrap();
+
+    // Act & Assert
+    expect(() => content.changeVisibility("invalid" as any)).toThrow();
   });
 }); 

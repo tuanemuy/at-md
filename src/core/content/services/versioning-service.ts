@@ -1,8 +1,9 @@
-import { Content, createContent } from "../entities/content.ts";
-import { Version, createVersion, ContentChanges } from "../value-objects/version.ts";
+import { Content, createContent, ContentId, DomainValidationError } from "../entities/content.ts";
+import { Version, createVersion, ContentChanges, VersionId, CommitId, createVersionId, createCommitId } from "../value-objects/version.ts";
 import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
 import { generateId } from "../../common/id.ts";
 import { InvalidContentStateError } from "../../errors/domain.ts";
+import { Result, ok, err } from "../deps.ts";
 
 /**
  * バージョン管理サービス
@@ -45,219 +46,217 @@ export class VersioningService {
    */
   createVersionedContent(
     content: Content,
-    commitId: string,
+    commitIdStr: string,
     changes: ContentChanges
-  ): Content {
-    // 変更がない場合は元のコンテンツをそのまま返す
-    if (Object.keys(changes).length === 0) {
-      return content;
+  ): Result<Content, DomainValidationError> {
+    // コミットIDを型安全な値に変換
+    const commitIdResult = createCommitId(commitIdStr);
+    if (commitIdResult.isErr()) {
+      return err(commitIdResult.error);
     }
+    const commitId = commitIdResult.value;
 
-    // 新しいバージョンを作成
-    const version = createVersion({
-      id: generateId(),
-      contentId: content.id,
-      commitId,
-      createdAt: new Date(),
-      changes
-    });
-
-    // コンテンツにバージョンを追加
-    const updatedContent = content.addVersion(version);
-
-    // 変更を適用したコンテンツを作成
-    let newContent = { ...updatedContent };
-    
-    if (changes.title) {
-      newContent = { ...newContent, title: changes.title };
+    // バージョンIDを生成
+    const versionIdResult = createVersionId(generateId());
+    if (versionIdResult.isErr()) {
+      return err(versionIdResult.error);
     }
-    
-    if (changes.body) {
-      newContent = { ...newContent, body: changes.body };
-    }
-    
-    if (changes.metadata) {
-      // メタデータが部分的な場合は、既存のメタデータとマージする
-      const mergedMetadata = createContentMetadata({
-        language: changes.metadata.language || updatedContent.metadata.language,
-        tags: changes.metadata.tags || updatedContent.metadata.tags,
-        categories: changes.metadata.categories || updatedContent.metadata.categories,
-        publishedAt: changes.metadata.publishedAt || updatedContent.metadata.publishedAt,
-        lastPublishedAt: changes.metadata.lastPublishedAt || updatedContent.metadata.lastPublishedAt,
-        excerpt: changes.metadata.excerpt || updatedContent.metadata.excerpt,
-        featuredImage: changes.metadata.featuredImage || updatedContent.metadata.featuredImage,
-        readingTime: changes.metadata.readingTime || updatedContent.metadata.readingTime
+    const versionId = versionIdResult.value;
+
+    try {
+      // 新しいバージョンを作成
+      const version = createVersion({
+        id: versionId.toString(),
+        contentId: content.id,
+        commitId: commitId.toString(),
+        createdAt: new Date(),
+        changes
       });
-      
-      newContent = { ...newContent, metadata: mergedMetadata };
+
+      // コンテンツにバージョンを追加
+      const updatedContent = content.addVersion(version);
+
+      // 変更内容をコンテンツに適用
+      const contentParams = {
+        ...updatedContent,
+        updatedAt: new Date()
+      };
+
+      // タイトルの変更があれば適用
+      if (changes.title) {
+        contentParams.title = changes.title;
+      }
+
+      // 本文の変更があれば適用
+      if (changes.body) {
+        contentParams.body = changes.body;
+      }
+
+      // メタデータの変更があれば適用
+      if (changes.metadata) {
+        contentParams.metadata = {
+          ...updatedContent.metadata,
+          ...changes.metadata
+        };
+      }
+
+      return createContent(contentParams);
+    } catch (error) {
+      if (error instanceof DomainValidationError) {
+        return err(error);
+      }
+      return err(new DomainValidationError("バージョン付きコンテンツの作成に失敗しました", error));
     }
-    
-    return createContent({
-      ...newContent,
-      updatedAt: new Date()
-    });
   }
 
   /**
-   * コンテンツの変更履歴を取得する
+   * コンテンツの履歴を取得する
    * @param content コンテンツ
    * @returns バージョン履歴
    */
   getContentHistory(content: Content): Version[] {
+    // バージョンを作成日時の降順でソート
     return [...content.versions].sort((a, b) => 
       b.createdAt.getTime() - a.createdAt.getTime()
     );
   }
 
   /**
-   * コミットIDからバージョンを検索する
+   * 特定のコミットIDに対応するバージョンを検索する
    * @param content コンテンツ
-   * @param commitId 検索するコミットID
-   * @returns 見つかったバージョン、見つからない場合はundefined
+   * @param commitId コミットID
+   * @returns 見つかったバージョン、または undefined
    */
   findVersionByCommitId(content: Content, commitId: string): Version | undefined {
-    return content.versions.find(version => version.commitId === commitId);
+    return content.versions.find(version => version.commitId.toString() === commitId);
   }
 
   /**
-   * 特定のバージョンのコンテンツを復元する
+   * 特定のバージョンの状態にコンテンツを復元する
    * @param content 現在のコンテンツ
-   * @param commitId 復元するバージョンのコミットID
+   * @param commitId 復元先のコミットID
    * @returns 復元されたコンテンツ
-   * @throws {InvalidContentStateError} 指定されたコミットIDのバージョンが見つからない場合
    */
-  restoreVersion(content: Content, commitId: string): Content {
+  restoreVersion(content: Content, commitId: string): Result<Content, DomainValidationError> {
     // 指定されたコミットIDのバージョンを検索
     const targetVersion = this.findVersionByCommitId(content, commitId);
     if (!targetVersion) {
-      throw new InvalidContentStateError(
-        "バージョンが見つかりません",
-        `コミットID ${commitId} のバージョンを復元`
-      );
+      return err(new DomainValidationError(`コミットID ${commitId} のバージョンが見つかりません`));
     }
 
-    // バージョン履歴を時系列順にソート（古い順）
+    // バージョン履歴を作成日時の昇順でソート
     const sortedVersions = [...content.versions].sort((a, b) => 
       a.createdAt.getTime() - b.createdAt.getTime()
     );
-    
-    // 対象バージョンのインデックスを取得
-    const targetIndex = sortedVersions.findIndex(v => v.commitId === commitId);
-    if (targetIndex === -1) {
-      throw new InvalidContentStateError(
-        "バージョンが見つかりません",
-        `コミットID ${commitId} のバージョンを復元`
-      );
-    }
 
-    // 最初のバージョンの変更を適用する前の状態を推測
-    // 最初のバージョンの変更内容から逆算
-    const firstVersion = sortedVersions[0];
-    
-    // 初期状態を作成
-    const initialState = {
-      id: content.id,
-      userId: content.userId,
-      repositoryId: content.repositoryId,
-      path: content.path,
-      // 最初のバージョンでタイトルが変更されていれば、その前の状態を推測
-      title: firstVersion.changes.title ? this.inferOriginalValue(content, sortedVersions, "title") : content.title,
-      // 最初のバージョンで本文が変更されていれば、その前の状態を推測
-      body: firstVersion.changes.body ? this.inferOriginalValue(content, sortedVersions, "body") : content.body,
-      // 最初のバージョンでメタデータが変更されていれば、その前の状態を推測
-      metadata: firstVersion.changes.metadata ? this.inferOriginalMetadata(content, sortedVersions) : content.metadata,
-      visibility: content.visibility,
-      createdAt: content.createdAt,
-      updatedAt: new Date(),
-      versions: content.versions // バージョン履歴は保持
-    };
+    // 元のタイトルと本文を推測
+    const originalTitle = this.inferOriginalValue(content, sortedVersions, "title");
+    const originalBody = this.inferOriginalValue(content, sortedVersions, "body");
+    const originalMetadata = this.inferOriginalMetadata(content, sortedVersions);
 
-    // 対象バージョンまでの変更を適用
-    let restoredContent = { ...initialState };
-    
-    // 対象バージョンまでの変更を順番に適用
-    for (let i = 0; i <= targetIndex; i++) {
-      const version = sortedVersions[i];
-      
-      if (version.changes.title) {
-        restoredContent = {
-          ...restoredContent,
-          title: version.changes.title
-        };
-      }
-      
-      if (version.changes.body) {
-        restoredContent = {
-          ...restoredContent,
-          body: version.changes.body
-        };
-      }
-      
-      if (version.changes.metadata) {
-        // メタデータが部分的な場合は、既存のメタデータとマージする
-        const currentMetadata = restoredContent.metadata;
-        const mergedMetadata = createContentMetadata({
-          language: version.changes.metadata.language || currentMetadata.language,
-          tags: version.changes.metadata.tags || currentMetadata.tags,
-          categories: version.changes.metadata.categories || currentMetadata.categories,
-          publishedAt: version.changes.metadata.publishedAt || currentMetadata.publishedAt,
-          lastPublishedAt: version.changes.metadata.lastPublishedAt || currentMetadata.lastPublishedAt,
-          excerpt: version.changes.metadata.excerpt || currentMetadata.excerpt,
-          featuredImage: version.changes.metadata.featuredImage || currentMetadata.featuredImage,
-          readingTime: version.changes.metadata.readingTime || currentMetadata.readingTime
-        });
-        
-        restoredContent = {
-          ...restoredContent,
-          metadata: mergedMetadata
-        };
+    // 復元対象のバージョンまでの変更を適用
+    let restoredTitle = originalTitle;
+    let restoredBody = originalBody;
+    let restoredMetadata = originalMetadata;
+
+    // バージョン履歴を順に適用
+    for (const version of sortedVersions) {
+      // 対象のバージョンまで適用
+      if (version.createdAt.getTime() <= targetVersion.createdAt.getTime()) {
+        if (version.changes.title) {
+          restoredTitle = version.changes.title;
+        }
+        if (version.changes.body) {
+          restoredBody = version.changes.body;
+        }
+        if (version.changes.metadata) {
+          restoredMetadata = {
+            ...restoredMetadata,
+            ...version.changes.metadata
+          };
+        }
+      } else {
+        // 対象より新しいバージョンは無視
+        break;
       }
     }
 
-    // 最終的なコンテンツを作成
-    return createContent(restoredContent);
+    // 復元されたコンテンツを作成
+    return createContent({
+      ...content,
+      title: restoredTitle,
+      body: restoredBody,
+      metadata: restoredMetadata,
+      updatedAt: new Date()
+    });
   }
 
   /**
-   * 元の値を推測する
+   * バージョン履歴から元のプロパティ値を推測する
    * @param content 現在のコンテンツ
-   * @param sortedVersions ソートされたバージョン履歴
+   * @param sortedVersions ソート済みのバージョン履歴
    * @param property プロパティ名
    * @returns 推測された元の値
-   * @protected テスト用にprotectedに変更
    */
   protected inferOriginalValue(content: Content, sortedVersions: Version[], property: "title" | "body"): string {
-    // 最初のバージョンから現在までの変更を追跡
-    let currentValue = content[property];
+    // 現在の値を取得
+    const currentValue = content[property];
     
-    // バージョン履歴を逆順に辿り、変更を元に戻す
+    // バージョン履歴が空の場合は現在の値を返す
+    if (sortedVersions.length === 0) {
+      return currentValue;
+    }
+    
+    // 最後のバージョンから逆算
+    let value = currentValue;
+    
+    // バージョン履歴を逆順に処理
     for (let i = sortedVersions.length - 1; i >= 0; i--) {
       const version = sortedVersions[i];
       if (version.changes[property]) {
-        // このバージョンで変更があった場合、現在の値はこのバージョンの変更結果
-        // 元の値を推測するには、このバージョンの前の値を知る必要がある
-        // しかし、それは記録されていないため、デフォルト値を返す
-        return property === "title" ? "Untitled" : "";
+        // このバージョンで変更があった場合、元の値は不明
+        // 最も古いバージョンの値を返す
+        return i === 0 ? value : "";
       }
     }
     
     // 変更がなかった場合は現在の値を返す
-    return currentValue;
+    return value;
   }
 
   /**
-   * 元のメタデータを推測する
+   * バージョン履歴から元のメタデータを推測する
    * @param content 現在のコンテンツ
-   * @param sortedVersions ソートされたバージョン履歴
+   * @param sortedVersions ソート済みのバージョン履歴
    * @returns 推測された元のメタデータ
-   * @protected テスト用にprotectedに変更
    */
   protected inferOriginalMetadata(content: Content, sortedVersions: Version[]): ContentMetadata {
-    // デフォルトのメタデータを作成
-    return createContentMetadata({
-      language: "ja", // デフォルト言語
-      tags: [],
-      categories: []
-    });
+    // 現在のメタデータを取得
+    const currentMetadata = content.metadata;
+    
+    // バージョン履歴が空の場合は現在のメタデータを返す
+    if (sortedVersions.length === 0) {
+      return currentMetadata;
+    }
+    
+    // 最後のバージョンから逆算
+    let metadata = { ...currentMetadata };
+    
+    // バージョン履歴を逆順に処理
+    for (let i = sortedVersions.length - 1; i >= 0; i--) {
+      const version = sortedVersions[i];
+      if (version.changes.metadata) {
+        // このバージョンでメタデータの変更があった場合、元の値は不明
+        // 最も古いバージョンの値を返す
+        return i === 0 ? metadata : createContentMetadata({
+          language: "ja", // デフォルト値
+          tags: [],
+          categories: []
+        });
+      }
+    }
+    
+    // 変更がなかった場合は現在のメタデータを返す
+    return metadata;
   }
 } 

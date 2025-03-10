@@ -10,7 +10,7 @@ import { ContentSyncService, SyncResult } from "./content-sync-service.ts";
 import { ContentRepository } from "../repositories/content-repository.ts";
 import { RepositoryRepository } from "../repositories/repository-repository.ts";
 import { GitHubApiAdapter, GitHubContent, GitHubApiError } from "../../../infrastructure/adapters/github/github-api-adapter.ts";
-import { createContent } from "../../../core/content/entities/content.ts";
+import { createContent, generateContentId } from "../../../core/content/entities/content.ts";
 import { createContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
 import { createContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
 import { generateId } from "../../../core/common/id.ts";
@@ -387,12 +387,11 @@ export class GitHubContentSyncService implements ContentSyncService {
   }
   
   /**
-   * 新規コンテンツを作成する
-   * 
+   * 新しいコンテンツを作成する
    * @param repository リポジトリ集約
    * @param path パス
    * @param title タイトル
-   * @param content 内容
+   * @param content コンテンツ
    * @param result 同期結果
    */
   private async createNewContent(
@@ -408,8 +407,15 @@ export class GitHubContentSyncService implements ContentSyncService {
       language: "ja"
     });
     
+    // コンテンツIDの生成
+    const contentIdResult = generateContentId();
+    if (contentIdResult.isErr()) {
+      throw new Error(`コンテンツIDの生成に失敗しました: ${contentIdResult.error.message}`);
+    }
+    const contentId = contentIdResult._unsafeUnwrap();
+    
     const newContent = createContent({
-      id: generateId(),
+      id: contentId,
       userId: repository.repository.userId,
       repositoryId: repository.repository.id,
       path,

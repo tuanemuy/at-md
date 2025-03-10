@@ -10,7 +10,7 @@ import { ContentSyncService, SyncResult } from "./content-sync-service.ts";
 import { ContentRepository } from "../repositories/content-repository.ts";
 import { RepositoryRepository } from "../repositories/repository-repository.ts";
 import { ObsidianAdapter, ObsidianNote } from "../../../infrastructure/adapters/obsidian/obsidian-adapter.ts";
-import { createContent } from "../../../core/content/entities/content.ts";
+import { createContent, generateContentId } from "../../../core/content/entities/content.ts";
 import { createContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
 import { createContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
 import { generateId } from "../../../core/common/id.ts";
@@ -127,8 +127,15 @@ export class ObsidianContentSyncService implements ContentSyncService {
               language: "ja"
             });
             
+            // コンテンツIDの生成
+            const contentIdResult = generateContentId();
+            if (contentIdResult.isErr()) {
+              throw new Error(`コンテンツIDの生成に失敗しました: ${contentIdResult.error.message}`);
+            }
+            const contentId = contentIdResult._unsafeUnwrap();
+            
             const newContent = createContent({
-              id: generateId(),
+              id: contentId,
               userId: repository.userId,
               repositoryId: repository.id,
               path: note.path,

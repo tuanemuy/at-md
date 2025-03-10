@@ -4,12 +4,12 @@
  */
 
 import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
+import { Result, ok, err } from "../deps.ts";
 import { ContentAggregate, createContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
 import { ContentRepository } from "../repositories/content-repository.ts";
 import { RepositoryRepository } from "../repositories/repository-repository.ts";
 import { createContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
-import { createContent } from "../../../core/content/entities/content.ts";
+import { createContent, generateContentId } from "../../../core/content/entities/content.ts";
 import { generateId } from "../../../core/common/id.ts";
 
 /**
@@ -62,11 +62,8 @@ export class CreateContentCommandHandler {
         return err(new Error(`リポジトリが見つかりません: ${command.repositoryId}`));
       }
       
-      // 同じパスのコンテンツが存在するか確認
-      const existingContent = await this.contentRepository.findByRepositoryIdAndPath(
-        command.repositoryId,
-        command.path
-      );
+      // 同じパスのコンテンツが既に存在するか確認
+      const existingContent = await this.contentRepository.findByRepositoryIdAndPath(command.repositoryId, command.path);
       
       if (existingContent) {
         return err(new Error(`指定されたパスにコンテンツが既に存在します: ${command.path}`));
@@ -79,9 +76,16 @@ export class CreateContentCommandHandler {
         language: command.metadata?.language || "ja"
       });
       
+      // コンテンツIDの生成
+      const contentIdResult = generateContentId();
+      if (contentIdResult.isErr()) {
+        return err(new Error(`コンテンツIDの生成に失敗しました: ${contentIdResult.error.message}`));
+      }
+      const contentId = contentIdResult._unsafeUnwrap();
+      
       // コンテンツエンティティの作成
       const content = createContent({
-        id: generateId(),
+        id: contentId,
         userId: command.userId,
         repositoryId: command.repositoryId,
         path: command.path,

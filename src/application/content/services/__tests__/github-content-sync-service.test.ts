@@ -1,15 +1,19 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy, assertSpyCalls, assertSpyCall } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { Result, ok, err } from "npm:neverthrow";
+import { spy } from "jsr:@std/testing@0.218.2/mock";
+import { describe, it, beforeEach } from "jsr:@std/testing@0.218.2/bdd";
+import { expect } from "jsr:@std/expect@0.218.2";
+import { ok, Result, err } from "npm:neverthrow";
+
 import { GitHubContentSyncService } from "../github-content-sync-service.ts";
 import { ContentRepository } from "../../repositories/content-repository.ts";
 import { RepositoryRepository } from "../../repositories/repository-repository.ts";
-import { GitHubApiAdapter, GitHubContent, GitHubApiError } from "../../../../infrastructure/adapters/github/github-api-adapter.ts";
+import { GitHubApiAdapter, GitHubApiError } from "../../../../infrastructure/adapters/github/github-api-adapter.ts";
 import { ContentAggregate } from "../../../../core/content/aggregates/content-aggregate.ts";
 import { RepositoryAggregate } from "../../../../core/content/aggregates/repository-aggregate.ts";
+import { Content, createContentId } from "../../../../core/content/entities/content.ts";
+import { ContentMetadata, createTag, createLanguageCode } from "../../../../core/content/value-objects/content-metadata.ts";
+import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
+import { assertSpyCalls, assertSpyCall } from "https://deno.land/std@0.220.1/testing/mock.ts";
 import { Repository } from "../../../../core/content/entities/repository.ts";
-import { Content } from "../../../../core/content/entities/content.ts";
-import { ContentMetadata } from "../../../../core/content/value-objects/content-metadata.ts";
 
 // モックの作成
 class MockContentRepository implements ContentRepository {
@@ -70,14 +74,35 @@ function createMockRepositoryAggregate(id: string, userId: string): RepositoryAg
 
 // モックのコンテンツ集約を作成する関数
 function createMockContentAggregate(id: string, repositoryId: string, path: string): ContentAggregate {
+  // コンテンツIDを作成
+  const contentIdResult = createContentId(id);
+  if (contentIdResult.isErr()) {
+    throw new Error(`Failed to create content ID: ${contentIdResult.error.message}`);
+  }
+  const contentId = contentIdResult._unsafeUnwrap();
+
+  // タグを作成
+  const tagResult = createTag("test");
+  if (tagResult.isErr()) {
+    throw new Error(`Failed to create tag: ${tagResult.error.message}`);
+  }
+  const tag = tagResult._unsafeUnwrap();
+
+  // 言語コードを作成
+  const languageResult = createLanguageCode("ja");
+  if (languageResult.isErr()) {
+    throw new Error(`Failed to create language code: ${languageResult.error.message}`);
+  }
+  const language = languageResult._unsafeUnwrap();
+
   const metadata: ContentMetadata = {
-    tags: ["test"],
+    tags: [tag],
     categories: [],
-    language: "ja"
+    language: language
   };
 
   const content: Content = {
-    id,
+    id: contentId,
     userId: "user1",
     repositoryId,
     path,
@@ -88,19 +113,19 @@ function createMockContentAggregate(id: string, repositoryId: string, path: stri
     versions: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    addVersion: function() { return this; },
-    changeVisibility: function() { return this; },
-    updateMetadata: function() { return this; }
+    addVersion: () => content,
+    changeVisibility: () => content,
+    updateMetadata: () => content
   };
 
   return {
     content,
-    updateTitle: () => ({ content } as ContentAggregate),
-    updateBody: () => ({ content } as ContentAggregate),
-    updateMetadata: () => ({ content } as ContentAggregate),
-    publish: () => ({ content } as ContentAggregate),
-    makePrivate: () => ({ content } as ContentAggregate),
-    makeUnlisted: () => ({ content } as ContentAggregate)
+    updateTitle: () => ok({ content } as ContentAggregate),
+    updateBody: () => ok({ content } as ContentAggregate),
+    updateMetadata: () => ok({ content } as ContentAggregate),
+    publish: () => ok({ content } as ContentAggregate),
+    makePrivate: () => ok({ content } as ContentAggregate),
+    makeUnlisted: () => ok({ content } as ContentAggregate)
   };
 }
 

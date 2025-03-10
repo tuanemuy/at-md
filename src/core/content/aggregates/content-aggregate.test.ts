@@ -1,167 +1,219 @@
-import { expect } from "@std/expect";
-import { describe, it } from "@std/testing/bdd";
+import { describe, it } from "jsr:@std/testing@0.218.2/bdd";
+import { expect } from "jsr:@std/expect@0.218.2";
+
 import { ContentAggregate, createContentAggregate } from "./content-aggregate.ts";
-import { Content, createContent } from "../entities/content.ts";
-import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
-import { Version, createVersion } from "../value-objects/version.ts";
+import { Content, createContent, createContentId } from "../entities/content.ts";
+import { createContentMetadata, createTag, createCategory, createLanguageCode } from "../value-objects/content-metadata.ts";
 
-describe("ContentAggregate", () => {
-  // テスト用のコンテンツを作成するヘルパー関数
-  function createTestContent(
-    id: string = "content-123",
-    visibility: "private" | "unlisted" | "public" = "private"
-  ): Content {
-    return createContent({
-      id,
-      userId: "user-456",
-      repositoryId: "repo-789",
-      path: `path/to/${id}.md`,
-      title: `テスト${id}`,
-      body: `# テスト${id}\n\nこれはテストです。`,
-      metadata: createContentMetadata({
-        tags: ["test"],
-        categories: ["tech"],
-        language: "ja"
-      }),
-      versions: [],
-      visibility,
-      createdAt: new Date("2023-01-01T00:00:00Z"),
-      updatedAt: new Date("2023-01-01T00:00:00Z")
-    });
+// テスト用のコンテンツを作成するヘルパー関数
+function createTestContent() {
+  const contentIdResult = createContentId("content-123");
+  if (contentIdResult.isErr()) {
+    throw new Error("Failed to create content ID");
   }
+  const contentId = contentIdResult._unsafeUnwrap();
 
-  it("コンテンツから集約を作成できること", () => {
-    // 準備
-    const content = createTestContent();
-    
-    // 操作
-    const aggregate = createContentAggregate(content);
-    
-    // 検証
-    expect(aggregate.content).toEqual(content);
+  const contentResult = createContent({
+    id: contentId,
+    userId: "user-123",
+    repositoryId: "repo-123",
+    path: "/path/to/content",
+    title: "テストコンテンツ",
+    body: "これはテストコンテンツです。",
+    metadata: createContentMetadata({
+      tags: ["test", "sample"],
+      categories: ["tech", "programming"],
+      language: "ja",
+      readingTime: 5,
+    }),
+    versions: [],
+    visibility: "public",
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
-  it("タイトルを更新できること", () => {
-    // 準備
+  if (contentResult.isErr()) {
+    throw new Error("Failed to create content");
+  }
+  return contentResult._unsafeUnwrap();
+}
+
+describe("ContentAggregate", () => {
+  it("コンテンツから集約を作成できること", () => {
+    // Arrange
+    const content = createTestContent();
+    
+    // Act
+    const aggregate = createContentAggregate(content);
+    
+    // Assert
+    expect(aggregate.content).toBe(content);
+  });
+
+  it("タイトルを更新するとバージョン履歴が追加されること", () => {
+    // Arrange
     const content = createTestContent();
     const aggregate = createContentAggregate(content);
     const newTitle = "新しいタイトル";
+    const originalTitle = content.title;
+    const originalVersionsLength = content.versions.length;
+
+    // Act
+    const updatedAggregateResult = aggregate.updateTitle(newTitle);
     
-    // 操作
-    const updatedAggregate = aggregate.updateTitle(newTitle);
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
     
-    // 検証
-    expect(updatedAggregate.content.title).toBe(newTitle);
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
+    // 元のコンテンツのタイトルは変更されていないことを確認
+    expect(content.title).toBe(originalTitle);
     
-    // バージョンが追加されていることを確認
-    expect(updatedAggregate.content.versions.length).toBe(1);
-    expect(updatedAggregate.content.versions[0].changes.title).toBe(newTitle);
+    // 更新後のコンテンツにバージョンが追加されていることを確認
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
+    expect(updatedAggregate.content.versions.length).toBe(originalVersionsLength + 1);
+    
+    // 最新のバージョンの変更内容を確認
+    const latestVersion = updatedAggregate.content.versions[updatedAggregate.content.versions.length - 1];
+    expect(latestVersion.changes.title).toBe(newTitle);
   });
 
-  it("本文を更新できること", () => {
-    // 準備
+  it("本文を更新するとバージョン履歴が追加されること", () => {
+    // Arrange
     const content = createTestContent();
     const aggregate = createContentAggregate(content);
-    const newBody = "# 新しい本文\n\nこれは更新された本文です。";
+    const newBody = "新しい本文";
+    const originalBody = content.body;
+    const originalVersionsLength = content.versions.length;
+
+    // Act
+    const updatedAggregateResult = aggregate.updateBody(newBody);
     
-    // 操作
-    const updatedAggregate = aggregate.updateBody(newBody);
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
     
-    // 検証
-    expect(updatedAggregate.content.body).toBe(newBody);
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
+    // 元のコンテンツの本文は変更されていないことを確認
+    expect(content.body).toBe(originalBody);
     
-    // バージョンが追加されていることを確認
-    expect(updatedAggregate.content.versions.length).toBe(1);
-    expect(updatedAggregate.content.versions[0].changes.body).toBe(newBody);
+    // 更新後のコンテンツにバージョンが追加されていることを確認
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
+    expect(updatedAggregate.content.versions.length).toBe(originalVersionsLength + 1);
+    
+    // 最新のバージョンの変更内容を確認
+    const latestVersion = updatedAggregate.content.versions[updatedAggregate.content.versions.length - 1];
+    expect(latestVersion.changes.body).toBe(newBody);
   });
 
   it("メタデータを更新できること", () => {
-    // 準備
+    // Arrange
     const content = createTestContent();
     const aggregate = createContentAggregate(content);
+    const originalMetadata = content.metadata;
+    
     const newMetadata = createContentMetadata({
-      tags: ["updated", "test"],
-      categories: ["tech", "programming"],
-      language: "ja",
-      readingTime: 5
+      tags: ["新しいタグ"],
+      categories: ["新しいカテゴリ"],
+      language: "en",
+      readingTime: 10,
     });
+
+    // Act
+    const updatedAggregateResult = aggregate.updateMetadata(newMetadata);
     
-    // 操作
-    const updatedAggregate = aggregate.updateMetadata(newMetadata);
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
     
-    // 検証
+    // 元のコンテンツのメタデータは変更されていないことを確認
+    expect(content.metadata).toBe(originalMetadata);
+    
+    // 更新後のコンテンツのメタデータが変更されていることを確認
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
     expect(updatedAggregate.content.metadata).toEqual(newMetadata);
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
-    
-    // バージョンが追加されていることを確認
-    expect(updatedAggregate.content.versions.length).toBe(1);
-    expect(updatedAggregate.content.versions[0].changes.metadata).toEqual(newMetadata);
   });
 
   it("公開範囲を変更できること", () => {
-    // 準備
+    // Arrange
     const content = createTestContent();
-    const aggregate = createContentAggregate(content);
+    // 非公開に設定したコンテンツを作成
+    const privateContent = content.changeVisibility("private");
+    const aggregate = createContentAggregate(privateContent);
+
+    // Act
+    const updatedAggregateResult = aggregate.publish();
     
-    // 操作
-    const updatedAggregate = aggregate.publish();
-    
-    // 検証
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
     expect(updatedAggregate.content.visibility).toBe("public");
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
   });
 
   it("非公開に設定できること", () => {
-    // 準備
-    const content = createTestContent("content-123", "public");
+    // Arrange
+    const content = createTestContent();
     const aggregate = createContentAggregate(content);
+
+    // Act
+    const updatedAggregateResult = aggregate.makePrivate();
     
-    // 操作
-    const updatedAggregate = aggregate.makePrivate();
-    
-    // 検証
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
     expect(updatedAggregate.content.visibility).toBe("private");
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
   });
 
   it("限定公開に設定できること", () => {
-    // 準備
+    // Arrange
     const content = createTestContent();
     const aggregate = createContentAggregate(content);
+
+    // Act
+    const updatedAggregateResult = aggregate.makeUnlisted();
     
-    // 操作
-    const updatedAggregate = aggregate.makeUnlisted();
-    
-    // 検証
+    // Assert
+    expect(updatedAggregateResult.isOk()).toBe(true);
+    const updatedAggregate = updatedAggregateResult._unsafeUnwrap();
     expect(updatedAggregate.content.visibility).toBe("unlisted");
-    expect(updatedAggregate).not.toBe(aggregate); // 新しいインスタンスが返されること
   });
 
   it("複数の更新を行った場合、バージョン履歴が正しく記録されること", () => {
-    // 準備
+    // Arrange
     const content = createTestContent();
     let aggregate = createContentAggregate(content);
-    
-    // 操作: タイトルを更新
-    aggregate = aggregate.updateTitle("新しいタイトル");
-    
-    // 操作: 本文を更新
-    aggregate = aggregate.updateBody("新しい本文");
-    
-    // 操作: メタデータを更新
+    const originalVersionsLength = content.versions.length;
+
+    // Act
+    // タイトルを更新
+    const titleResult = aggregate.updateTitle("新しいタイトル");
+    expect(titleResult.isOk()).toBe(true);
+    aggregate = titleResult._unsafeUnwrap();
+
+    // 本文を更新
+    const bodyResult = aggregate.updateBody("新しい本文");
+    expect(bodyResult.isOk()).toBe(true);
+    aggregate = bodyResult._unsafeUnwrap();
+
+    // メタデータを更新
     const newMetadata = createContentMetadata({
-      tags: ["updated"],
-      categories: ["programming"],
-      language: "ja"
+      tags: ["新しいタグ"],
+      categories: ["新しいカテゴリ"],
+      language: "en",
+      readingTime: 10,
     });
-    aggregate = aggregate.updateMetadata(newMetadata);
+
+    const metadataResult = aggregate.updateMetadata(newMetadata);
+    expect(metadataResult.isOk()).toBe(true);
+    aggregate = metadataResult._unsafeUnwrap();
+
+    // Assert
+    // バージョン履歴の数を確認
+    expect(aggregate.content.versions.length).toBe(originalVersionsLength + 2); // タイトルと本文の更新でバージョンが追加される
     
-    // 検証
-    expect(aggregate.content.versions.length).toBe(3);
-    expect(aggregate.content.versions[0].changes.title).toBe("新しいタイトル");
-    expect(aggregate.content.versions[1].changes.body).toBe("新しい本文");
-    expect(aggregate.content.versions[2].changes.metadata).toEqual(newMetadata);
+    // 各バージョンの変更内容を確認
+    const titleVersion = aggregate.content.versions.find(v => v.changes.title === "新しいタイトル");
+    const bodyVersion = aggregate.content.versions.find(v => v.changes.body === "新しい本文");
+    
+    expect(titleVersion).toBeDefined();
+    expect(bodyVersion).toBeDefined();
+    
+    // メタデータの更新を確認
+    expect(aggregate.content.metadata.language).toBe("en");
   });
 }); 

@@ -1,6 +1,7 @@
 import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
 import { spy, assertSpyCalls, assertSpyCall } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { Result, ok, err } from "npm:neverthrow";
+import { ok, err } from "npm:neverthrow";
+
 import { ObsidianContentSyncService } from "../obsidian-content-sync-service.ts";
 import { ContentRepository } from "../../repositories/content-repository.ts";
 import { RepositoryRepository } from "../../repositories/repository-repository.ts";
@@ -10,6 +11,19 @@ import { RepositoryAggregate } from "../../../../core/content/aggregates/reposit
 import { Repository } from "../../../../core/content/entities/repository.ts";
 import { Content } from "../../../../core/content/entities/content.ts";
 import { ContentMetadata } from "../../../../core/content/value-objects/content-metadata.ts";
+
+// 型安全な値オブジェクトを使用するためのモック関数
+function createContentId(id: string) {
+  return ok(id as any);
+}
+
+function createTag(name: string) {
+  return ok(name as any);
+}
+
+function createLanguageCode(code: string) {
+  return ok(code as any);
+}
 
 // モックの作成
 class MockContentRepository implements ContentRepository {
@@ -116,14 +130,35 @@ function createMockRepositoryAggregate(id: string, userId: string): RepositoryAg
 
 // モックのコンテンツ集約を作成する関数
 function createMockContentAggregate(id: string, repositoryId: string, path: string): ContentAggregate {
+  // 型安全なIDを作成
+  const contentIdResult = createContentId(id);
+  if (contentIdResult.isErr()) {
+    throw new Error("Failed to create content ID");
+  }
+  const contentId = contentIdResult._unsafeUnwrap();
+  
+  // 型安全なタグを作成
+  const tagResult = createTag("test");
+  if (tagResult.isErr()) {
+    throw new Error("Failed to create tag");
+  }
+  const tag = tagResult._unsafeUnwrap();
+  
+  // 型安全な言語コードを作成
+  const languageResult = createLanguageCode("ja");
+  if (languageResult.isErr()) {
+    throw new Error("Failed to create language code");
+  }
+  const language = languageResult._unsafeUnwrap();
+  
   const metadata: ContentMetadata = {
-    tags: ["test"],
+    tags: [tag],
     categories: [],
-    language: "ja"
+    language: language
   };
 
   const content: Content = {
-    id,
+    id: contentId,
     userId: "user1",
     repositoryId,
     path,
@@ -141,12 +176,12 @@ function createMockContentAggregate(id: string, repositoryId: string, path: stri
 
   return {
     content,
-    updateTitle: () => ({ content } as ContentAggregate),
-    updateBody: () => ({ content } as ContentAggregate),
-    updateMetadata: () => ({ content } as ContentAggregate),
-    publish: () => ({ content } as ContentAggregate),
-    makePrivate: () => ({ content } as ContentAggregate),
-    makeUnlisted: () => ({ content } as ContentAggregate)
+    updateTitle: () => ok({ content } as ContentAggregate),
+    updateBody: () => ok({ content } as ContentAggregate),
+    updateMetadata: () => ok({ content } as ContentAggregate),
+    publish: () => ok({ content } as ContentAggregate),
+    makePrivate: () => ok({ content } as ContentAggregate),
+    makeUnlisted: () => ok({ content } as ContentAggregate)
   };
 }
 

@@ -7,8 +7,9 @@ import { describe, it, beforeEach } from "@std/testing/bdd";
 import { GetContentByIdQuery, GetContentByIdQueryHandler } from "./get-content-by-id-query.ts";
 import { ContentRepository } from "../repositories/content-repository.ts";
 import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { Content } from "../../../core/content/entities/content.ts";
-import { ContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
+import { Content, createContentId, ContentId, DomainValidationError } from "../../../core/content/entities/content.ts";
+import { ContentMetadata, createTag, createCategory, createLanguageCode } from "../../../core/content/value-objects/content-metadata.ts";
+import { Result, ok } from "../deps.ts";
 
 describe("GetContentByIdQueryHandler", () => {
   // モックリポジトリ
@@ -21,18 +22,40 @@ describe("GetContentByIdQueryHandler", () => {
     id: "content-123"
   };
   
+  // テスト用のコンテンツID
+  const contentIdResult = createContentId("content-123");
+  if (contentIdResult.isErr()) {
+    throw new Error("Failed to create content ID");
+  }
+  const contentId = contentIdResult._unsafeUnwrap();
+  
+  // テスト用のタグとカテゴリ
+  const tag1Result = createTag("test");
+  const tag2Result = createTag("markdown");
+  const categoryResult = createCategory("documentation");
+  const languageResult = createLanguageCode("ja");
+  
+  if (tag1Result.isErr() || tag2Result.isErr() || categoryResult.isErr() || languageResult.isErr()) {
+    throw new Error("Failed to create tags, categories, or language code");
+  }
+  
+  const tag1 = tag1Result._unsafeUnwrap();
+  const tag2 = tag2Result._unsafeUnwrap();
+  const category = categoryResult._unsafeUnwrap();
+  const language = languageResult._unsafeUnwrap();
+  
   // テスト用のコンテンツ
   const mockContent: Content = {
-    id: "content-123",
+    id: contentId,
     userId: "user-123",
     repositoryId: "repo-123",
     path: "test/path.md",
     title: "テストコンテンツ",
     body: "# テストコンテンツ\n\nこれはテストです。",
     metadata: {
-      tags: ["test", "markdown"],
-      categories: ["documentation"],
-      language: "ja"
+      tags: [tag1, tag2],
+      categories: [category],
+      language: language
     } as ContentMetadata,
     visibility: "public",
     versions: [],
@@ -46,12 +69,12 @@ describe("GetContentByIdQueryHandler", () => {
   // テスト用のコンテンツ集約
   const mockContentAggregate: ContentAggregate = {
     content: mockContent,
-    updateTitle: () => mockContentAggregate,
-    updateBody: () => mockContentAggregate,
-    updateMetadata: () => mockContentAggregate,
-    publish: () => mockContentAggregate,
-    makePrivate: () => mockContentAggregate,
-    makeUnlisted: () => mockContentAggregate
+    updateTitle: () => ok(mockContentAggregate),
+    updateBody: () => ok(mockContentAggregate),
+    updateMetadata: () => ok(mockContentAggregate),
+    publish: () => ok(mockContentAggregate),
+    makePrivate: () => ok(mockContentAggregate),
+    makeUnlisted: () => ok(mockContentAggregate)
   };
   
   beforeEach(() => {
@@ -81,7 +104,7 @@ describe("GetContentByIdQueryHandler", () => {
     // 検証
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      expect(result.value.content.id).toBe(validQuery.id);
+      expect(result.value.content.id).toBe(contentId);
       expect(result.value.content.title).toBe(mockContent.title);
     }
   });

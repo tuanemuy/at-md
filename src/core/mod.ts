@@ -16,7 +16,10 @@ export * from "./logging/mod.ts";
 export * from "./common/mod.ts";
 
 // コンテンツ管理
-export * from "./content/mod.ts";
+// 名前の衝突を避けるために個別にインポートしてエクスポート
+import * as ContentMod from "./content/mod.ts";
+// ContentModuleとして全体をエクスポート
+export { ContentMod as ContentModule };
 
 // 配信
 export * from "./delivery/mod.ts";

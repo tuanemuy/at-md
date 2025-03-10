@@ -62,12 +62,18 @@ export class PublishContentCommandHandler {
         // 既存のポストを更新
         postAggregate = existingPost.publish();
       } else {
+        // スラッグを生成
+        const slug = this.generateSlug(content.content.title);
+        if (!slug) {
+          return err(new Error("スラッグを生成できませんでした。タイトルが空または無効です。"));
+        }
+        
         // 新しいポストを作成
         postAggregate = createNewPostAggregate({
           userId: command.userId,
           contentId: command.contentId,
           feedId: command.feedId || generateId(), // フィードIDが指定されていない場合は新しいIDを生成
-          slug: this.generateSlug(content.content.title)
+          slug: slug
         });
         
         // ポストを公開状態にする
@@ -89,9 +95,16 @@ export class PublishContentCommandHandler {
    * @returns スラッグ
    */
   private generateSlug(title: string): string {
-    return title
+    if (!title || title.trim() === "") {
+      return "untitled"; // タイトルが空の場合はデフォルト値を使用
+    }
+    
+    const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
+    
+    // スラッグが空になった場合（特殊文字のみの場合など）
+    return slug || "untitled";
   }
 } 

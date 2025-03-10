@@ -6,16 +6,14 @@
  * 外部依存を減らすことができます。
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
-import { DrizzleContentRepository } from "./drizzle-content-repository.ts";
-import { ContentAggregate } from "../../core/content/aggregates/content-aggregate.ts";
-import { createContent } from "../../core/content/entities/content.ts";
-import { createContentMetadata } from "../../core/content/value-objects/content-metadata.ts";
+import { assertEquals, assertExists } from "https://deno.land/std@0.220.1/assert/mod.ts";
+import { describe, it, beforeEach } from "https://deno.land/std@0.220.1/testing/bdd.ts";
 import { generateId } from "../../core/common/id.ts";
-import { eq, and } from "drizzle-orm";
-import { contents, contentMetadata } from "../database/schema/content.ts";
-import { RepositoryError } from "./drizzle-content-repository.ts";
+import { createContent } from "../../core/content/entities/content.ts";
+import { ContentAggregate } from "../../core/content/aggregates/content-aggregate.ts";
+import { ContentMetadata } from "../../core/content/value-objects/content-metadata.ts";
+import { ok } from "npm:neverthrow";
+import { RepositoryError, DrizzleContentRepository } from "./drizzle-content-repository.ts";
 import { ContentRepository } from "../../application/content/repositories/content-repository.ts";
 
 /**
@@ -123,34 +121,74 @@ describe("DrizzleContentRepository", () => {
   
   // テスト用のコンテンツ集約を作成する関数
   function createTestContentAggregate(): ContentAggregate {
-    const id = generateId();
-    const content = createContent({
-      id,
+    const idStr = generateId();
+    const contentIdResult = createContentId(idStr);
+    if (contentIdResult.isErr()) {
+      throw new Error("Failed to create content ID");
+    }
+    const contentId = contentIdResult._unsafeUnwrap();
+    
+    // タグを作成
+    const tag1Result = createTag("test");
+    const tag2Result = createTag("markdown");
+    if (tag1Result.isErr() || tag2Result.isErr()) {
+      throw new Error("Failed to create tags");
+    }
+    const tag1 = tag1Result._unsafeUnwrap();
+    const tag2 = tag2Result._unsafeUnwrap();
+    
+    // カテゴリを作成
+    const categoryResult = createCategory("documentation");
+    if (categoryResult.isErr()) {
+      throw new Error("Failed to create category");
+    }
+    const category = categoryResult._unsafeUnwrap();
+    
+    // 言語コードを作成
+    const languageResult = createLanguageCode("ja");
+    if (languageResult.isErr()) {
+      throw new Error("Failed to create language code");
+    }
+    const language = languageResult._unsafeUnwrap();
+    
+    // メタデータを作成
+    const metadata: ContentMetadata = {
+      tags: [tag1, tag2],
+      categories: [category],
+      language: language
+    };
+    
+    // コンテンツを作成
+    const contentResult = createContent({
+      id: contentId,
       userId: "test-user-id",
       repositoryId: "test-repo-id",
-      path: `test/path-${id}.md`,
-      title: `Test Content ${id}`,
-      body: `# Test Content ${id}\n\nThis is a test content.`,
-      metadata: createContentMetadata({
-        tags: ["test", "markdown"],
-        categories: ["documentation"],
-        language: "ja"
-      }),
+      path: `test/path-${idStr}.md`,
+      title: `Test Content ${idStr}`,
+      body: `# Test Content ${idStr}\n\nThis is a test content.`,
+      metadata: metadata,
       visibility: "private",
       versions: [],
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    if (contentResult.isErr()) {
+      throw new Error("Failed to create content");
+    }
+    const content = contentResult._unsafeUnwrap();
     
-    return {
+    // コンテンツ集約を作成
+    const contentAggregate: ContentAggregate = {
       content,
-      updateTitle: () => createTestContentAggregate(),
-      updateBody: () => createTestContentAggregate(),
-      updateMetadata: () => createTestContentAggregate(),
-      publish: () => createTestContentAggregate(),
-      makePrivate: () => createTestContentAggregate(),
-      makeUnlisted: () => createTestContentAggregate()
+      updateTitle: () => ok(createTestContentAggregate()),
+      updateBody: () => ok(createTestContentAggregate()),
+      updateMetadata: () => ok(createTestContentAggregate()),
+      publish: () => ok(createTestContentAggregate()),
+      makePrivate: () => ok(createTestContentAggregate()),
+      makeUnlisted: () => ok(createTestContentAggregate())
     };
+    
+    return contentAggregate;
   }
   
   // 各テストの前に実行
@@ -162,29 +200,29 @@ describe("DrizzleContentRepository", () => {
     repository.clearAll();
   });
   
-  it("コンテンツを保存して取得できること", async () => {
+  it("IDでコンテンツを検索できること", async () => {
     // テスト用のコンテンツ集約を作成
-    const contentAggregate = createTestContentAggregate();
+    const savedContent = createTestContentAggregate();
     
-    // コンテンツを保存
-    const savedContent = await repository.save(contentAggregate);
+    // リポジトリに保存
+    await repository.save(savedContent);
     
-    // 保存されたコンテンツのIDを使用して取得
+    // IDで検索
     const retrievedContent = await repository.findById(savedContent.content.id);
     
     // 取得したコンテンツが正しいことを確認
-    expect(retrievedContent).not.toBeNull();
-    expect(retrievedContent?.content.id).toBe(savedContent.content.id);
-    expect(retrievedContent?.content.title).toBe(savedContent.content.title);
-    expect(retrievedContent?.content.body).toBe(savedContent.content.body);
-    expect(retrievedContent?.content.metadata.tags).toEqual(savedContent.content.metadata.tags);
+    assertExists(retrievedContent);
+    assertEquals(retrievedContent.content.id, savedContent.content.id);
+    assertEquals(retrievedContent.content.title, savedContent.content.title);
+    assertEquals(retrievedContent.content.body, savedContent.content.body);
+    assertEquals(retrievedContent.content.metadata.tags, savedContent.content.metadata.tags);
   });
   
   it("リポジトリIDとパスでコンテンツを検索できること", async () => {
     // テスト用のコンテンツ集約を作成
     const contentAggregate = createTestContentAggregate();
     
-    // コンテンツを保存
+    // リポジトリに保存
     await repository.save(contentAggregate);
     
     // リポジトリIDとパスで検索
@@ -194,18 +232,19 @@ describe("DrizzleContentRepository", () => {
     );
     
     // 取得したコンテンツが正しいことを確認
-    expect(retrievedContent).not.toBeNull();
-    expect(retrievedContent?.content.id).toBe(contentAggregate.content.id);
-    expect(retrievedContent?.content.repositoryId).toBe(contentAggregate.content.repositoryId);
-    expect(retrievedContent?.content.path).toBe(contentAggregate.content.path);
+    assertExists(retrievedContent);
+    assertEquals(retrievedContent.content.id, contentAggregate.content.id);
+    assertEquals(retrievedContent.content.repositoryId, contentAggregate.content.repositoryId);
+    assertEquals(retrievedContent.content.path, contentAggregate.content.path);
   });
   
   it("ユーザーIDでコンテンツを検索できること", async () => {
-    // 複数のテスト用コンテンツ集約を作成して保存
-    const userId = "test-user-id";
+    // テスト用のコンテンツ集約を作成
     const contentAggregate1 = createTestContentAggregate();
     const contentAggregate2 = createTestContentAggregate();
+    const userId = "test-user-id";
     
+    // リポジトリに保存
     await repository.save(contentAggregate1);
     await repository.save(contentAggregate2);
     
@@ -213,53 +252,110 @@ describe("DrizzleContentRepository", () => {
     const retrievedContents = await repository.findByUserId(userId);
     
     // 取得したコンテンツが正しいことを確認
-    expect(retrievedContents.length).toBeGreaterThanOrEqual(2);
-    expect(retrievedContents.some(c => c.content.id === contentAggregate1.content.id)).toBe(true);
-    expect(retrievedContents.some(c => c.content.id === contentAggregate2.content.id)).toBe(true);
+    assertEquals(retrievedContents.length >= 2, true);
+    assertEquals(retrievedContents.some(c => c.content.id === contentAggregate1.content.id), true);
+    assertEquals(retrievedContents.some(c => c.content.id === contentAggregate2.content.id), true);
   });
   
   it("コンテンツを削除できること", async () => {
     // テスト用のコンテンツ集約を作成
     const contentAggregate = createTestContentAggregate();
     
-    // コンテンツを保存
+    // リポジトリに保存
     await repository.save(contentAggregate);
     
     // コンテンツが存在することを確認
     const retrievedBeforeDelete = await repository.findById(contentAggregate.content.id);
-    expect(retrievedBeforeDelete).not.toBeNull();
+    assertExists(retrievedBeforeDelete);
     
     // コンテンツを削除
     await repository.delete(contentAggregate.content.id);
     
     // 削除後にコンテンツが存在しないことを確認
     const retrievedAfterDelete = await repository.findById(contentAggregate.content.id);
-    expect(retrievedAfterDelete).toBeNull();
+    assertEquals(retrievedAfterDelete, null);
   });
   
   it("存在しないコンテンツを検索するとnullが返されること", async () => {
-    // 存在しないIDでコンテンツを検索
-    const nonExistentId = "non-existent-id";
-    const retrievedContent = await repository.findById(nonExistentId);
+    // 存在しないIDで検索
+    const retrievedContent = await repository.findById("non-existent-id");
     
     // nullが返されることを確認
-    expect(retrievedContent).toBeNull();
+    assertEquals(retrievedContent, null);
   });
   
   it("エラーハンドリングが適切に行われること", async () => {
-    // エラーをスローするリポジトリを使用
+    // エラーをスローするリポジトリを作成
     const errorRepository = new ErrorThrowingRepository();
     
-    // コンテンツの保存を試みる（エラーが発生するはず）
     try {
+      // エラーがスローされるはずの操作を実行
       await errorRepository.save(createTestContentAggregate());
       // エラーがスローされなかった場合、テストを失敗させる
-      expect(true).toBe(false);
+      assertEquals(true, false);
     } catch (error) {
       // エラーがスローされたことを確認
-      expect(error).not.toBeNull();
-      expect(error instanceof Error).toBe(true);
-      expect((error as Error).message).toBe("保存エラー");
+      assertExists(error);
+      assertEquals(error instanceof Error, true);
+      assertEquals((error as Error).message, "保存エラー");
     }
   });
-}); 
+  
+  it("save - 既存のコンテンツ集約を更新できる", async () => {
+    // テスト用のコンテンツ集約を作成
+    const contentAggregate = createTestContentAggregate();
+    
+    // リポジトリに保存
+    await repository.save(contentAggregate);
+    
+    // 更新されたコンテンツ集約を作成
+    // 読み取り専用プロパティに直接代入できないため、新しいコンテンツ集約を作成
+    const idStr = contentAggregate.content.id;
+    const updatedContentAggregate = createTestContentAggregate();
+    
+    // 元のIDを使用して新しいコンテンツを作成
+    const contentIdResult = createContentId(idStr);
+    if (contentIdResult.isErr()) {
+      throw new Error("Failed to create content ID");
+    }
+    
+    // 新しいコンテンツ集約を作成して保存
+    const newContentAggregate: ContentAggregate = {
+      content: {
+        ...updatedContentAggregate.content,
+        id: contentIdResult._unsafeUnwrap(),
+        title: "Updated Title"
+      },
+      updateTitle: () => ok(updatedContentAggregate),
+      updateBody: () => ok(updatedContentAggregate),
+      updateMetadata: () => ok(updatedContentAggregate),
+      publish: () => ok(updatedContentAggregate),
+      makePrivate: () => ok(updatedContentAggregate),
+      makeUnlisted: () => ok(updatedContentAggregate)
+    };
+    
+    // リポジトリに保存
+    const result = await repository.save(newContentAggregate);
+    
+    // 検証
+    assertEquals(result.content.id, contentAggregate.content.id);
+    assertEquals(result.content.title, "Updated Title");
+  });
+});
+
+// 型安全な値オブジェクトを使用するためのモック関数
+function createContentId(id: string) {
+  return ok(id as any);
+}
+
+function createTag(name: string) {
+  return ok(name as any);
+}
+
+function createCategory(name: string) {
+  return ok(name as any);
+}
+
+function createLanguageCode(code: string) {
+  return ok(code as any);
+} 
