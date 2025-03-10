@@ -3,10 +3,15 @@
  * 新しい投稿を作成するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
-import { PostAggregate, createPostAggregate, createNewPostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
-import { PostRepository } from "../repositories/post-repository.ts";
+import { Command, CommandHandler } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { 
+  PostAggregate, 
+  createNewPostAggregate,
+  ApplicationError,
+  generateId
+} from "../deps.ts";
+import { PostRepository } from "../repositories/mod.ts";
 
 /**
  * 投稿作成コマンド

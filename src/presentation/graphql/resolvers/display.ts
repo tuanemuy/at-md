@@ -4,11 +4,65 @@
  * 表示関連のクエリとミューテーションの実装を提供します。
  */
 
+import { Result, ApplicationError } from "../deps.ts";
+
+// コンテキスト型の定義
+interface GraphQLContext {
+  queryHandlers: {
+    getPageByIdQueryHandler: {
+      execute(query: { name: string; id: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    getPageBySlugQueryHandler: {
+      execute(query: { name: string; slug: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    getPageByContentIdQueryHandler: {
+      execute(query: { name: string; contentId: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    getPagesByUserIdQueryHandler: {
+      execute(query: { name: string; userId: string; limit?: number; offset?: number }): Promise<Result<unknown[], ApplicationError>>;
+    };
+    getPagesByTemplateIdQueryHandler: {
+      execute(query: { name: string; templateId: string; limit?: number; offset?: number }): Promise<Result<unknown[], ApplicationError>>;
+    };
+    getTemplateByIdQueryHandler: {
+      execute(query: { name: string; id: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    getAllTemplatesQueryHandler: {
+      execute(query: { name: string }): Promise<Result<unknown[], ApplicationError>>;
+    };
+    getUserByIdQueryHandler: {
+      execute(query: { name: string; id: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    getContentByIdQueryHandler: {
+      execute(query: { name: string; id: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+  };
+  commandHandlers: {
+    createPageCommandHandler: {
+      execute(command: { name: string; userId: string; contentId: string; templateId?: string; slug?: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    updatePageCommandHandler: {
+      execute(command: { id: string; contentId?: string; templateId?: string; slug?: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    deletePageCommandHandler: {
+      execute(command: { id: string }): Promise<Result<boolean, ApplicationError>>;
+    };
+    createTemplateCommandHandler: {
+      execute(command: { name: string; userId: string; content: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    updateTemplateCommandHandler: {
+      execute(command: { id: string; name?: string; content?: string }): Promise<Result<unknown, ApplicationError>>;
+    };
+    deleteTemplateCommandHandler: {
+      execute(command: { id: string }): Promise<Result<boolean, ApplicationError>>;
+    };
+  };
+}
+
 // リゾルバーの型定義
 export const displayResolvers = {
   Query: {
-    // ページをIDで取得
-    page: async (_: any, { id }: { id: string }, { queryHandlers }: any) => {
+    page: async (_: unknown, { id }: { id: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getPageByIdQueryHandler.execute({
         name: "GetPageById",
         id,
@@ -21,8 +75,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // ページをスラグで取得
-    pageBySlug: async (_: any, { slug }: { slug: string }, { queryHandlers }: any) => {
+    pageBySlug: async (_: unknown, { slug }: { slug: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getPageBySlugQueryHandler.execute({
         name: "GetPageBySlug",
         slug,
@@ -35,8 +88,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // ページをコンテンツIDで取得
-    pageByContentId: async (_: any, { contentId }: { contentId: string }, { queryHandlers }: any) => {
+    pageByContentId: async (_: unknown, { contentId }: { contentId: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getPageByContentIdQueryHandler.execute({
         name: "GetPageByContentId",
         contentId,
@@ -51,9 +103,9 @@ export const displayResolvers = {
 
     // ユーザーIDによるページ一覧取得
     pagesByUserId: async (
-      _: any,
+      _: unknown,
       { userId, limit, offset }: { userId: string; limit?: number; offset?: number },
-      { queryHandlers }: any
+      { queryHandlers }: GraphQLContext
     ) => {
       const result = await queryHandlers.getPagesByUserIdQueryHandler.execute({
         name: "GetPagesByUserId",
@@ -69,8 +121,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // テンプレートをIDで取得
-    template: async (_: any, { id }: { id: string }, { queryHandlers }: any) => {
+    template: async (_: unknown, { id }: { id: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getTemplateByIdQueryHandler.execute({
         name: "GetTemplateById",
         id,
@@ -83,10 +134,29 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // すべてのテンプレートを取得
-    allTemplates: async (_: any, __: any, { queryHandlers }: any) => {
+    templates: async (_: unknown, __: unknown, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getAllTemplatesQueryHandler.execute({
         name: "GetAllTemplates",
+      });
+
+      if (result.isErr()) {
+        return [];
+      }
+
+      return result.value;
+    },
+
+    // テンプレートIDによるページ一覧取得
+    pagesByTemplateId: async (
+      _: unknown,
+      { templateId, limit, offset }: { templateId: string; limit?: number; offset?: number },
+      { queryHandlers }: GraphQLContext
+    ) => {
+      const result = await queryHandlers.getPagesByTemplateIdQueryHandler.execute({
+        name: "GetPagesByTemplateId",
+        templateId,
+        limit,
+        offset,
       });
 
       if (result.isErr()) {
@@ -98,11 +168,17 @@ export const displayResolvers = {
   },
 
   Mutation: {
-    // ページを作成
-    createPage: async (_: any, { input }: any, { commandHandlers }: any) => {
+    createPage: async (
+      _: unknown,
+      { input }: { input: { userId: string; contentId: string; templateId?: string; slug?: string } },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.createPageCommandHandler.execute({
         name: "CreatePage",
-        ...input,
+        userId: input.userId,
+        contentId: input.contentId,
+        templateId: input.templateId,
+        slug: input.slug,
       });
 
       if (result.isErr()) {
@@ -115,17 +191,21 @@ export const displayResolvers = {
 
       return {
         success: true,
-        message: "Page created successfully",
+        message: "ページが作成されました",
         page: result.value,
       };
     },
 
-    // ページを更新
-    updatePage: async (_: any, { id, input }: any, { commandHandlers }: any) => {
+    updatePage: async (
+      _: unknown,
+      { id, input }: { id: string; input: { contentId?: string; templateId?: string; slug?: string } },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.updatePageCommandHandler.execute({
-        name: "UpdatePage",
         id,
-        ...input,
+        contentId: input.contentId,
+        templateId: input.templateId,
+        slug: input.slug,
       });
 
       if (result.isErr()) {
@@ -138,30 +218,42 @@ export const displayResolvers = {
 
       return {
         success: true,
-        message: "Page updated successfully",
+        message: "ページが更新されました",
         page: result.value,
       };
     },
 
-    // ページを削除
-    deletePage: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    deletePage: async (
+      _: unknown,
+      { id }: { id: string },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.deletePageCommandHandler.execute({
-        name: "DeletePage",
         id,
       });
 
       if (result.isErr()) {
-        return false;
+        return {
+          success: false,
+          message: result.error.message,
+        };
       }
 
-      return true;
+      return {
+        success: true,
+        message: "ページが削除されました",
+      };
     },
 
-    // テンプレートを作成
-    createTemplate: async (_: any, { input }: any, { commandHandlers }: any) => {
+    createTemplate: async (
+      _: unknown,
+      { input }: { input: { name: string; userId: string; content: string } },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.createTemplateCommandHandler.execute({
-        name: "CreateTemplate",
-        ...input,
+        name: input.name,
+        userId: input.userId,
+        content: input.content,
       });
 
       if (result.isErr()) {
@@ -174,17 +266,20 @@ export const displayResolvers = {
 
       return {
         success: true,
-        message: "Template created successfully",
+        message: "テンプレートが作成されました",
         template: result.value,
       };
     },
 
-    // テンプレートを更新
-    updateTemplate: async (_: any, { id, input }: any, { commandHandlers }: any) => {
+    updateTemplate: async (
+      _: unknown,
+      { id, input }: { id: string; input: { name?: string; content?: string } },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.updateTemplateCommandHandler.execute({
-        name: "UpdateTemplate",
         id,
-        ...input,
+        name: input.name,
+        content: input.content,
       });
 
       if (result.isErr()) {
@@ -197,30 +292,37 @@ export const displayResolvers = {
 
       return {
         success: true,
-        message: "Template updated successfully",
+        message: "テンプレートが更新されました",
         template: result.value,
       };
     },
 
-    // テンプレートを削除
-    deleteTemplate: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    deleteTemplate: async (
+      _: unknown,
+      { id }: { id: string },
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.deleteTemplateCommandHandler.execute({
-        name: "DeleteTemplate",
         id,
       });
 
       if (result.isErr()) {
-        return false;
+        return {
+          success: false,
+          message: result.error.message,
+        };
       }
 
-      return true;
+      return {
+        success: true,
+        message: "テンプレートが削除されました",
+      };
     },
   },
 
   // Page型のリゾルバー
   Page: {
-    // ユーザー情報を取得
-    user: async (parent: any, _: any, { queryHandlers }: any) => {
+    user: async (parent: { userId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.userId) return null;
 
       const result = await queryHandlers.getUserByIdQueryHandler.execute({
@@ -235,8 +337,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // コンテンツ情報を取得
-    content: async (parent: any, _: any, { queryHandlers }: any) => {
+    content: async (parent: { contentId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.contentId) return null;
 
       const result = await queryHandlers.getContentByIdQueryHandler.execute({
@@ -251,8 +352,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // テンプレート情報を取得
-    template: async (parent: any, _: any, { queryHandlers }: any) => {
+    template: async (parent: { templateId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.templateId) return null;
 
       const result = await queryHandlers.getTemplateByIdQueryHandler.execute({
@@ -265,13 +365,12 @@ export const displayResolvers = {
       }
 
       return result.value;
-    },
+    }
   },
 
   // Template型のリゾルバー
   Template: {
-    // ユーザー情報を取得
-    user: async (parent: any, _: any, { queryHandlers }: any) => {
+    user: async (parent: { userId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.userId) return null;
 
       const result = await queryHandlers.getUserByIdQueryHandler.execute({
@@ -286,8 +385,7 @@ export const displayResolvers = {
       return result.value;
     },
 
-    // このテンプレートを使用しているページ一覧を取得
-    pages: async (parent: any, _: any, { queryHandlers }: any) => {
+    pages: async (parent: { id?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.id) return [];
 
       const result = await queryHandlers.getPagesByTemplateIdQueryHandler.execute({
@@ -300,6 +398,6 @@ export const displayResolvers = {
       }
 
       return result.value;
-    },
+    }
   },
 }; 

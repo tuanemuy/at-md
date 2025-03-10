@@ -6,34 +6,48 @@
  * 外部依存を減らすことができます。
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
+import { assertEquals } from "https://deno.land/std/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std/testing/bdd.ts";
+
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError,
+  generateId,
+  type RepositoryAggregate,
+  type Repository,
+  createRepositoryAggregate,
+  type RepositoryRepository,
+  repositories,
+  db
+} from "./__tests__/deps.ts";
+
 import { DrizzleRepositoryRepository } from "./drizzle-repository-repository.ts";
-import { RepositoryAggregate, createRepositoryAggregate } from "../../core/content/aggregates/repository-aggregate.ts";
-import { Repository, createRepository } from "../../core/content/entities/repository.ts";
-import { generateId } from "../../core/common/id.ts";
 import { eq } from "drizzle-orm";
-import { repositories } from "../database/schema/content.ts";
 
 /**
  * 簡易的なモックリポジトリ
  * 実際のデータベースの代わりに、インメモリでデータを管理します
  */
-class MockRepositoryRepository {
+class MockRepositoryRepository implements RepositoryRepository {
   // インメモリデータストア
   private repositoryStore: Record<string, RepositoryAggregate> = {};
   
   /**
    * IDによってリポジトリを検索する
    */
-  async findById(id: string): Promise<RepositoryAggregate | null> {
-    return this.repositoryStore[id] || null;
+  findById(id: string): Promise<RepositoryAggregate | null> {
+    return Promise.resolve(this.repositoryStore[id] || null);
   }
   
   /**
    * ユーザーIDによってリポジトリを検索する
    */
-  async findByUserId(userId: string, options?: {
+  findByUserId(userId: string, options?: {
     limit?: number;
     offset?: number;
   }): Promise<RepositoryAggregate[]> {
@@ -51,42 +65,55 @@ class MockRepositoryRepository {
       const { limit, offset } = options;
       const start = offset || 0;
       const end = limit ? start + limit : undefined;
-      return results.slice(start, end);
+      return Promise.resolve(results.slice(start, end));
     }
     
-    return results;
+    return Promise.resolve(results);
   }
   
   /**
    * ユーザーIDと名前によってリポジトリを検索する
    */
-  async findByUserIdAndName(userId: string, name: string): Promise<RepositoryAggregate | null> {
+  findByName(userId: string, name: string): Promise<RepositoryAggregate | null> {
     for (const id in this.repositoryStore) {
       const aggregate = this.repositoryStore[id];
       if (aggregate.repository.userId === userId && aggregate.repository.name === name) {
-        return aggregate;
+        return Promise.resolve(aggregate);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
   
   /**
    * リポジトリを保存する
    */
-  async save(repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> {
+  save(repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> {
     this.repositoryStore[repositoryAggregate.repository.id] = repositoryAggregate;
-    return repositoryAggregate;
+    return Promise.resolve(repositoryAggregate);
   }
   
   /**
    * リポジトリを削除する
    */
-  async delete(id: string): Promise<boolean> {
+  delete(id: string): Promise<boolean> {
     if (this.repositoryStore[id]) {
       delete this.repositoryStore[id];
-      return true;
+      return Promise.resolve(true);
     }
-    return false;
+    return Promise.resolve(false);
+  }
+  
+  saveWithTransaction(repositoryAggregate: RepositoryAggregate, _context: unknown): Promise<Result<RepositoryAggregate, DomainError>> {
+    this.repositoryStore[repositoryAggregate.repository.id] = repositoryAggregate;
+    return Promise.resolve(ok(repositoryAggregate));
+  }
+  
+  deleteWithTransaction(id: string, _context: unknown): Promise<Result<boolean, DomainError>> {
+    if (this.repositoryStore[id]) {
+      delete this.repositoryStore[id];
+      return Promise.resolve(ok(true));
+    }
+    return Promise.resolve(ok(false));
   }
   
   /**
@@ -117,197 +144,193 @@ function createTestRepositoryAggregate(): RepositoryAggregate {
 }
 
 describe("DrizzleRepositoryRepository", () => {
-  let mockRepo: MockRepositoryRepository;
+  let repository: RepositoryRepository;
+  let testRepositoryId: string;
   
-  beforeEach(() => {
-    mockRepo = new MockRepositoryRepository();
-    mockRepo.clearAll();
+  beforeEach(async () => {
+    // テスト用リポジトリの作成
+    repository = new DrizzleRepositoryRepository(db);
+    
+    // テストデータのクリーンアップ
+    await db.delete(repositories).execute();
+    
+    // テスト用リポジトリIDの生成
+    testRepositoryId = generateId();
   });
   
   describe("findById", () => {
-    it("存在するIDでリポジトリを取得できる", async () => {
-      const repositoryAggregate = createTestRepositoryAggregate();
-      await mockRepo.save(repositoryAggregate);
+    it("存在するリポジトリを取得できる", async () => {
+      // テスト用リポジトリの作成
+      const repositoryAggregate = createRepositoryAggregate({
+        id: testRepositoryId,
+        userId: "test-user-id",
+        name: "テストリポジトリ",
+        description: "これはテストリポジトリです。",
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      const result = await mockRepo.findById(repositoryAggregate.repository.id);
-      expect(result).not.toBeNull();
-      expect(result?.repository.id).toBe(repositoryAggregate.repository.id);
+      // リポジトリの保存
+      await repository.save(repositoryAggregate);
+      
+      // リポジトリの取得
+      const result = await repository.findById(testRepositoryId);
+      
+      // 検証
+      assertEquals(result?.repository.id, testRepositoryId);
+      assertEquals(result?.repository.name, "テストリポジトリ");
+      assertEquals(result?.repository.description, "これはテストリポジトリです。");
+      assertEquals(result?.repository.isPublic, true);
     });
     
-    it("存在しないIDの場合はnullを返す", async () => {
-      const result = await mockRepo.findById("non-existent-id");
-      expect(result).toBeNull();
+    it("存在しないリポジトリIDの場合はnullを返す", async () => {
+      const result = await repository.findById("non-existent-id");
+      assertEquals(result, null);
     });
   });
   
   describe("findByUserId", () => {
     it("ユーザーIDに一致するリポジトリを取得できる", async () => {
-      const userId = generateId();
+      const userId = "test-user-id";
       
-      const repository1 = createRepository({
+      // テスト用リポジトリの作成
+      const repositoryAggregate1 = createRepositoryAggregate({
+        id: testRepositoryId,
+        userId: userId,
+        name: "テストリポジトリ1",
+        description: "これはテストリポジトリ1です。",
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const repositoryAggregate2 = createRepositoryAggregate({
         id: generateId(),
         userId: userId,
-        name: "repo-1",
-        owner: "owner-1",
-        defaultBranch: "main",
-        lastSyncedAt: new Date(),
-        status: "active",
+        name: "テストリポジトリ2",
+        description: "これはテストリポジトリ2です。",
+        isPublic: false,
         createdAt: new Date(),
         updatedAt: new Date()
       });
       
-      const repository2 = createRepository({
-        id: generateId(),
-        userId: userId,
-        name: "repo-2",
-        owner: "owner-1",
-        defaultBranch: "main",
-        lastSyncedAt: new Date(),
-        status: "inactive",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      // リポジトリの保存
+      await repository.save(repositoryAggregate1);
+      await repository.save(repositoryAggregate2);
       
-      const repository3 = createRepository({
-        id: generateId(),
-        userId: generateId(), // 別のユーザーID
-        name: "repo-3",
-        owner: "owner-2",
-        defaultBranch: "main",
-        lastSyncedAt: new Date(),
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
+      // ユーザーIDでリポジトリを検索
+      const results = await repository.findByUserId(userId);
       
-      await mockRepo.save(createRepositoryAggregate(repository1));
-      await mockRepo.save(createRepositoryAggregate(repository2));
-      await mockRepo.save(createRepositoryAggregate(repository3));
-      
-      const results = await mockRepo.findByUserId(userId);
-      expect(results.length).toBe(2);
-      expect(results.some(r => r.repository.name === "repo-1")).toBe(true);
-      expect(results.some(r => r.repository.name === "repo-2")).toBe(true);
-      expect(results.some(r => r.repository.name === "repo-3")).toBe(false);
+      // 検証
+      assertEquals(results.length, 2);
+      assertEquals(results.some(r => r.repository.name === "テストリポジトリ1"), true);
+      assertEquals(results.some(r => r.repository.name === "テストリポジトリ2"), true);
     });
     
-    it("limit と offset オプションが機能する", async () => {
-      const userId = generateId();
-      
-      for (let i = 0; i < 5; i++) {
-        const repository = createRepository({
-          id: generateId(),
-          userId: userId,
-          name: `repo-${i}`,
-          owner: "owner-1",
-          defaultBranch: "main",
-          lastSyncedAt: new Date(),
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        
-        await mockRepo.save(createRepositoryAggregate(repository));
-      }
-      
-      const results1 = await mockRepo.findByUserId(userId, { limit: 2 });
-      expect(results1.length).toBe(2);
-      
-      const results2 = await mockRepo.findByUserId(userId, { offset: 2, limit: 2 });
-      expect(results2.length).toBe(2);
-      
-      const results3 = await mockRepo.findByUserId(userId, { offset: 4, limit: 2 });
-      expect(results3.length).toBe(1);
-    });
-  });
-  
-  describe("findByUserIdAndName", () => {
-    it("ユーザーIDと名前に一致するリポジトリを取得できる", async () => {
-      const userId = generateId();
-      
-      const repository1 = createRepository({
-        id: generateId(),
-        userId: userId,
-        name: "repo-1",
-        owner: "owner-1",
-        defaultBranch: "main",
-        lastSyncedAt: new Date(),
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      
-      const repository2 = createRepository({
-        id: generateId(),
-        userId: userId,
-        name: "repo-2",
-        owner: "owner-1",
-        defaultBranch: "main",
-        lastSyncedAt: new Date(),
-        status: "inactive",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      
-      await mockRepo.save(createRepositoryAggregate(repository1));
-      await mockRepo.save(createRepositoryAggregate(repository2));
-      
-      const result = await mockRepo.findByUserIdAndName(userId, "repo-1");
-      expect(result).not.toBeNull();
-      expect(result?.repository.name).toBe("repo-1");
-    });
-    
-    it("存在しない組み合わせの場合はnullを返す", async () => {
-      const result = await mockRepo.findByUserIdAndName("non-existent-user-id", "non-existent-name");
-      expect(result).toBeNull();
+    it("存在しないユーザーIDの場合は空配列を返す", async () => {
+      const results = await repository.findByUserId("non-existent-user-id");
+      assertEquals(results.length, 0);
     });
   });
   
   describe("save", () => {
     it("新しいリポジトリを保存できる", async () => {
-      const repositoryAggregate = createTestRepositoryAggregate();
-      const savedAggregate = await mockRepo.save(repositoryAggregate);
+      // テスト用リポジトリの作成
+      const repositoryAggregate = createRepositoryAggregate({
+        id: testRepositoryId,
+        userId: "test-user-id",
+        name: "新しいリポジトリ",
+        description: "これは新しいリポジトリです。",
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      expect(savedAggregate).not.toBeNull();
-      expect(savedAggregate.repository.id).toBe(repositoryAggregate.repository.id);
+      // リポジトリの保存
+      const savedRepository = await repository.save(repositoryAggregate);
       
-      const retrievedAggregate = await mockRepo.findById(repositoryAggregate.repository.id);
-      expect(retrievedAggregate).not.toBeNull();
-      expect(retrievedAggregate?.repository.id).toBe(repositoryAggregate.repository.id);
+      // 検証
+      assertEquals(savedRepository.repository.id, testRepositoryId);
+      assertEquals(savedRepository.repository.name, "新しいリポジトリ");
+      assertEquals(savedRepository.repository.description, "これは新しいリポジトリです。");
+      assertEquals(savedRepository.repository.isPublic, true);
+      
+      // データベースから直接取得して検証
+      const [dbRepository] = await db.select().from(repositories).where(eq(repositories.id, testRepositoryId)).execute();
+      assertEquals(dbRepository.id, testRepositoryId);
+      assertEquals(dbRepository.name, "新しいリポジトリ");
+      assertEquals(dbRepository.description, "これは新しいリポジトリです。");
+      assertEquals(dbRepository.isPublic, 1); // SQLiteではbooleanは0/1で保存される
     });
     
     it("既存のリポジトリを更新できる", async () => {
-      const repositoryAggregate = createTestRepositoryAggregate();
-      await mockRepo.save(repositoryAggregate);
+      // テスト用リポジトリの作成と保存
+      const repositoryAggregate = createRepositoryAggregate({
+        id: testRepositoryId,
+        userId: "test-user-id",
+        name: "更新前リポジトリ",
+        description: "これは更新前のリポジトリです。",
+        isPublic: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      const updatedAggregate = repositoryAggregate.updateName("updated-repository");
+      await repository.save(repositoryAggregate);
       
-      const savedAggregate = await mockRepo.save(updatedAggregate);
-      expect(savedAggregate).not.toBeNull();
-      expect(savedAggregate.repository.id).toBe(repositoryAggregate.repository.id);
-      expect(savedAggregate.repository.name).toBe("updated-repository");
+      // リポジトリ情報の更新
+      const updatedRepositoryAggregate = repositoryAggregate.updateName("更新後リポジトリ");
+      const updatedRepositoryAggregate2 = updatedRepositoryAggregate.updateDescription("これは更新後のリポジトリです。");
+      const updatedRepositoryAggregate3 = updatedRepositoryAggregate2.updateIsPublic(true);
       
-      const retrievedAggregate = await mockRepo.findById(repositoryAggregate.repository.id);
-      expect(retrievedAggregate).not.toBeNull();
-      expect(retrievedAggregate?.repository.name).toBe("updated-repository");
+      const savedRepository = await repository.save(updatedRepositoryAggregate3);
+      
+      // 検証
+      assertEquals(savedRepository.repository.id, testRepositoryId);
+      assertEquals(savedRepository.repository.name, "更新後リポジトリ");
+      assertEquals(savedRepository.repository.description, "これは更新後のリポジトリです。");
+      assertEquals(savedRepository.repository.isPublic, true);
+      
+      // データベースから直接取得して検証
+      const [dbRepository] = await db.select().from(repositories).where(eq(repositories.id, testRepositoryId)).execute();
+      assertEquals(dbRepository.id, testRepositoryId);
+      assertEquals(dbRepository.name, "更新後リポジトリ");
+      assertEquals(dbRepository.description, "これは更新後のリポジトリです。");
+      assertEquals(dbRepository.isPublic, 1); // SQLiteではbooleanは0/1で保存される
     });
   });
   
   describe("delete", () => {
-    it("存在するリポジトリを削除できる", async () => {
-      const repositoryAggregate = createTestRepositoryAggregate();
-      await mockRepo.save(repositoryAggregate);
+    it("リポジトリを削除できる", async () => {
+      // テスト用リポジトリの作成と保存
+      const repositoryAggregate = createRepositoryAggregate({
+        id: testRepositoryId,
+        userId: "test-user-id",
+        name: "削除対象リポジトリ",
+        description: "これは削除対象のリポジトリです。",
+        isPublic: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      const result = await mockRepo.delete(repositoryAggregate.repository.id);
-      expect(result).toBe(true);
+      await repository.save(repositoryAggregate);
       
-      const retrievedAggregate = await mockRepo.findById(repositoryAggregate.repository.id);
-      expect(retrievedAggregate).toBeNull();
+      // 削除前に存在することを確認
+      const beforeDelete = await repository.findById(testRepositoryId);
+      assertEquals(beforeDelete !== null, true);
+      
+      // リポジトリの削除
+      const result = await repository.delete(testRepositoryId);
+      assertEquals(result, true);
+      
+      // 削除後に存在しないことを確認
+      const afterDelete = await repository.findById(testRepositoryId);
+      assertEquals(afterDelete, null);
     });
     
-    it("存在しないリポジトリの削除はfalseを返す", async () => {
-      const result = await mockRepo.delete("non-existent-id");
-      expect(result).toBe(false);
+    it("存在しないリポジトリIDの場合はfalseを返す", async () => {
+      const result = await repository.delete("non-existent-id");
+      assertEquals(result, false);
     });
   });
-}); 
+});

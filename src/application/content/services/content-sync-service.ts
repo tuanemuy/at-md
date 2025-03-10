@@ -4,8 +4,7 @@
  */
 
 import { Result } from "npm:neverthrow";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { RepositoryAggregate } from "../../../core/content/aggregates/repository-aggregate.ts";
+import { ContentAggregate, RepositoryAggregate } from "../../../core/content/mod.ts";
 
 /**
  * 同期結果

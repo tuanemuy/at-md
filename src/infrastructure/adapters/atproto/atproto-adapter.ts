@@ -1,12 +1,21 @@
-import { Result } from "npm:neverthrow";
-import { InfrastructureError } from "../../../core/errors/base.ts";
+/**
+ * AtProtoアダプター
+ */
+
+import {
+  Result,
+  ok,
+  err,
+  BskyAgent,
+  ApplicationError
+} from "./deps.ts";
 
 /**
- * AT Protocolアダプターのエラー型
+ * AtProtoアダプターのエラー
  */
-export class AtProtocolError extends InfrastructureError {
+export class AtProtocolError extends ApplicationError {
   override readonly cause?: Error;
-
+  
   constructor(message: string, cause?: Error) {
     super(message);
     this.name = "AtProtocolError";
@@ -15,7 +24,7 @@ export class AtProtocolError extends InfrastructureError {
 }
 
 /**
- * ユーザープロファイル情報
+ * AtProtoプロファイル
  */
 export interface AtpProfile {
   did: string;
@@ -31,7 +40,7 @@ export interface AtpProfile {
 }
 
 /**
- * 投稿情報
+ * AtProto投稿
  */
 export interface AtpPost {
   uri: string;
@@ -58,7 +67,7 @@ export interface AtpPost {
 }
 
 /**
- * フィード情報
+ * AtProtoフィード
  */
 export interface AtpFeed {
   uri: string;
@@ -76,20 +85,113 @@ export interface AtpFeed {
 }
 
 /**
- * AT Protocolアダプターのインターフェース
- * 
- * AT Protocolとの通信を抽象化するインターフェース
+ * AtProtoアダプターのインターフェース
+ */
+export interface AtProtoAdapter {
+  /**
+   * ログインする
+   * @param identifier 識別子（ハンドルまたはメールアドレス）
+   * @param password パスワード
+   * @returns 結果
+   */
+  login(identifier: string, password: string): Promise<Result<void, ApplicationError>>;
+  
+  /**
+   * 投稿する
+   * @param text 投稿テキスト
+   * @returns 投稿ID
+   */
+  post(text: string): Promise<Result<string, ApplicationError>>;
+  
+  /**
+   * 投稿を削除する
+   * @param postId 投稿ID
+   * @returns 結果
+   */
+  deletePost(postId: string): Promise<Result<void, ApplicationError>>;
+}
+
+/**
+ * AtProtoアダプターの実装
+ */
+export class AtProtoAdapterImpl implements AtProtoAdapter {
+  private agent: BskyAgent;
+  private isLoggedIn = false;
+  
+  /**
+   * コンストラクタ
+   * @param serviceUrl サービスURL
+   */
+  constructor(serviceUrl: string = "https://bsky.social") {
+    this.agent = new BskyAgent({ service: serviceUrl });
+  }
+  
+  /**
+   * ログインする
+   * @param identifier 識別子（ハンドルまたはメールアドレス）
+   * @param password パスワード
+   * @returns 結果
+   */
+  async login(identifier: string, password: string): Promise<Result<void, ApplicationError>> {
+    try {
+      await this.agent.login({ identifier, password });
+      this.isLoggedIn = true;
+      return ok(undefined);
+    } catch (error) {
+      return err(new ApplicationError(`ログインに失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+    }
+  }
+  
+  /**
+   * 投稿する
+   * @param text 投稿テキスト
+   * @returns 投稿ID
+   */
+  async post(text: string): Promise<Result<string, ApplicationError>> {
+    if (!this.isLoggedIn) {
+      return err(new ApplicationError("投稿するにはログインが必要です"));
+    }
+    
+    try {
+      const response = await this.agent.post({
+        text,
+        createdAt: new Date().toISOString()
+      });
+      
+      return ok(response.uri.split("/").pop() || "");
+    } catch (error) {
+      return err(new ApplicationError(`投稿に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+    }
+  }
+  
+  /**
+   * 投稿を削除する
+   * @param postId 投稿ID
+   * @returns 結果
+   */
+  async deletePost(postId: string): Promise<Result<void, ApplicationError>> {
+    if (!this.isLoggedIn) {
+      return err(new ApplicationError("投稿を削除するにはログインが必要です"));
+    }
+    
+    try {
+      const did = this.agent.session?.did;
+      if (!did) {
+        return err(new ApplicationError("DIDが取得できませんでした"));
+      }
+      
+      await this.agent.deletePost(`at://${did}/app.bsky.feed.post/${postId}`);
+      return ok(undefined);
+    } catch (error) {
+      return err(new ApplicationError(`投稿の削除に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+    }
+  }
+}
+
+/**
+ * AtProtocolアダプターのインターフェース
  */
 export interface AtProtocolAdapter {
-  /**
-   * ユーザーの認証を行う
-   * 
-   * @param identifier ユーザー識別子（ハンドルまたはDID）
-   * @param password パスワード
-   * @returns 認証結果のResult
-   */
-  login(identifier: string, password: string): Promise<Result<{ did: string; handle: string; jwt: string }, AtProtocolError>>;
-
   /**
    * ユーザープロファイルを取得する
    * 

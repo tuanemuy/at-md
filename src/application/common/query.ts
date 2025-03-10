@@ -3,7 +3,7 @@
  * アプリケーションレイヤーのクエリパターンを実装するためのインターフェース
  */
 
-import { Result } from "npm:neverthrow";
+import { Result } from "../deps.ts";
 
 /**
  * クエリインターフェース

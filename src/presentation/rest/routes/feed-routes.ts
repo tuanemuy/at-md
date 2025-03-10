@@ -1,19 +1,36 @@
 /**
  * フィードルート
- * フィード関連のHTTPルートを定義します。
+ * フィードに関するエンドポイントを定義します。
  */
 
-import { Hono } from "hono";
+import { Hono } from "../deps.ts";
 import { FeedController } from "../controllers/feed-controller.ts";
+import { GetFeedByIdQueryHandler, GetFeedsByUserIdQueryHandler, CreateFeedCommandHandler } from "../deps.ts";
 
 /**
- * フィードルートを設定する
- * @param app Honoアプリケーション
- * @param feedController フィードコントローラー
+ * フィードルート
+ * フィード関連のHTTPルートを定義します。
  */
-export function setupFeedRoutes(app: Hono, feedController: FeedController): void {
-  // フィード関連のルートを定義
-  app.get("/api/feeds/:id", (c) => feedController.getFeedById(c));
-  app.get("/api/users/:userId/feeds", (c) => feedController.getFeedsByUserId(c));
-  app.post("/api/feeds", (c) => feedController.createFeed(c));
-} 
+export const feedRoutes = (
+  getFeedByIdQueryHandler: GetFeedByIdQueryHandler,
+  getFeedsByUserIdQueryHandler: GetFeedsByUserIdQueryHandler,
+  createFeedCommandHandler: CreateFeedCommandHandler
+): Hono => {
+  const app = new Hono();
+  const controller = new FeedController(
+    getFeedByIdQueryHandler,
+    getFeedsByUserIdQueryHandler,
+    createFeedCommandHandler
+  );
+
+  // フィードをIDで取得
+  app.get("/:id", (c) => controller.getFeedById(c));
+
+  // ユーザーのフィード一覧を取得
+  app.get("/user/:userId", (c) => controller.getFeedsByUserId(c));
+
+  // フィードを作成
+  app.post("/", (c) => controller.createFeed(c));
+
+  return app;
+}; 

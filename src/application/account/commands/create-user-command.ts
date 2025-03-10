@@ -3,9 +3,9 @@
  * 新しいユーザーを作成するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
-import { UserAggregate, createUserAggregate } from "../../../core/account/aggregates/user-aggregate.ts";
+import { Command } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { UserAggregate, createUserAggregate } from "../deps.ts";
 import { UserRepository } from "../repositories/user-repository.ts";
 
 /**

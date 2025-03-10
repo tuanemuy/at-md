@@ -1,24 +1,11 @@
 /**
  * フィードコントローラー
- * フィード関連のHTTPリクエストを処理するコントローラー
+ * フィードに関するHTTPリクエストを処理します。
  */
 
-import { Context } from "hono";
-import { Result } from "npm:neverthrow";
-import { 
-  GetFeedByIdQueryHandler, 
-  GetFeedByIdQuery 
-} from "../../../application/delivery/queries/get-feed-by-id-query.ts";
-import { 
-  GetFeedsByUserIdQueryHandler, 
-  GetFeedsByUserIdQuery 
-} from "../../../application/delivery/queries/get-feeds-by-user-id-query.ts";
-import { 
-  CreateFeedCommandHandler, 
-  CreateFeedCommand 
-} from "../../../application/delivery/commands/create-feed-command.ts";
-import { FeedAggregate } from "../../../core/delivery/aggregates/feed-aggregate.ts";
-import { EntityNotFoundError } from "../../../core/errors/application.ts";
+import { Context, Result, ok, err, ApplicationError, EntityNotFoundError, FeedAggregate, generateId } from "../deps.ts";
+import { GetFeedByIdQuery, GetFeedByIdQueryHandler, GetFeedsByUserIdQuery, GetFeedsByUserIdQueryHandler, CreateFeedCommand, CreateFeedCommandHandler } from "../deps.ts";
+import { handleError, handleErrorWithContext } from "../utils/error-handler.ts";
 
 /**
  * フィードコントローラー
@@ -45,32 +32,37 @@ export class FeedController {
   }
   
   /**
-   * IDによるフィード取得
-   * @param c Honoコンテキスト
+   * フィードをIDで取得する
+   * @param c コンテキスト
    * @returns レスポンス
    */
   async getFeedById(c: Context): Promise<Response> {
-    const id = c.req.param("id");
-    
-    if (!id) {
-      return c.json({ error: "フィードIDが指定されていません" }, 400);
-    }
-    
-    const query: GetFeedByIdQuery = {
-      name: "GetFeedById",
-      id
-    };
-    
-    const result = await this.getFeedByIdQueryHandler.execute(query);
-    
-    if (result.isErr()) {
-      if (result.error instanceof EntityNotFoundError) {
-        return c.json({ error: result.error.message }, 404);
+    try {
+      const id = c.req.param("id");
+      
+      if (!id) {
+        return c.json({ error: "フィードIDが指定されていません" }, 400);
       }
-      return c.json({ error: result.error.message }, 500);
+      
+      const query: GetFeedByIdQuery = {
+        name: "GetFeedById",
+        id
+      };
+      
+      const result = await this.getFeedByIdQueryHandler.execute(query);
+      
+      if (result.isOk()) {
+        if (result.value) {
+          return c.json(this.feedToResponse(result.value));
+        } else {
+          return c.json({ error: `フィードが見つかりません: ${id}` }, 404);
+        }
+      } else {
+        return handleErrorWithContext(c, result.error);
+      }
+    } catch (error) {
+      return handleErrorWithContext(c, error);
     }
-    
-    return c.json(result.value.feed);
   }
   
   /**
@@ -79,26 +71,33 @@ export class FeedController {
    * @returns レスポンス
    */
   async getFeedsByUserId(c: Context): Promise<Response> {
-    const userId = c.req.param("userId");
-    
-    if (!userId) {
-      return c.json({ error: "ユーザーIDが指定されていません" }, 400);
+    try {
+      const userId = c.req.param("userId");
+      
+      if (!userId) {
+        return c.json({ error: "ユーザーIDが指定されていません" }, 400);
+      }
+      
+      const query: GetFeedsByUserIdQuery = {
+        name: "GetFeedsByUserId",
+        userId,
+        limit: Number(c.req.query("limit")) || undefined,
+        offset: Number(c.req.query("offset")) || undefined
+      };
+      
+      const result = await this.getFeedsByUserIdQueryHandler.execute(query);
+      
+      if (result.isOk()) {
+        return c.json({
+          success: true,
+          feeds: result.value.map((feed: FeedAggregate) => this.feedToResponse(feed))
+        });
+      } else {
+        return handleErrorWithContext(c, result.error);
+      }
+    } catch (error) {
+      return handleErrorWithContext(c, error);
     }
-    
-    const query: GetFeedsByUserIdQuery = {
-      name: "GetFeedsByUserId",
-      userId,
-      limit: Number(c.req.query("limit")) || undefined,
-      offset: Number(c.req.query("offset")) || undefined
-    };
-    
-    const result = await this.getFeedsByUserIdQueryHandler.execute(query);
-    
-    if (result.isErr()) {
-      return c.json({ error: result.error.message }, 500);
-    }
-    
-    return c.json(result.value.map((feed: FeedAggregate) => feed.feed));
   }
   
   /**
@@ -110,8 +109,12 @@ export class FeedController {
     try {
       const body = await c.req.json();
       
-      if (!body.userId || !body.name) {
-        return c.json({ error: "ユーザーIDとフィード名は必須です" }, 400);
+      if (!body.userId) {
+        return c.json({ error: "ユーザーIDは必須です" }, 400);
+      }
+      
+      if (!body.name) {
+        return c.json({ error: "フィード名は必須です" }, 400);
       }
       
       const command: CreateFeedCommand = {
@@ -125,13 +128,37 @@ export class FeedController {
       
       const result = await this.createFeedCommandHandler.execute(command);
       
-      if (result.isErr()) {
-        return c.json({ error: result.error.message }, 400);
+      if (result.isOk()) {
+        return c.json({
+          success: true,
+          message: "フィードが作成されました",
+          feed: this.feedToResponse(result.value)
+        }, 201);
+      } else {
+        return handleErrorWithContext(c, result.error);
       }
-      
-      return c.json(result.value.feed, 201);
     } catch (error) {
-      return c.json({ error: "リクエストの解析に失敗しました" }, 400);
+      return handleErrorWithContext(c, error);
     }
+  }
+
+  /**
+   * フィード集約をレスポンス用のオブジェクトに変換する
+   * @param feedAggregate フィード集約
+   * @returns レスポンス用オブジェクト
+   */
+  private feedToResponse(feedAggregate: FeedAggregate): Record<string, unknown> {
+    const feed = feedAggregate.feed;
+    const metadata = feed.metadata;
+    
+    return {
+      id: feed.id,
+      userId: feed.userId,
+      name: feed.name,
+      description: metadata.description || "",
+      postIds: feed.postIds,
+      createdAt: feed.createdAt,
+      updatedAt: feed.updatedAt
+    };
   }
 } 

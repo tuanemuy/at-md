@@ -1,4 +1,10 @@
-import { InvalidContentStateError } from "../../errors/domain.ts";
+/**
+ * ビューテンプレートエンティティ
+ * 
+ * コンテンツの表示方法を定義するテンプレートを表します。
+ */
+
+import { DomainError, InvalidContentStateError } from "../../errors/mod.ts";
 
 /**
  * テンプレートのレイアウトタイプ

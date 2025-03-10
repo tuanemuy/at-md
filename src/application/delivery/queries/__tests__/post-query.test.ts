@@ -1,11 +1,10 @@
-import { assertEquals } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
+import { assertEquals } from "https://deno.land/std/assert/mod.ts";
+import { spy } from "@std/testing/mock";
+import { ok, err, Result } from "npm:neverthrow";
 import { GetPostByIdQuery, GetPostByIdQueryHandler, GetPostByContentIdQuery, GetPostByContentIdQueryHandler, GetPostsByUserIdQuery, GetPostsByUserIdQueryHandler } from "../post-query.ts";
-import { PostRepository } from "../../repositories/post-repository.ts";
-import { PostAggregate } from "../../../../core/delivery/aggregates/post-aggregate.ts";
-import { Post } from "../../../../core/delivery/entities/post.ts";
-import { PublishStatus } from "../../../../core/delivery/value-objects/publish-status.ts";
+import { PostRepository, TransactionContext } from "../../repositories/mod.ts";
+import { PostAggregate, Post, PublishStatus } from "../../../../core/delivery/mod.ts";
+import { DomainError } from "../../../../core/errors/mod.ts";
 
 // モックの作成
 class MockPostRepository implements PostRepository {
@@ -13,7 +12,9 @@ class MockPostRepository implements PostRepository {
   findByContentId = spy(async (_contentId: string): Promise<PostAggregate | null> => null);
   findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<PostAggregate[]> => []);
   save = spy(async (postAggregate: PostAggregate): Promise<PostAggregate> => postAggregate);
+  saveWithTransaction = spy(async (postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => ok(postAggregate));
   delete = spy(async (_id: string): Promise<boolean> => true);
+  deleteWithTransaction = spy(async (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => ok(true));
 }
 
 // モックの投稿集約を作成する関数

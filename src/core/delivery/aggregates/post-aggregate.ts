@@ -1,11 +1,13 @@
 /**
  * 投稿集約
- * 投稿の高レベル操作を提供します。
+ * 
+ * 投稿エンティティとそれに関連する操作をカプセル化します。
  */
+import { Result, err, ok } from "../deps.ts";
 import { Post, createPost, PostProps } from "../entities/post.ts";
-import { PublishStatusProps } from "../value-objects/publish-status.ts";
-import { generateId } from "../../common/id.ts";
-import { InvalidPostStateError } from "../../errors/domain.ts";
+import { PublishStatus, PublishStatusProps } from "../value-objects/publish-status.ts";
+import { generateId } from "../../common/mod.ts";
+import { DomainError, InvalidContentStateError } from "../../errors/mod.ts";
 
 /**
  * 投稿集約のプロパティ
@@ -155,7 +157,7 @@ export function createPostAggregate(props: PostAggregateProps): PostAggregate {
 export function createNewPostAggregate(params: CreatePostAggregateParams): PostAggregate {
   // スラッグのバリデーション
   if (!params.slug) {
-    throw new InvalidPostStateError("無効な状態", "スラッグが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "スラッグが指定されていません");
   }
   
   // 新しい投稿エンティティを作成

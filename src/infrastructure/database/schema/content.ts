@@ -1,22 +1,26 @@
 /**
- * コンテンツ関連のデータベーススキーマ
+ * コンテンツスキーマ
+ * 
+ * コンテンツ関連のデータベーススキーマ定義
  */
 
-import { pgTable, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, varchar, jsonb } from "../../../deps.ts";
 import { sql } from "drizzle-orm";
-import { generateId } from "../../../core/common/id.ts";
+import { generateId } from "../deps.ts";
+import { users } from "./user.ts";
 
 /**
  * コンテンツテーブル
  */
 export const contents = pgTable('contents', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
-  userId: text('user_id').notNull(),
-  repositoryId: text('repository_id').notNull(),
-  path: text('path').notNull(),
+  userId: text('user_id').notNull().references(() => users.id),
+  repositoryId: text('repository_id').references(() => repositories.id),
+  path: text('path'),
   title: text('title').notNull(),
   body: text('body').notNull(),
-  visibility: text('visibility').notNull().default('private'),
+  metadata: jsonb('metadata'),
+  status: text('status').notNull().default('draft'),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 });
@@ -39,10 +43,11 @@ export const contentMetadata = pgTable('content_metadata', {
  */
 export const repositories = pgTable('repositories', {
   id: text('id').primaryKey().$defaultFn(() => generateId()),
-  userId: text('user_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id),
   name: text('name').notNull(),
-  description: text('description').notNull().default(''),
-  githubUrl: text('github_url').notNull(),
+  description: text('description'),
+  url: text('url'),
+  provider: text('provider').notNull(),
   createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
 }); 

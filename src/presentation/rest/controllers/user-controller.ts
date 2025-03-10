@@ -1,20 +1,11 @@
 /**
  * ユーザーコントローラー
- * ユーザー関連のHTTPリクエストを処理するコントローラー
+ * 
+ * ユーザーの取得や操作に関するエンドポイントを提供します。
  */
 
-import { Context } from "hono";
-import { Result } from "npm:neverthrow";
-import { 
-  GetUserByIdQueryHandler, 
-  GetUserByIdQuery 
-} from "../../../application/account/queries/get-user-by-id-query.ts";
-import { 
-  CreateUserCommandHandler, 
-  CreateUserCommand 
-} from "../../../application/account/commands/create-user-command.ts";
-import { UserAggregate } from "../../../core/account/aggregates/user-aggregate.ts";
-import { generateId } from "../../../core/common/id.ts";
+import { Context, Result, ok, err, ApplicationError, EntityNotFoundError, GetUserByIdQuery, GetUserByIdQueryHandler, CreateUserCommand, CreateUserCommandHandler, UserAggregate, generateId } from "../deps.ts";
+import { handleError, handleErrorWithContext } from "../utils/error-handler.ts";
 
 /**
  * ユーザーコントローラー
@@ -25,7 +16,8 @@ export class UserController {
   
   /**
    * コンストラクタ
-   * @param getUserByIdQueryHandler ユーザーID取得クエリハンドラー
+   * 
+   * @param getUserByIdQueryHandler ユーザーIDによるユーザー取得クエリハンドラー
    * @param createUserCommandHandler ユーザー作成コマンドハンドラー
    */
   constructor(
@@ -42,20 +34,28 @@ export class UserController {
    * @returns レスポンス
    */
   async getUserById(c: Context): Promise<Response> {
-    const id = c.req.param("id");
-    
-    if (!id) {
-      return c.json({ error: "ユーザーIDが指定されていません" }, 400);
+    try {
+      const id = c.req.param("id");
+      
+      if (!id) {
+        return c.json({ error: "ユーザーIDが指定されていません" }, 400);
+      }
+      
+      const query: GetUserByIdQuery = {
+        name: "GetUserById",
+        id
+      };
+      
+      const result = await this.getUserByIdQueryHandler.execute(query);
+      
+      if (result.isOk()) {
+        return c.json(this.userToResponse(result.value));
+      } else {
+        return handleErrorWithContext(c, result.error);
+      }
+    } catch (error) {
+      return handleErrorWithContext(c, error);
     }
-    
-    const query: GetUserByIdQuery = {
-      name: "GetUserById",
-      id
-    };
-    
-    const result = await this.getUserByIdQueryHandler.execute(query);
-    
-    return this.handleUserResult(c, result);
   }
   
   /**
@@ -67,11 +67,17 @@ export class UserController {
     try {
       const body = await c.req.json();
       
-      // 必須フィールドの検証
-      if (!body.username || !body.email || !body.atIdentifier || !body.atIdentifier.did) {
-        return c.json({ 
-          error: "ユーザー名、メールアドレス、DIDは必須です" 
-        }, 400);
+      // バリデーション
+      if (!body.username) {
+        return c.json({ error: "ユーザー名は必須です" }, 400);
+      }
+      
+      if (!body.email) {
+        return c.json({ error: "メールアドレスは必須です" }, 400);
+      }
+      
+      if (!body.did) {
+        return c.json({ error: "DIDは必須です" }, 400);
       }
       
       const command: CreateUserCommand = {
@@ -80,43 +86,24 @@ export class UserController {
         username: body.username,
         email: body.email,
         atIdentifier: {
-          did: body.atIdentifier.did,
-          handle: body.atIdentifier.handle
+          did: body.did,
+          handle: body.handle
         }
       };
       
       const result = await this.createUserCommandHandler.execute(command);
       
       if (result.isOk()) {
-        return c.json(this.userToResponse(result.value), 201);
+        return c.json({ 
+          success: true, 
+          message: "ユーザーが作成されました", 
+          user: this.userToResponse(result.value)
+        }, 201);
       } else {
-        return c.json({ error: result.error.message }, 400);
+        return handleErrorWithContext(c, result.error);
       }
     } catch (error) {
-      console.error("ユーザー作成エラー:", error);
-      return c.json({ 
-        error: "ユーザー作成中にエラーが発生しました" 
-      }, 500);
-    }
-  }
-  
-  /**
-   * ユーザー結果の処理
-   * @param c Honoコンテキスト
-   * @param result ユーザー結果
-   * @returns レスポンス
-   */
-  private handleUserResult(c: Context, result: Result<UserAggregate, Error>): Response {
-    if (result.isOk()) {
-      return c.json(this.userToResponse(result.value));
-    } else {
-      const errorMessage = result.error.message;
-      
-      if (errorMessage.includes("見つかりません")) {
-        return c.json({ error: errorMessage }, 404);
-      } else {
-        return c.json({ error: errorMessage }, 400);
-      }
+      return handleErrorWithContext(c, error);
     }
   }
   

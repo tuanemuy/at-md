@@ -2,23 +2,30 @@
  * コンテンツ公開コマンドのテスト
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
-import { PublishContentCommand, PublishContentCommandHandler } from "./publish-content-command.ts";
-import { PostRepository } from "../repositories/post-repository.ts";
-import { ContentRepository } from "../../content/repositories/content-repository.ts";
-import { PostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { Content } from "../../../core/content/entities/content.ts";
-import { ContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
-import { Post } from "../../../core/delivery/entities/post.ts";
-import { PublishStatus } from "../../../core/delivery/value-objects/publish-status.ts";
-import { ok } from "npm:neverthrow";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  describe,
+  it,
+  beforeEach,
+  DomainError,
+  ApplicationError,
+  createPostAggregate
+} from "../__tests__/deps/mod.ts";
 
-// モック用のcreateNewPostAggregate関数
-const originalCreateNewPostAggregate = await import("../../../core/delivery/aggregates/post-aggregate.ts").then(
-  module => module.createNewPostAggregate
-);
+import type {
+  Post,
+  PostAggregate,
+  PostRepository,
+  ContentAggregate,
+  ContentRepository
+} from "../__tests__/deps/mod.ts";
+
+import { PublishContentCommand, PublishContentCommandHandler } from "./publish-content-command.ts";
+import { PublishStatus } from "../../../core/delivery/mod.ts";
+import { Content, ContentMetadata } from "../../../core/content/mod.ts";
 
 describe("PublishContentCommandHandler", () => {
   // モックリポジトリ
@@ -50,9 +57,9 @@ describe("PublishContentCommandHandler", () => {
     versions: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    addVersion: () => mockContent,
-    changeVisibility: () => mockContent,
-    updateMetadata: () => mockContent
+    addVersion: () => ok(mockContent),
+    changeVisibility: () => ok(mockContent),
+    updateMetadata: () => ok(mockContent)
   };
   
   // テスト用のコンテンツ集約
@@ -99,25 +106,29 @@ describe("PublishContentCommandHandler", () => {
   beforeEach(() => {
     // モックリポジトリの作成
     mockPostRepository = {
-      findById: async () => null,
-      findByContentId: async () => null,
-      findByUserId: async () => [],
-      save: async (postAggregate) => postAggregate,
-      delete: async () => true
+      findById: () => Promise.resolve(null),
+      findByContentId: () => Promise.resolve(null),
+      findByUserId: () => Promise.resolve([]),
+      save: (postAggregate) => Promise.resolve(postAggregate),
+      saveWithTransaction: (postAggregate, _context) => Promise.resolve(ok(postAggregate)),
+      delete: () => Promise.resolve(true),
+      deleteWithTransaction: (_id, _context) => Promise.resolve(ok(true))
     };
     
     mockContentRepository = {
-      findById: async (id) => {
+      findById: (id) => {
         if (id === "content-123") {
-          return mockContentAggregate;
+          return Promise.resolve(mockContentAggregate);
         }
-        return null;
+        return Promise.resolve(null);
       },
-      findByRepositoryIdAndPath: async () => null,
-      findByUserId: async () => [],
-      findByRepositoryId: async () => [],
-      save: async (contentAggregate) => contentAggregate,
-      delete: async () => true
+      findByRepositoryIdAndPath: () => Promise.resolve(null),
+      findByUserId: () => Promise.resolve([]),
+      findByRepositoryId: () => Promise.resolve([]),
+      save: (contentAggregate) => Promise.resolve(contentAggregate),
+      saveWithTransaction: (contentAggregate, _context) => Promise.resolve(ok(contentAggregate)),
+      delete: () => Promise.resolve(true),
+      deleteWithTransaction: (_id, _context) => Promise.resolve(ok(true))
     };
     
     // ハンドラーの作成
@@ -130,13 +141,13 @@ describe("PublishContentCommandHandler", () => {
   it("有効なコマンドでコンテンツが公開されること", async () => {
     // モックの設定
     let savedPost: PostAggregate | null = null;
-    mockPostRepository.save = async (postAggregate) => {
+    mockPostRepository.save = (postAggregate) => {
       savedPost = postAggregate;
-      return postAggregate;
+      return Promise.resolve(postAggregate);
     };
     
     // 新しいポストが作成されることを想定
-    mockPostRepository.findByContentId = async () => null;
+    mockPostRepository.findByContentId = () => Promise.resolve(null);
     
     // 実際のテストでは、ハンドラーのexecuteメソッドをオーバーライドせずに
     // モックリポジトリの振る舞いを設定することで、期待する結果を得る
@@ -156,7 +167,7 @@ describe("PublishContentCommandHandler", () => {
   
   it("存在しないコンテンツIDでエラーが返されること", async () => {
     // モックの設定
-    mockContentRepository.findById = async () => null;
+    mockContentRepository.findById = () => Promise.resolve(null);
     
     // コマンド実行
     const result = await handler.execute(validCommand);
@@ -170,12 +181,12 @@ describe("PublishContentCommandHandler", () => {
   
   it("既に公開されているコンテンツの場合、既存のポストが更新されること", async () => {
     // モックの設定
-    mockPostRepository.findByContentId = async () => mockPostAggregate;
+    mockPostRepository.findByContentId = () => Promise.resolve(mockPostAggregate);
     
     let savedPost: PostAggregate | null = null;
-    mockPostRepository.save = async (postAggregate) => {
+    mockPostRepository.save = (postAggregate) => {
       savedPost = postAggregate;
-      return postAggregate;
+      return Promise.resolve(postAggregate);
     };
     
     // コマンド実行
@@ -187,5 +198,14 @@ describe("PublishContentCommandHandler", () => {
     if (result.isOk()) {
       expect(result.value.post.id).toBe(mockPost.id);
     }
+  });
+
+  it("既存のポストが更新されること", () => {
+    // モックの設定
+    mockPostRepository.findByContentId = () => Promise.resolve(mockPostAggregate);
+    
+    mockPostRepository.save = (postAggregate) => {
+      return Promise.resolve(postAggregate);
+    };
   });
 }); 

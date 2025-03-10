@@ -1,6 +1,10 @@
 /**
- * フィードのメタデータを表す値オブジェクト
+ * フィードメタデータ値オブジェクト
+ * 
+ * フィードに関連するメタデータを表す値オブジェクト
  */
+
+import { DomainError, InvalidMetadataError } from "../../errors/mod.ts";
 
 /**
  * フィードの種類
@@ -79,7 +83,8 @@ export interface FeedMetadataProps {
  * フィードのメタデータの値オブジェクト
  */
 export interface FeedMetadata extends FeedMetadataProps {
-  readonly [key: string]: any;
+  // インデックスシグネチャを使用して追加のプロパティを許可
+  readonly [key: string]: unknown;
 }
 
 /**

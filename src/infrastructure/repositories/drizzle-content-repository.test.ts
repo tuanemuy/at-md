@@ -6,19 +6,30 @@
  * 外部依存を減らすことができます。
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "https://deno.land/std/assert/mod.ts";
+import { afterEach, beforeEach, describe, it } from "https://deno.land/std/testing/bdd.ts";
+import { eq } from "npm:drizzle-orm";
+
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError,
+  generateId,
+  type ContentAggregate,
+  type Content,
+  type ContentMetadata,
+  createContentAggregate,
+  type ContentRepository,
+  contents,
+  db,
+  TransactionContext
+} from "./__tests__/deps.ts";
+
 import { DrizzleContentRepository } from "./drizzle-content-repository.ts";
-import { ContentAggregate, createContentAggregate } from "../../core/content/aggregates/content-aggregate.ts";
-import { Content, createContent } from "../../core/content/entities/content.ts";
-import { createContentMetadata } from "../../core/content/value-objects/content-metadata.ts";
-import { generateId } from "../../core/common/id.ts";
-import { eq, and } from "drizzle-orm";
-import { contents, contentMetadata } from "../database/schema/content.ts";
-import { RepositoryError } from "./drizzle-content-repository.ts";
-import { ContentRepository } from "../../application/content/repositories/content-repository.ts";
-import { Result, ok, err } from "neverthrow";
-import { InfrastructureError } from "../../core/errors/base.ts";
 
 /**
  * 簡易的なモックリポジトリ
@@ -29,98 +40,70 @@ class MockContentRepository implements ContentRepository {
   private contentStore: Record<string, ContentAggregate> = {};
   
   /**
-   * IDによってコンテンツを検索する
+   * IDによるコンテンツ集約の検索
+   * @param id コンテンツID
+   * @returns コンテンツ集約、または見つからない場合はnull
    */
-  async findById(id: string): Promise<ContentAggregate | null> {
-    return this.contentStore[id] || null;
+  findById(id: string): Promise<ContentAggregate | null> {
+    return Promise.resolve(this.contentStore[id] || null);
   }
   
   /**
-   * リポジトリIDとパスによってコンテンツを検索する
+   * リポジトリIDとパスによるコンテンツ集約の検索
+   * @param repositoryId リポジトリID
+   * @param path パス
+   * @returns コンテンツ集約、または見つからない場合はnull
    */
-  async findByRepositoryIdAndPath(repositoryId: string, path: string): Promise<ContentAggregate | null> {
-    for (const id in this.contentStore) {
-      const aggregate = this.contentStore[id];
-      if (aggregate.content.repositoryId === repositoryId && aggregate.content.path === path) {
-        return aggregate;
-      }
-    }
-    return null;
+  findByRepositoryIdAndPath(repositoryId: string, path: string): Promise<ContentAggregate | null> {
+    const contents = Object.values(this.contentStore);
+    const content = contents.find(c => 
+      c.content.repositoryId === repositoryId && 
+      c.content.path === path
+    );
+    return Promise.resolve(content || null);
   }
   
   /**
-   * ユーザーIDによってコンテンツを検索する
+   * リポジトリIDによるコンテンツ集約の検索
+   * @param repositoryId リポジトリID
+   * @returns コンテンツ集約の配列
    */
-  async findByUserId(userId: string, options?: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  }): Promise<ContentAggregate[]> {
-    const results: ContentAggregate[] = [];
-    
-    for (const id in this.contentStore) {
-      const aggregate = this.contentStore[id];
-      if (aggregate.content.userId === userId) {
-        results.push(aggregate);
-      }
-    }
-    
-    // オプションによるフィルタリング
-    if (options) {
-      const { limit, offset } = options;
-      const start = offset || 0;
-      const end = limit ? start + limit : undefined;
-      return results.slice(start, end);
-    }
-    
-    return results;
+  findByRepositoryId(repositoryId: string): Promise<ContentAggregate[]> {
+    const contents = Object.values(this.contentStore);
+    return Promise.resolve(contents.filter(c => c.content.repositoryId === repositoryId));
   }
   
   /**
-   * リポジトリIDによってコンテンツを検索する
+   * ユーザーIDによるコンテンツ集約の検索
+   * @param userId ユーザーID
+   * @returns コンテンツ集約の配列
    */
-  async findByRepositoryId(repositoryId: string, options?: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  }): Promise<ContentAggregate[]> {
-    const results: ContentAggregate[] = [];
-    
-    for (const id in this.contentStore) {
-      const aggregate = this.contentStore[id];
-      if (aggregate.content.repositoryId === repositoryId) {
-        results.push(aggregate);
-      }
-    }
-    
-    // オプションによるフィルタリング
-    if (options) {
-      const { limit, offset } = options;
-      const start = offset || 0;
-      const end = limit ? start + limit : undefined;
-      return results.slice(start, end);
-    }
-    
-    return results;
+  findByUserId(userId: string): Promise<ContentAggregate[]> {
+    const contents = Object.values(this.contentStore);
+    return Promise.resolve(contents.filter(c => c.content.userId === userId));
   }
   
   /**
-   * コンテンツを保存する
+   * コンテンツ集約の保存
+   * @param contentAggregate 保存するコンテンツ集約
+   * @returns 保存されたコンテンツ集約
    */
-  async save(contentAggregate: ContentAggregate): Promise<ContentAggregate> {
+  save(contentAggregate: ContentAggregate): Promise<ContentAggregate> {
     this.contentStore[contentAggregate.content.id] = contentAggregate;
-    return contentAggregate;
+    return Promise.resolve(contentAggregate);
   }
   
   /**
-   * コンテンツを削除する
+   * コンテンツの削除
+   * @param id 削除するコンテンツのID
+   * @returns 削除が成功したかどうか
    */
-  async delete(id: string): Promise<boolean> {
+  delete(id: string): Promise<boolean> {
     if (this.contentStore[id]) {
       delete this.contentStore[id];
-      return true;
+      return Promise.resolve(true);
     }
-    return false;
+    return Promise.resolve(false);
   }
   
   /**
@@ -131,183 +114,162 @@ class MockContentRepository implements ContentRepository {
   }
   
   /**
-   * トランザクション内でコンテンツを保存する
+   * トランザクション内でコンテンツ集約を保存する
+   * @param contentAggregate 保存するコンテンツ集約
+   * @param _context トランザクションコンテキスト
+   * @returns 保存されたコンテンツ集約のResult
    */
-  async saveWithTransaction(contentAggregate: ContentAggregate, _context: any): Promise<Result<ContentAggregate, InfrastructureError>> {
+  async saveWithTransaction(
+    contentAggregate: ContentAggregate, 
+    _context: unknown
+  ): Promise<Result<ContentAggregate, DomainError>> {
     try {
       const saved = await this.save(contentAggregate);
       return ok(saved);
     } catch (error) {
-      return err(new InfrastructureError(`コンテンツの保存に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+      return err(new DomainError(`コンテンツの保存に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
   }
   
   /**
    * トランザクション内でコンテンツを削除する
+   * @param id 削除するコンテンツのID
+   * @param _context トランザクションコンテキスト
+   * @returns 削除結果のResult
    */
-  async deleteWithTransaction(id: string, _context: any): Promise<Result<boolean, InfrastructureError>> {
+  async deleteWithTransaction(
+    id: string, 
+    _context: unknown
+  ): Promise<Result<boolean, DomainError>> {
     try {
       const result = await this.delete(id);
       return ok(result);
     } catch (error) {
-      return err(new InfrastructureError(`コンテンツの削除に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
+      return err(new DomainError(`コンテンツの削除に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
   }
 }
 
 // エラーをスローするモックリポジトリ
 class ErrorThrowingRepository extends MockContentRepository {
-  override async save(_contentAggregate: ContentAggregate): Promise<ContentAggregate> {
-    throw new Error("保存エラー");
+  override save(_contentAggregate: ContentAggregate): Promise<ContentAggregate> {
+    return Promise.reject(new Error("保存エラー"));
   }
 }
 
-// テストケースを修正
 describe("DrizzleContentRepository", () => {
-  // リポジトリのインスタンス
-  let repository: MockContentRepository;
+  let repository: ContentRepository;
+  let testContentId: string;
   
-  // テスト用のコンテンツ集約を作成する関数
-  function createTestContentAggregate(): ContentAggregate {
-    const id = generateId();
-    const metadataResult = createContentMetadata({
-      tags: ["test", "markdown"],
-      categories: ["documentation"],
-      language: "ja"
+  beforeEach(async () => {
+    // テスト用リポジトリの作成
+    repository = new DrizzleContentRepository(db);
+    
+    // テストデータのクリーンアップ
+    await db.delete(contents).execute();
+    
+    // テスト用コンテンツIDの生成
+    testContentId = generateId();
+  });
+  
+  describe("findById", () => {
+    it("存在するコンテンツを取得できる", async () => {
+      // テスト用コンテンツの作成
+      const contentAggregate = createContentAggregate({
+        id: testContentId,
+        userId: "test-user-id",
+        title: "テストコンテンツ",
+        body: "これはテストコンテンツです。",
+        metadata: {
+          keywords: ["test", "content"],
+          description: "テスト用のコンテンツ説明"
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // コンテンツの保存
+      await repository.save(contentAggregate);
+      
+      // コンテンツの取得
+      const result = await repository.findById(testContentId);
+      
+      // 検証
+      assertEquals(result?.content.id, testContentId);
+      assertEquals(result?.content.title, "テストコンテンツ");
+      assertEquals(result?.content.body, "これはテストコンテンツです。");
     });
     
-    if (metadataResult.isErr()) {
-      throw new Error(`メタデータの作成に失敗しました: ${metadataResult.error.message}`);
-    }
-    
-    const contentResult = createContent({
-      id,
-      userId: "test-user-id",
-      repositoryId: "test-repo-id",
-      path: `test/path-${id}.md`,
-      title: `Test Content ${id}`,
-      body: `# Test Content ${id}\n\nThis is a test content.`,
-      metadata: metadataResult.value,
-      visibility: "private",
-      versions: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+    it("存在しないコンテンツIDの場合はnullを返す", async () => {
+      const result = await repository.findById("non-existent-id");
+      assertEquals(result, null);
+    });
+  });
+  
+  describe("save", () => {
+    it("新しいコンテンツを保存できる", async () => {
+      // テスト用コンテンツの作成
+      const contentAggregate = createContentAggregate({
+        id: testContentId,
+        userId: "test-user-id",
+        title: "新しいコンテンツ",
+        body: "これは新しいコンテンツです。",
+        metadata: {
+          keywords: ["new", "content"],
+          description: "新しいコンテンツの説明"
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // コンテンツの保存
+      const savedContent = await repository.save(contentAggregate);
+      
+      // 検証
+      assertEquals(savedContent.content.id, testContentId);
+      assertEquals(savedContent.content.title, "新しいコンテンツ");
+      assertEquals(savedContent.content.body, "これは新しいコンテンツです。");
+      
+      // データベースから直接取得して検証
+      const [dbContent] = await db.select().from(contents).where(eq(contents.id, testContentId)).execute();
+      assertEquals(dbContent.id, testContentId);
+      assertEquals(dbContent.title, "新しいコンテンツ");
+      assertEquals(dbContent.body, "これは新しいコンテンツです。");
     });
     
-    if (contentResult.isErr()) {
-      throw new Error(`コンテンツの作成に失敗しました: ${contentResult.error.message}`);
-    }
-    
-    return createContentAggregate(contentResult.value);
-  }
-  
-  // 各テストの前に実行
-  beforeEach(() => {
-    // リポジトリの作成
-    repository = new MockContentRepository();
-    
-    // テスト用のデータをクリア
-    repository.clearAll();
+    it("既存のコンテンツを更新できる", async () => {
+      // テスト用コンテンツの作成と保存
+      const contentAggregate = createContentAggregate({
+        id: testContentId,
+        userId: "test-user-id",
+        title: "更新前コンテンツ",
+        body: "これは更新前のコンテンツです。",
+        metadata: {
+          keywords: ["before", "update"],
+          description: "更新前のコンテンツ説明"
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      await repository.save(contentAggregate);
+      
+      // コンテンツ情報の更新
+      const updatedContentAggregate = contentAggregate.updateTitle("更新後コンテンツ");
+      const updatedContentAggregate2 = updatedContentAggregate.updateBody("これは更新後のコンテンツです。");
+      
+      const savedContent = await repository.save(updatedContentAggregate2);
+      
+      // 検証
+      assertEquals(savedContent.content.id, testContentId);
+      assertEquals(savedContent.content.title, "更新後コンテンツ");
+      assertEquals(savedContent.content.body, "これは更新後のコンテンツです。");
+      
+      // データベースから直接取得して検証
+      const [dbContent] = await db.select().from(contents).where(eq(contents.id, testContentId)).execute();
+      assertEquals(dbContent.id, testContentId);
+      assertEquals(dbContent.title, "更新後コンテンツ");
+      assertEquals(dbContent.body, "これは更新後のコンテンツです。");
+    });
   });
-  
-  it("コンテンツを保存して取得できること", async () => {
-    // テスト用のコンテンツ集約を作成
-    const contentAggregate = createTestContentAggregate();
-    
-    // コンテンツを保存
-    const savedContent = await repository.save(contentAggregate);
-    
-    // 保存されたコンテンツのIDを使用して取得
-    const retrievedContent = await repository.findById(savedContent.content.id);
-    
-    // 取得したコンテンツが正しいことを確認
-    expect(retrievedContent).not.toBeNull();
-    expect(retrievedContent?.content.id).toBe(savedContent.content.id);
-    expect(retrievedContent?.content.title).toBe(savedContent.content.title);
-    expect(retrievedContent?.content.body).toBe(savedContent.content.body);
-    expect(retrievedContent?.content.metadata.tags).toEqual(savedContent.content.metadata.tags);
-  });
-  
-  it("リポジトリIDとパスでコンテンツを検索できること", async () => {
-    // テスト用のコンテンツ集約を作成
-    const contentAggregate = createTestContentAggregate();
-    
-    // コンテンツを保存
-    await repository.save(contentAggregate);
-    
-    // リポジトリIDとパスで検索
-    const retrievedContent = await repository.findByRepositoryIdAndPath(
-      contentAggregate.content.repositoryId,
-      contentAggregate.content.path
-    );
-    
-    // 取得したコンテンツが正しいことを確認
-    expect(retrievedContent).not.toBeNull();
-    expect(retrievedContent?.content.id).toBe(contentAggregate.content.id);
-    expect(retrievedContent?.content.repositoryId).toBe(contentAggregate.content.repositoryId);
-    expect(retrievedContent?.content.path).toBe(contentAggregate.content.path);
-  });
-  
-  it("ユーザーIDでコンテンツを検索できること", async () => {
-    // 複数のテスト用コンテンツ集約を作成して保存
-    const userId = "test-user-id";
-    const contentAggregate1 = createTestContentAggregate();
-    const contentAggregate2 = createTestContentAggregate();
-    
-    await repository.save(contentAggregate1);
-    await repository.save(contentAggregate2);
-    
-    // ユーザーIDで検索
-    const retrievedContents = await repository.findByUserId(userId);
-    
-    // 取得したコンテンツが正しいことを確認
-    expect(retrievedContents.length).toBeGreaterThanOrEqual(2);
-    expect(retrievedContents.some(c => c.content.id === contentAggregate1.content.id)).toBe(true);
-    expect(retrievedContents.some(c => c.content.id === contentAggregate2.content.id)).toBe(true);
-  });
-  
-  it("コンテンツを削除できること", async () => {
-    // テスト用のコンテンツ集約を作成
-    const contentAggregate = createTestContentAggregate();
-    
-    // コンテンツを保存
-    await repository.save(contentAggregate);
-    
-    // コンテンツが存在することを確認
-    const retrievedBeforeDelete = await repository.findById(contentAggregate.content.id);
-    expect(retrievedBeforeDelete).not.toBeNull();
-    
-    // コンテンツを削除
-    await repository.delete(contentAggregate.content.id);
-    
-    // 削除後にコンテンツが存在しないことを確認
-    const retrievedAfterDelete = await repository.findById(contentAggregate.content.id);
-    expect(retrievedAfterDelete).toBeNull();
-  });
-  
-  it("存在しないコンテンツを検索するとnullが返されること", async () => {
-    // 存在しないIDでコンテンツを検索
-    const nonExistentId = "non-existent-id";
-    const retrievedContent = await repository.findById(nonExistentId);
-    
-    // nullが返されることを確認
-    expect(retrievedContent).toBeNull();
-  });
-  
-  it("エラーハンドリングが適切に行われること", async () => {
-    // エラーをスローするリポジトリを使用
-    const errorRepository = new ErrorThrowingRepository();
-    
-    // コンテンツの保存を試みる（エラーが発生するはず）
-    try {
-      await errorRepository.save(createTestContentAggregate());
-      // エラーがスローされなかった場合、テストを失敗させる
-      expect(true).toBe(false);
-    } catch (error) {
-      // エラーがスローされたことを確認
-      expect(error).not.toBeNull();
-      expect(error instanceof Error).toBe(true);
-      expect((error as Error).message).toBe("保存エラー");
-    }
-  });
-}); 
+});

@@ -3,14 +3,22 @@
  * 新しいコンテンツを作成するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
+import { Command, CommandHandler } from "../../common/mod.ts";
 import { Result, ok, err } from "npm:neverthrow";
-import { ContentAggregate, createContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { ContentRepository } from "../repositories/content-repository.ts";
-import { RepositoryRepository } from "../repositories/repository-repository.ts";
-import { createContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
-import { createContent } from "../../../core/content/entities/content.ts";
-import { generateId } from "../../../core/common/id.ts";
+import { 
+  ContentAggregate, 
+  createContentAggregate,
+  Content,
+  ContentMetadata
+} from "../../../core/content/mod.ts";
+import { ContentRepository } from "../repositories/mod.ts";
+import { RepositoryRepository } from "../repositories/mod.ts";
+import { ApplicationError, DomainError } from "../../../core/errors/mod.ts";
+import { generateId } from "../../../core/common/mod.ts";
+import { 
+  createContentMetadata,
+  createContent
+} from "../../../core/content/mod.ts";
 
 /**
  * コンテンツ作成コマンド
@@ -73,14 +81,20 @@ export class CreateContentCommandHandler {
       }
       
       // メタデータの作成
-      const metadata = createContentMetadata({
+      const metadataResult = createContentMetadata({
         tags: command.metadata?.tags || [],
         categories: command.metadata?.categories || [],
         language: command.metadata?.language || "ja"
       });
       
+      if (metadataResult.isErr()) {
+        return err(metadataResult.error);
+      }
+      
+      const metadata = metadataResult.value;
+      
       // コンテンツエンティティの作成
-      const content = createContent({
+      const contentResult = createContent({
         id: generateId(),
         userId: command.userId,
         repositoryId: command.repositoryId,
@@ -94,8 +108,20 @@ export class CreateContentCommandHandler {
         updatedAt: new Date()
       });
       
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
+      }
+      
+      const content = contentResult.value;
+      
       // コンテンツ集約の作成
-      const contentAggregate = createContentAggregate(content);
+      const contentAggregateResult = createContentAggregate(content);
+      
+      if (contentAggregateResult.isErr()) {
+        return err(contentAggregateResult.error);
+      }
+      
+      const contentAggregate = contentAggregateResult.value;
       
       // コンテンツの保存
       const savedContent = await this.contentRepository.save(contentAggregate);

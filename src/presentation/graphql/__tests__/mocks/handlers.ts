@@ -115,6 +115,107 @@ const mockTemplates = [
   },
 ];
 
+// コマンドの型定義
+interface CreateUserCommand {
+  name: string;
+  username: string;
+  email: string;
+  atDid?: string;
+  atHandle?: string;
+}
+
+interface UpdateUserCommand {
+  name: string;
+  id: string;
+  username?: string;
+  email?: string;
+  atDid?: string;
+  atHandle?: string;
+}
+
+interface CreateContentCommand {
+  name: string;
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  path?: string;
+  visibility?: string;
+  repositoryId?: string;
+}
+
+interface UpdateContentCommand {
+  name: string;
+  id: string;
+  title?: string;
+  content?: string;
+  path?: string;
+  visibility?: string;
+}
+
+interface DeleteContentCommand {
+  name: string;
+  id: string;
+}
+
+interface CreateFeedCommand {
+  name: string;
+  id: string;
+  userId: string;
+  feedName: string;
+  slug?: string;
+  description?: string;
+  tags?: string[];
+  isPublic?: boolean;
+  metadata: {
+    type: string;
+    description: string;
+    language: string;
+  };
+}
+
+interface UpdateFeedCommand {
+  name: string;
+  id: string;
+  feedName?: string;
+  slug?: string;
+  description?: string;
+  tags?: string[];
+  isPublic?: boolean;
+  metadata?: {
+    type?: string;
+    description?: string;
+    language?: string;
+  };
+}
+
+interface DeleteFeedCommand {
+  name: string;
+  id: string;
+}
+
+interface CreatePostCommand {
+  userId: string;
+  contentId: string;
+  feedId: string;
+  status?: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+}
+
+interface UpdatePostCommand {
+  name: string;
+  id: string;
+  status?: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+}
+
+interface DeletePostCommand {
+  name: string;
+  id: string;
+}
+
 // モッククエリハンドラー
 export const mockQueryHandlers = {
   // ユーザー関連
@@ -288,7 +389,7 @@ export const mockQueryHandlers = {
 export const mockCommandHandlers = {
   // ユーザー関連
   createUserCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { username: string; email: string; atDid?: string; atHandle?: string }) => {
       const newUser = {
         id: `user-${mockUsers.length + 1}`,
         username: command.username,
@@ -302,7 +403,7 @@ export const mockCommandHandlers = {
     },
   },
   updateUserCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { id: string; username?: string; email?: string; atDid?: string | null; atHandle?: string | null }) => {
       const user = mockUsers.find((u) => u.id === command.id);
       if (!user) {
         return err(new Error("User not found"));
@@ -328,15 +429,15 @@ export const mockCommandHandlers = {
 
   // コンテンツ関連
   createContentCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: CreateContentCommand) => {
       const newContent = {
         id: `content-${mockContents.length + 1}`,
         userId: command.userId,
         repositoryId: command.repositoryId,
         path: command.path,
         title: command.title,
-        body: command.body,
-        visibility: command.visibility,
+        body: command.content,
+        visibility: command.visibility || "public",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -344,23 +445,23 @@ export const mockCommandHandlers = {
     },
   },
   updateContentCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: UpdateContentCommand) => {
       const content = mockContents.find((c) => c.id === command.id);
       if (!content) {
         return err(new Error("Content not found"));
       }
       const updatedContent = { ...content };
-      if (command.path) updatedContent.path = command.path;
       if (command.title) updatedContent.title = command.title;
-      if (command.body) updatedContent.body = command.body;
+      if (command.content) updatedContent.body = command.content;
+      if (command.path) updatedContent.path = command.path;
       if (command.visibility) updatedContent.visibility = command.visibility;
       updatedContent.updatedAt = new Date().toISOString();
       return ok(updatedContent);
     },
   },
   deleteContentCommandHandler: {
-    execute: ({ id }: { name: string; id: string }) => {
-      const contentIndex = mockContents.findIndex((c) => c.id === id);
+    execute: (command: DeleteContentCommand) => {
+      const contentIndex = mockContents.findIndex((c) => c.id === command.id);
       if (contentIndex === -1) {
         return err(new Error("Content not found"));
       }
@@ -368,7 +469,14 @@ export const mockCommandHandlers = {
     },
   },
   createRepositoryCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      userId: string; 
+      name: string; 
+      description?: string; 
+      url?: string; 
+      provider: string; 
+      isPublic: boolean 
+    }) => {
       const newRepository = {
         id: `repo-${mockRepositories.length + 1}`,
         userId: command.userId,
@@ -384,7 +492,13 @@ export const mockCommandHandlers = {
     },
   },
   updateRepositoryCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      id: string; 
+      name?: string; 
+      description?: string; 
+      url?: string; 
+      isPublic?: boolean 
+    }) => {
       const repository = mockRepositories.find((r) => r.id === command.id);
       if (!repository) {
         return err(new Error("Repository not found"));
@@ -410,7 +524,14 @@ export const mockCommandHandlers = {
 
   // フィード関連
   createFeedCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      userId: string; 
+      name: string; 
+      slug: string; 
+      description?: string; 
+      tags?: string[]; 
+      isPublic: boolean 
+    }) => {
       const newFeed = {
         id: `feed-${mockFeeds.length + 1}`,
         userId: command.userId,
@@ -426,7 +547,14 @@ export const mockCommandHandlers = {
     },
   },
   updateFeedCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      id: string; 
+      name?: string; 
+      slug?: string; 
+      description?: string; 
+      tags?: string[]; 
+      isPublic?: boolean 
+    }) => {
       const feed = mockFeeds.find((f) => f.id === command.id);
       if (!feed) {
         return err(new Error("Feed not found"));
@@ -435,15 +563,15 @@ export const mockCommandHandlers = {
       if (command.name) updatedFeed.name = command.name;
       if (command.slug) updatedFeed.slug = command.slug;
       if (command.description !== undefined) updatedFeed.description = command.description;
-      if (command.tags) updatedFeed.tags = command.tags;
+      if (command.tags !== undefined) updatedFeed.tags = command.tags;
       if (command.isPublic !== undefined) updatedFeed.isPublic = command.isPublic;
       updatedFeed.updatedAt = new Date().toISOString();
       return ok(updatedFeed);
     },
   },
   deleteFeedCommandHandler: {
-    execute: ({ id }: { name: string; id: string }) => {
-      const feedIndex = mockFeeds.findIndex((f) => f.id === id);
+    execute: (command: DeleteFeedCommand) => {
+      const feedIndex = mockFeeds.findIndex((f) => f.id === command.id);
       if (feedIndex === -1) {
         return err(new Error("Feed not found"));
       }
@@ -451,12 +579,12 @@ export const mockCommandHandlers = {
     },
   },
   createPostCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: CreatePostCommand) => {
       const newPost = {
         id: `post-${mockPosts.length + 1}`,
         feedId: command.feedId,
         contentId: command.contentId,
-        status: command.status,
+        status: command.status || "published",
         publishedAt: command.publishedAt || null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -465,21 +593,21 @@ export const mockCommandHandlers = {
     },
   },
   updatePostCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: UpdatePostCommand) => {
       const post = mockPosts.find((p) => p.id === command.id);
       if (!post) {
         return err(new Error("Post not found"));
       }
       const updatedPost = { ...post };
-      if (command.status) updatedPost.status = command.status;
-      if (command.publishedAt !== undefined) updatedPost.publishedAt = command.publishedAt;
+      if (command.status !== undefined) updatedPost.status = command.status;
+      if (command.scheduledAt !== undefined) updatedPost.publishedAt = command.scheduledAt;
       updatedPost.updatedAt = new Date().toISOString();
       return ok(updatedPost);
     },
   },
   deletePostCommandHandler: {
-    execute: ({ id }: { name: string; id: string }) => {
-      const postIndex = mockPosts.findIndex((p) => p.id === id);
+    execute: (command: DeletePostCommand) => {
+      const postIndex = mockPosts.findIndex((p) => p.id === command.id);
       if (postIndex === -1) {
         return err(new Error("Post not found"));
       }
@@ -509,7 +637,14 @@ export const mockCommandHandlers = {
 
   // 表示関連
   createPageCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      userId: string; 
+      title: string; 
+      slug: string; 
+      contentId?: string; 
+      templateId?: string; 
+      isPublic: boolean 
+    }) => {
       const newPage = {
         id: `page-${mockPages.length + 1}`,
         userId: command.userId,
@@ -525,7 +660,14 @@ export const mockCommandHandlers = {
     },
   },
   updatePageCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      id: string; 
+      title?: string; 
+      slug?: string; 
+      contentId?: string; 
+      templateId?: string; 
+      isPublic?: boolean 
+    }) => {
       const page = mockPages.find((p) => p.id === command.id);
       if (!page) {
         return err(new Error("Page not found"));
@@ -550,7 +692,13 @@ export const mockCommandHandlers = {
     },
   },
   createTemplateCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      userId: string; 
+      name: string; 
+      description?: string; 
+      content: string; 
+      isPublic: boolean 
+    }) => {
       const newTemplate = {
         id: `template-${mockTemplates.length + 1}`,
         userId: command.userId,
@@ -565,7 +713,13 @@ export const mockCommandHandlers = {
     },
   },
   updateTemplateCommandHandler: {
-    execute: (command: any) => {
+    execute: (command: { 
+      id: string; 
+      name?: string; 
+      description?: string; 
+      content: string; 
+      isPublic?: boolean 
+    }) => {
       const template = mockTemplates.find((t) => t.id === command.id);
       if (!template) {
         return err(new Error("Template not found"));

@@ -1,6 +1,8 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { PostRepository } from "../post-repository.ts";
-import { PostAggregate } from "../../../../core/delivery/aggregates/post-aggregate.ts";
+import { assertEquals, assertInstanceOf } from "https://deno.land/std/assert/mod.ts";
+import { PostRepository, TransactionContext } from "../mod.ts";
+import { PostAggregate } from "../../../../core/delivery/mod.ts";
+import { Result, ok } from "npm:neverthrow";
+import { DomainError } from "../../../../core/errors/mod.ts";
 
 /**
  * PostRepositoryインターフェースのテスト
@@ -17,7 +19,9 @@ Deno.test("PostRepository", async (t) => {
       findByContentId: (_contentId: string) => Promise.resolve(null),
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number; status?: string }) => Promise.resolve([]),
       save: (_postAggregate: PostAggregate) => Promise.resolve(_postAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(_postAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -34,7 +38,9 @@ Deno.test("PostRepository", async (t) => {
       findByContentId: (_contentId: string) => Promise.resolve(null),
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number; status?: string }) => Promise.resolve([]),
       save: (_postAggregate: PostAggregate) => Promise.resolve(_postAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(_postAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -51,7 +57,9 @@ Deno.test("PostRepository", async (t) => {
       findByContentId: (_contentId: string) => Promise.resolve(null),
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number; status?: string }) => Promise.resolve([]),
       save: (_postAggregate: PostAggregate) => Promise.resolve(_postAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(_postAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -69,7 +77,9 @@ Deno.test("PostRepository", async (t) => {
       findByContentId: (_contentId: string) => Promise.resolve(null),
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number; status?: string }) => Promise.resolve([]),
       save: (_postAggregate: PostAggregate) => Promise.resolve(_postAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(_postAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -87,7 +97,9 @@ Deno.test("PostRepository", async (t) => {
       findByContentId: (_contentId: string) => Promise.resolve(null),
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number; status?: string }) => Promise.resolve([]),
       save: (_postAggregate: PostAggregate) => Promise.resolve(_postAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_postAggregate: PostAggregate, _context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(_postAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）

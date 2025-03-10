@@ -9,10 +9,9 @@ describe("PageView", () => {
     // テスト用のデータを準備
     const pageDto: PageDto = {
       id: "page-1",
-      contentId: "content-1",
       slug: "test-page",
       title: "テストページ",
-      content: "# テスト\nこれはテストです。",
+      contentId: "content-1",
       templateId: "template-1",
       metadata: {
         description: "テスト説明",
@@ -20,7 +19,8 @@ describe("PageView", () => {
         keywords: ["テスト", "サンプル"],
         canonicalUrl: "https://example.com/page",
         publishedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        content: "# テスト\nこれはテストです。"
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -30,24 +30,26 @@ describe("PageView", () => {
       id: "template-1",
       name: "テストテンプレート",
       description: "テスト用のテンプレートです",
-      layout: "blog",
-      components: [
-        {
-          id: "header-1",
-          type: "header",
-          props: { content: "ヘッダーコンテンツ" }
-        },
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        },
-        {
-          id: "footer-1",
-          type: "footer",
-          props: { content: "フッターコンテンツ" }
-        }
-      ],
+      metadata: {
+        layout: "blog",
+        components: [
+          {
+            id: "header-1",
+            type: "header",
+            props: { content: "ヘッダーコンテンツ" }
+          },
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          },
+          {
+            id: "footer-1",
+            type: "footer",
+            props: { content: "フッターコンテンツ" }
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -82,14 +84,14 @@ describe("PageView", () => {
     // メタデータが部分的に欠けているページを準備
     const pageDto: PageDto = {
       id: "page-2",
-      contentId: "content-2",
       slug: "test-page-2",
       title: "テストページ2",
-      content: "# テスト2\nこれはテスト2です。",
+      contentId: "content-2",
       templateId: "template-2",
       metadata: {
         // 一部のメタデータのみを設定
-        description: "テスト説明2"
+        description: "テスト説明2",
+        content: "# テスト2\nこれはテスト2です。"
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -98,14 +100,17 @@ describe("PageView", () => {
     const templateDto: TemplateDto = {
       id: "template-2",
       name: "シンプルテンプレート",
-      layout: "default",
-      components: [
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        }
-      ],
+      description: "シンプルなテンプレート",
+      metadata: {
+        layout: "default",
+        components: [
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -138,13 +143,13 @@ describe("PageView", () => {
     // テスト用のデータを準備
     const pageDto: PageDto = {
       id: "page-3",
-      contentId: "content-3",
       slug: "test-page-3",
       title: "テストページ3",
-      content: "# テスト3\nこれはテスト3です。",
+      contentId: "content-3",
       templateId: "template-3",
       metadata: {
-        description: "テスト説明3"
+        description: "テスト説明3",
+        content: "# テスト3\nこれはテスト3です。"
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -153,29 +158,32 @@ describe("PageView", () => {
     const templateDto: TemplateDto = {
       id: "template-3",
       name: "複合テンプレート",
-      layout: "custom",
-      components: [
-        {
-          id: "header-1",
-          type: "header",
-          props: { content: "" } // 空のコンテンツ
-        },
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        },
-        {
-          id: "footer-1",
-          type: "footer",
-          props: { content: "" } // 空のコンテンツ
-        },
-        {
-          id: "custom-1",
-          type: "sidebar",
-          props: { content: "サイドバーコンテンツ" }
-        }
-      ],
+      description: "複合的なテンプレート",
+      metadata: {
+        layout: "custom",
+        components: [
+          {
+            id: "header-1",
+            type: "header",
+            props: { content: "" } // 空のコンテンツ
+          },
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          },
+          {
+            id: "footer-1",
+            type: "footer",
+            props: { content: "" } // 空のコンテンツ
+          },
+          {
+            id: "custom-1",
+            type: "sidebar",
+            props: { content: "サイドバーコンテンツ" }
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

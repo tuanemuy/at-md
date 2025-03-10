@@ -1,9 +1,10 @@
 /**
  * 投稿エンティティ
- * コンテンツを配信するための投稿を表します。
+ * 
+ * 投稿の基本的な属性と振る舞いを定義します。
  */
-import { PublishStatus, createPublishStatus, PublishStatusProps } from "../value-objects/publish-status.ts";
-import { InvalidPostStateError } from "../../errors/domain.ts";
+import { PublishStatus, PublishStatusProps, createPublishStatus } from "../value-objects/publish-status.ts";
+import { DomainError, InvalidContentStateError } from "../../errors/mod.ts";
 
 /**
  * 投稿エンティティのプロパティ
@@ -161,7 +162,7 @@ export function createPost(props: PostProps): Post {
     
     updateSlug(slug: string): Post {
       if (!slug) {
-        throw new InvalidPostStateError("空のスラッグ", "スラッグの更新");
+        throw new InvalidContentStateError("空のスラッグ", "スラッグの更新");
       }
       
       return createPost({
@@ -184,31 +185,31 @@ export function createPost(props: PostProps): Post {
 function validatePost(props: PostProps): void {
   // IDが必須
   if (!props.id) {
-    throw new InvalidPostStateError("無効な状態", "投稿IDが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "投稿IDが指定されていません");
   }
   
   // ユーザーIDが必須
   if (!props.userId) {
-    throw new InvalidPostStateError("無効な状態", "ユーザーIDが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "ユーザーIDが指定されていません");
   }
   
   // コンテンツIDが必須
   if (!props.contentId) {
-    throw new InvalidPostStateError("無効な状態", "コンテンツIDが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "コンテンツIDが指定されていません");
   }
   
   // フィードIDが必須
   if (!props.feedId) {
-    throw new InvalidPostStateError("無効な状態", "フィードIDが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "フィードIDが指定されていません");
   }
   
   // スラッグが必須
   if (!props.slug) {
-    throw new InvalidPostStateError("無効な状態", "スラッグが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "スラッグが指定されていません");
   }
   
   // 公開状態が必須
   if (!props.publishStatus) {
-    throw new InvalidPostStateError("無効な状態", "公開状態が指定されていません");
+    throw new InvalidContentStateError("無効な状態", "公開状態が指定されていません");
   }
 } 

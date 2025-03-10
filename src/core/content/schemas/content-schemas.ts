@@ -4,7 +4,7 @@
  * コンテンツドメインで使用するZodスキーマを定義します。
  */
 
-import { z } from "../../../deps.ts";
+import { z } from "../deps.ts";
 import {
   contentIdSchema,
   userIdSchema,
@@ -17,7 +17,7 @@ import {
   languageSchema,
   readingTimeSchema,
   dateSchema
-} from "../../common/schemas/base-schemas.ts";
+} from "../../common/schemas/mod.ts";
 
 /**
  * コンテンツの公開範囲を表すスキーマ

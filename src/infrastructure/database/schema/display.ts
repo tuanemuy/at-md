@@ -1,60 +1,66 @@
 /**
- * 表示関連のデータベーススキーマ
+ * 表示関連のスキーマ定義
  */
 
-import { pgTable, text, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
-import { generateId } from "../../../core/common/id.ts";
+import { pgTable, text, timestamp, jsonb } from "npm:drizzle-orm/pg-core";
+import { generateId } from "../../../core/common/mod.ts";
+import { users } from "./user.ts";
+import { contents } from "./content.ts";
 
 /**
  * ページテーブル
  */
-export const pages = pgTable('pages', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  slug: text('slug').notNull().unique(),
-  contentId: text('content_id').notNull(),
-  title: text('title').notNull(),
-  description: text('description').notNull().default(''),
-  templateId: text('template_id'),
-  renderingOptions: jsonb('rendering_options').notNull().default('{}'),
-  createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+export const pages = pgTable("pages", {
+  id: text("id").primaryKey().notNull().$defaultFn(() => generateId()),
+  userId: text("user_id").notNull().references(() => users.id),
+  contentId: text("content_id").references(() => contents.id),
+  templateId: text("template_id").references(() => templates.id),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"),
+  status: text("status").notNull().default("draft"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
 /**
  * テンプレートテーブル
  */
-export const templates = pgTable('templates', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  name: text('name').notNull().unique(),
-  description: text('description').notNull().default(''),
-  content: text('content').notNull(),
-  createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+export const templates = pgTable("templates", {
+  id: text("id").primaryKey().notNull().$defaultFn(() => generateId()),
+  userId: text("user_id").notNull().references(() => users.id),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  content: text("content").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
 /**
  * フィードテーブル
- * 注意: 実際のデータベースには slug, tags, isPublic カラムがなく、代わりに is_default カラムがあります
  */
-export const feeds = pgTable('feeds', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  userId: text('user_id').notNull(),
-  name: text('name').notNull(),
-  description: text('description').notNull().default(''),
-  isDefault: boolean('is_default').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+export const feeds = pgTable("display_feeds", {
+  id: text("id").primaryKey().notNull().$defaultFn(() => generateId()),
+  userId: text("user_id").notNull().references(() => users.id),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
 /**
  * フィードアイテムテーブル
  */
-export const feedItems = pgTable('feed_items', {
-  id: text('id').primaryKey().$defaultFn(() => generateId()),
-  feedId: text('feed_id').notNull().references(() => feeds.id, { onDelete: 'cascade' }),
-  contentId: text('content_id').notNull(),
-  order: text('order').notNull(),
-  createdAt: timestamp('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: timestamp('updated_at').notNull().default(sql`CURRENT_TIMESTAMP`)
+export const feedItems = pgTable("display_feed_items", {
+  id: text("id").primaryKey().notNull().$defaultFn(() => generateId()),
+  feedId: text("feed_id").notNull().references(() => feeds.id),
+  pageId: text("page_id").notNull().references(() => pages.id),
+  order: text("order").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 }); 

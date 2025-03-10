@@ -1,219 +1,241 @@
+import { Result, err, ok } from "../deps.ts";
 import { Content, createContent, ContentParams } from "../entities/content.ts";
 import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
-import { Version, createVersion, VersionParams } from "../value-objects/version.ts";
-import { generateId } from "../../common/id.ts";
-import { Result } from "../../../deps.ts";
-import { DomainError } from "../../errors/base.ts";
+import { Version, createVersion, VersionParams, ContentChanges } from "../value-objects/version.ts";
+import { generateId } from "../../common/mod.ts";
+import { DomainError } from "../../errors/mod.ts";
 import { 
   titleSchema, 
   bodySchema, 
   tagSchema, 
   categorySchema, 
-  languageSchema,
-  readingTimeSchema
+  languageSchema, 
+  readingTimeSchema,
+  Tag as BrandedTag,
+  Category as BrandedCategory,
+  Language as BrandedLanguage,
+  ReadingTime as BrandedReadingTime
 } from "../../common/schemas/base-schemas.ts";
 
 /**
- * コンテンツ集約を表すインターフェース
+ * コンテンツ集約作成エラー
+ */
+export class ContentAggregateCreationError extends DomainError {
+  constructor(message: string) {
+    super(`コンテンツ集約の作成に失敗しました: ${message}`);
+  }
+}
+
+/**
+ * コンテンツ集約
  * コンテンツエンティティとそれに関連する操作をカプセル化する
  */
 export interface ContentAggregate {
   /** コンテンツエンティティ */
   readonly content: Content;
-
+  
   /**
    * タイトルを更新する
    * @param title 新しいタイトル
-   * @returns 新しいContentAggregateインスタンス
+   * @returns 更新されたコンテンツ集約
    */
-  updateTitle(title: string): ContentAggregate;
-
+  updateTitle(title: string): Result<ContentAggregate, DomainError>;
+  
   /**
    * 本文を更新する
    * @param body 新しい本文
-   * @returns 新しいContentAggregateインスタンス
+   * @returns 更新されたコンテンツ集約
    */
-  updateBody(body: string): ContentAggregate;
-
+  updateBody(body: string): Result<ContentAggregate, DomainError>;
+  
   /**
    * メタデータを更新する
    * @param metadata 新しいメタデータ
-   * @returns 新しいContentAggregateインスタンス
+   * @returns 更新されたコンテンツ集約
    */
-  updateMetadata(metadata: ContentMetadata): ContentAggregate;
-
+  updateMetadata(metadata: ContentMetadata): Result<ContentAggregate, DomainError>;
+  
   /**
-   * コンテンツを公開する（public）
-   * @returns 新しいContentAggregateインスタンス
+   * コンテンツを公開する
+   * @returns 更新されたコンテンツ集約
    */
-  publish(): ContentAggregate;
-
+  publish(): Result<ContentAggregate, DomainError>;
+  
   /**
-   * コンテンツを非公開にする（private）
-   * @returns 新しいContentAggregateインスタンス
+   * コンテンツを非公開にする
+   * @returns 更新されたコンテンツ集約
    */
-  makePrivate(): ContentAggregate;
-
+  makePrivate(): Result<ContentAggregate, DomainError>;
+  
   /**
-   * コンテンツを限定公開にする（unlisted）
-   * @returns 新しいContentAggregateインスタンス
+   * コンテンツを限定公開にする
+   * @returns 更新されたコンテンツ集約
    */
-  makeUnlisted(): ContentAggregate;
+  makeUnlisted(): Result<ContentAggregate, DomainError>;
 }
 
 /**
- * ContentAggregateを作成する
+ * コンテンツ集約を作成する
  * @param content コンテンツエンティティ
- * @returns 不変なContentAggregateオブジェクト
+ * @returns 不変なコンテンツ集約オブジェクトを含むResult、またはエラー
  */
-export function createContentAggregate(content: Content): ContentAggregate {
-  const aggregate: ContentAggregate = {
+export function createContentAggregate(content: Content): Result<ContentAggregate, DomainError> {
+  if (!content) {
+    return err(new ContentAggregateCreationError("コンテンツが指定されていません"));
+  }
+  
+  const contentAggregate: ContentAggregate = {
     content,
-
-    updateTitle(title: string): ContentAggregate {
-      // タイトルをブランド型に変換
+    
+    updateTitle(title: string): Result<ContentAggregate, DomainError> {
+      // タイトルのバリデーション
       const titleResult = titleSchema.safeParse(title);
       if (!titleResult.success) {
-        throw new Error(`タイトルのバリデーションに失敗しました: ${titleResult.error.message}`);
+        return err(new Error(`タイトルのバリデーションに失敗しました: ${titleResult.error.message}`));
       }
-
-      // バージョンを作成
-      const versionParams: VersionParams = {
-        id: generateId(),
-        contentId: this.content.id,
-        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
-        createdAt: new Date(),
-        changes: {
-          title: titleResult.data
-        }
-      };
       
-      const versionResult = createVersion(versionParams);
-      if (versionResult.isErr()) {
-        throw new Error(`バージョンの作成に失敗しました: ${versionResult.error.message}`);
-      }
-
-      // コンテンツを更新
-      const updatedContentResult = this.content.addVersion(versionResult.value);
-      if (updatedContentResult.isErr()) {
-        throw new Error(`コンテンツの更新に失敗しました: ${updatedContentResult.error.message}`);
-      }
-
-      // タイトルを更新したコンテンツを作成
-      const contentParams: ContentParams = {
-        ...updatedContentResult.value,
+      // 新しいコンテンツを作成
+      const contentResult = createContent({
+        ...this.content,
         title: titleResult.data,
         updatedAt: new Date()
-      };
+      });
       
-      const contentWithNewTitleResult = createContent(contentParams);
-      if (contentWithNewTitleResult.isErr()) {
-        throw new Error(`コンテンツの作成に失敗しました: ${contentWithNewTitleResult.error.message}`);
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
       }
-
-      return createContentAggregate(contentWithNewTitleResult.value);
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentResult.value);
     },
-
-    updateBody(body: string): ContentAggregate {
-      // 本文をブランド型に変換
+    
+    updateBody(body: string): Result<ContentAggregate, DomainError> {
+      // 本文のバリデーション
       const bodyResult = bodySchema.safeParse(body);
       if (!bodyResult.success) {
-        throw new Error(`本文のバリデーションに失敗しました: ${bodyResult.error.message}`);
+        return err(new Error(`本文のバリデーションに失敗しました: ${bodyResult.error.message}`));
       }
-
-      // バージョンを作成
-      const versionParams: VersionParams = {
-        id: generateId(),
-        contentId: this.content.id,
-        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
-        createdAt: new Date(),
-        changes: {
-          body: bodyResult.data
-        }
-      };
       
-      const versionResult = createVersion(versionParams);
-      if (versionResult.isErr()) {
-        throw new Error(`バージョンの作成に失敗しました: ${versionResult.error.message}`);
-      }
-
-      // コンテンツを更新
-      const updatedContentResult = this.content.addVersion(versionResult.value);
-      if (updatedContentResult.isErr()) {
-        throw new Error(`コンテンツの更新に失敗しました: ${updatedContentResult.error.message}`);
-      }
-
-      // 本文を更新したコンテンツを作成
-      const contentParams: ContentParams = {
-        ...updatedContentResult.value,
+      // 新しいコンテンツを作成
+      const contentResult = createContent({
+        ...this.content,
         body: bodyResult.data,
         updatedAt: new Date()
-      };
+      });
       
-      const contentWithNewBodyResult = createContent(contentParams);
-      if (contentWithNewBodyResult.isErr()) {
-        throw new Error(`コンテンツの作成に失敗しました: ${contentWithNewBodyResult.error.message}`);
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
       }
-
-      return createContentAggregate(contentWithNewBodyResult.value);
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentResult.value);
     },
-
-    updateMetadata(metadata: ContentMetadata): ContentAggregate {
-      // メタデータのタグとカテゴリをブランド型に変換
-      const brandedTags = [];
+    
+    updateMetadata(metadata: ContentMetadata): Result<ContentAggregate, DomainError> {
+      // タグとカテゴリのバリデーション
+      const brandedTags: BrandedTag[] = [];
       for (const tag of metadata.tags) {
         const tagResult = tagSchema.safeParse(tag);
         if (!tagResult.success) {
-          throw new Error(`タグのバリデーションに失敗しました: ${tagResult.error.message}`);
+          return err(new Error(`タグのバリデーションに失敗しました: ${tagResult.error.message}`));
         }
         brandedTags.push(tagResult.data);
       }
       
-      const brandedCategories = [];
+      const brandedCategories: BrandedCategory[] = [];
       for (const category of metadata.categories) {
         const categoryResult = categorySchema.safeParse(category);
         if (!categoryResult.success) {
-          throw new Error(`カテゴリのバリデーションに失敗しました: ${categoryResult.error.message}`);
+          return err(new Error(`カテゴリのバリデーションに失敗しました: ${categoryResult.error.message}`));
         }
         brandedCategories.push(categoryResult.data);
       }
       
+      // 言語のバリデーション
       const languageResult = languageSchema.safeParse(metadata.language);
       if (!languageResult.success) {
-        throw new Error(`言語のバリデーションに失敗しました: ${languageResult.error.message}`);
+        return err(new Error(`言語のバリデーションに失敗しました: ${languageResult.error.message}`));
       }
       
-      // 読了時間をブランド型に変換（存在する場合）
-      let brandedReadingTime = undefined;
+      // 読み時間のバリデーション
+      let brandedReadingTime: BrandedReadingTime | undefined = undefined;
       if (metadata.readingTime !== undefined) {
         const readingTimeResult = readingTimeSchema.safeParse(metadata.readingTime);
         if (!readingTimeResult.success) {
-          throw new Error(`読了時間のバリデーションに失敗しました: ${readingTimeResult.error.message}`);
+          return err(new Error(`読み時間のバリデーションに失敗しました: ${readingTimeResult.error.message}`));
         }
         brandedReadingTime = readingTimeResult.data;
       }
       
-      // ブランド型に変換したメタデータを作成
+      // 新しいメタデータを作成
       const metadataResult = createContentMetadata({
         tags: brandedTags,
         categories: brandedCategories,
         language: languageResult.data,
-        publishedAt: metadata.publishedAt,
-        lastPublishedAt: metadata.lastPublishedAt,
-        excerpt: metadata.excerpt,
-        featuredImage: metadata.featuredImage,
         readingTime: brandedReadingTime
       });
       
       if (metadataResult.isErr()) {
-        throw new Error(`メタデータの作成に失敗しました: ${metadataResult.error.message}`);
+        return err(metadataResult.error);
       }
-
+      
+      // 新しいコンテンツを作成
+      const contentResult = this.content.updateMetadata(metadataResult.value);
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
+      }
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentResult.value);
+    },
+    
+    publish(): Result<ContentAggregate, DomainError> {
+      // 公開状態に変更
+      const contentResult = this.content.changeVisibility("public");
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
+      }
+      
+      // メタデータのバリデーション
+      const brandedTags: BrandedTag[] = [];
+      for (const tag of this.content.metadata.tags) {
+        const tagResult = tagSchema.safeParse(tag);
+        if (!tagResult.success) {
+          return err(new Error(`タグのバリデーションに失敗しました: ${tagResult.error.message}`));
+        }
+        brandedTags.push(tagResult.data);
+      }
+      
+      const brandedCategories: BrandedCategory[] = [];
+      for (const category of this.content.metadata.categories) {
+        const categoryResult = categorySchema.safeParse(category);
+        if (!categoryResult.success) {
+          return err(new Error(`カテゴリのバリデーションに失敗しました: ${categoryResult.error.message}`));
+        }
+        brandedCategories.push(categoryResult.data);
+      }
+      
+      // 言語のバリデーション
+      const languageResult = languageSchema.safeParse(this.content.metadata.language);
+      if (!languageResult.success) {
+        return err(new Error(`言語のバリデーションに失敗しました: ${languageResult.error.message}`));
+      }
+      
+      // 読み時間のバリデーション
+      let brandedReadingTime: BrandedReadingTime | undefined = undefined;
+      if (this.content.metadata.readingTime !== undefined) {
+        const readingTimeResult = readingTimeSchema.safeParse(this.content.metadata.readingTime);
+        if (!readingTimeResult.success) {
+          return err(new Error(`読み時間のバリデーションに失敗しました: ${readingTimeResult.error.message}`));
+        }
+        brandedReadingTime = readingTimeResult.data;
+      }
+      
       // バージョンを作成
       const versionParams: VersionParams = {
         id: generateId(),
         contentId: this.content.id,
-        commitId: generateId(), // 実際の実装ではGitHubのコミットIDを使用
+        commitId: generateId(), // 実際の実装ではリポジトリからコミットIDを取得する
         createdAt: new Date(),
         changes: {
           // contentChangesSchemaの定義に合わせてmetadataを設定
@@ -228,54 +250,41 @@ export function createContentAggregate(content: Content): ContentAggregate {
       
       const versionResult = createVersion(versionParams);
       if (versionResult.isErr()) {
-        throw new Error(`バージョンの作成に失敗しました: ${versionResult.error.message}`);
+        return err(versionResult.error);
       }
-
-      // コンテンツを更新
-      const updatedContentResult = this.content.addVersion(versionResult.value);
-      if (updatedContentResult.isErr()) {
-        throw new Error(`コンテンツの更新に失敗しました: ${updatedContentResult.error.message}`);
-      }
-
-      // メタデータを更新したコンテンツを作成
-      const contentParams: ContentParams = {
-        ...updatedContentResult.value,
-        metadata: metadataResult.value,
-        updatedAt: new Date()
-      };
       
-      const contentWithNewMetadataResult = createContent(contentParams);
-      if (contentWithNewMetadataResult.isErr()) {
-        throw new Error(`コンテンツの作成に失敗しました: ${contentWithNewMetadataResult.error.message}`);
+      // バージョンを追加
+      const contentWithVersionResult = contentResult.value.addVersion(versionResult.value);
+      if (contentWithVersionResult.isErr()) {
+        return err(contentWithVersionResult.error);
       }
-
-      return createContentAggregate(contentWithNewMetadataResult.value);
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentWithVersionResult.value);
     },
-
-    publish(): ContentAggregate {
-      const updatedContentResult = this.content.changeVisibility("public");
-      if (updatedContentResult.isErr()) {
-        throw new Error(`公開範囲の変更に失敗しました: ${updatedContentResult.error.message}`);
+    
+    makePrivate(): Result<ContentAggregate, DomainError> {
+      // 非公開状態に変更
+      const contentResult = this.content.changeVisibility("private");
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
       }
-      return createContentAggregate(updatedContentResult.value);
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentResult.value);
     },
-
-    makePrivate(): ContentAggregate {
-      const updatedContentResult = this.content.changeVisibility("private");
-      if (updatedContentResult.isErr()) {
-        throw new Error(`公開範囲の変更に失敗しました: ${updatedContentResult.error.message}`);
+    
+    makeUnlisted(): Result<ContentAggregate, DomainError> {
+      // 限定公開状態に変更
+      const contentResult = this.content.changeVisibility("unlisted");
+      if (contentResult.isErr()) {
+        return err(contentResult.error);
       }
-      return createContentAggregate(updatedContentResult.value);
-    },
-
-    makeUnlisted(): ContentAggregate {
-      const updatedContentResult = this.content.changeVisibility("unlisted");
-      if (updatedContentResult.isErr()) {
-        throw new Error(`公開範囲の変更に失敗しました: ${updatedContentResult.error.message}`);
-      }
-      return createContentAggregate(updatedContentResult.value);
+      
+      // 新しい集約を作成
+      return createContentAggregate(contentResult.value);
     }
   };
-
-  return Object.freeze(aggregate);
+  
+  return ok(Object.freeze(contentAggregate));
 } 

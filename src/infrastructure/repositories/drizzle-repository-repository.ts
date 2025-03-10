@@ -1,210 +1,126 @@
 /**
- * Drizzleを使用したリポジトリリポジトリの実装
+ * Drizzle ORMを使用したリポジトリリポジトリの実装
  */
 
-import { eq, and } from "npm:drizzle-orm";
-import { db } from "../database/db.ts";
-import { repositories } from "../database/schema/content.ts";
-import { RepositoryRepository } from "../../application/content/repositories/repository-repository.ts";
-import { RepositoryAggregate, createRepositoryAggregate } from "../../core/content/aggregates/repository-aggregate.ts";
-import { createRepository } from "../../core/content/entities/repository.ts";
-import { Result, ok, err } from "../../deps.ts";
-import { InfrastructureError } from "../../core/errors/base.ts";
-import { TransactionContext } from "../database/unit-of-work.ts";
-import { PostgresTransactionContext } from "../database/postgres-unit-of-work.ts";
-import { NodePgDatabase } from "../../deps.ts";
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  db,
+  eq,
+  contentSchema,
+  generateId,
+  RepositoryAggregate,
+  Repository,
+  RepositoryRepository,
+  PostgresUnitOfWork,
+  TransactionContext,
+  PostgresTransactionContext,
+  and
+} from "./deps.ts";
+import type { Database } from "../database/schema/mod.ts";
+import { pool } from "../database/db.ts";
 
 /**
- * Drizzleを使用したリポジトリリポジトリの実装
+ * Drizzle ORMを使用したリポジトリリポジトリの実装
  */
 export class DrizzleRepositoryRepository implements RepositoryRepository {
-  /**
-   * データベース接続
-   * @private
-   */
-  private db: NodePgDatabase<any>;
-
+  private db: Database;
+  
   /**
    * コンストラクタ
-   * @param customDb データベース接続（オプション）
+   * @param db データベース接続
    */
-  constructor(customDb?: NodePgDatabase<any>) {
-    // カスタムDBが指定されていない場合はグローバルなdbインスタンスを使用
-    this.db = customDb || db;
+  constructor(db: Database) {
+    this.db = db;
   }
 
   /**
-   * IDによるリポジトリ検索
+   * IDによってリポジトリを検索する
    * @param id リポジトリID
-   * @returns リポジトリ集約またはnull
+   * @returns リポジトリ集約、存在しない場合はnull
    */
   async findById(id: string): Promise<RepositoryAggregate | null> {
-    try {
-      const result = await this.db.select().from(repositories).where(eq(repositories.id, id)).limit(1);
-      
-      if (result.length === 0) {
-        return null;
-      }
-      
-      const repository = result[0];
-      
-      return this.mapToRepositoryAggregate(repository);
-    } catch (error) {
-      console.error("リポジトリID検索エラー:", error);
-      throw error;
+    const result = await this.db.select()
+      .from(contentSchema.repositories)
+      .where(eq(contentSchema.repositories.id, id))
+      .limit(1);
+    
+    if (result.length === 0) {
+      return null;
     }
+    
+    const repositoryData = result[0];
+    
+    // リポジトリ集約を作成して返す
+    const aggregateResult = this.createRepositoryAggregateFromData(repositoryData);
+    return aggregateResult ? aggregateResult : null;
   }
   
   /**
-   * ユーザーIDによるリポジトリ検索
+   * ユーザーIDによってリポジトリを検索する
    * @param userId ユーザーID
-   * @param options 検索オプション
    * @returns リポジトリ集約の配列
    */
-  async findByUserId(userId: string, options?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<RepositoryAggregate[]> {
-    try {
-      let query = this.db.select().from(repositories).where(eq(repositories.userId, userId));
-      
-      // 注: Drizzle ORMのバージョンによっては、limit/offsetメソッドが異なる可能性があります
-      // 型エラーが発生する場合は、適切な方法でクエリを構築する必要があります
-      const results = await query;
-      
-      return results.map(repository => this.mapToRepositoryAggregate(repository));
-    } catch (error) {
-      console.error("ユーザーIDによるリポジトリ検索エラー:", error);
-      throw error;
+  async findByUserId(userId: string): Promise<RepositoryAggregate[]> {
+    const result = await this.db.select()
+      .from(contentSchema.repositories)
+      .where(eq(contentSchema.repositories.userId, userId));
+    
+    if (result.length === 0) {
+      return [];
     }
-  }
-  
-  /**
-   * 名前によるリポジトリ検索
-   * @param userId ユーザーID
-   * @param name リポジトリ名
-   * @returns リポジトリ集約またはnull
-   */
-  async findByName(userId: string, name: string): Promise<RepositoryAggregate | null> {
-    try {
-      const result = await this.db.select()
-        .from(repositories)
-        .where(and(
-          eq(repositories.userId, userId),
-          eq(repositories.name, name)
-        ))
-        .limit(1);
-      
-      if (result.length === 0) {
-        return null;
+    
+    // リポジトリ集約の配列を作成して返す
+    const aggregates: RepositoryAggregate[] = [];
+    
+    for (const repositoryData of result) {
+      const aggregate = this.createRepositoryAggregateFromData(repositoryData);
+      if (aggregate) {
+        aggregates.push(aggregate);
       }
-      
-      const repository = result[0];
-      
-      return this.mapToRepositoryAggregate(repository);
-    } catch (error) {
-      console.error("リポジトリ名検索エラー:", error);
-      throw error;
     }
+    
+    return aggregates;
   }
   
   /**
-   * リポジトリの保存
+   * リポジトリを保存する
    * @param repositoryAggregate リポジトリ集約
    * @returns 保存されたリポジトリ集約
    */
   async save(repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> {
-    try {
-      const repository = repositoryAggregate.repository;
-      
-      // 既存のリポジトリを確認
-      const existingRepository = await this.findById(repository.id);
-      
-      if (existingRepository) {
-        // 更新
-        await this.db.update(repositories)
-          .set({
-            name: repository.name,
-            description: "", // エンティティにないフィールドにはデフォルト値を設定
-            githubUrl: "", // エンティティにないフィールドにはデフォルト値を設定
-            updatedAt: new Date()
-          })
-          .where(eq(repositories.id, repository.id));
-      } else {
-        // 新規作成
-        await this.db.insert(repositories).values({
-          id: repository.id,
-          userId: repository.userId,
-          name: repository.name,
-          description: "", // エンティティにないフィールドにはデフォルト値を設定
-          githubUrl: "", // エンティティにないフィールドにはデフォルト値を設定
-          createdAt: repository.createdAt,
-          updatedAt: repository.updatedAt
-        });
-      }
-      
-      // 保存後のリポジトリを取得
-      const savedRepository = await this.findById(repository.id);
-      
-      if (!savedRepository) {
-        throw new Error(`リポジトリ ${repository.id} の保存に失敗しました`);
-      }
-      
-      return savedRepository;
-    } catch (error) {
-      console.error("リポジトリ保存エラー:", error);
-      throw error;
-    }
-  }
-  
-  /**
-   * リポジトリの削除
-   * @param id リポジトリID
-   * @returns 削除が成功したかどうか
-   */
-  async delete(id: string): Promise<boolean> {
-    try {
-      const result = await this.db.delete(repositories).where(eq(repositories.id, id));
-      
-      // 削除が成功したかどうかを返す
-      return result !== undefined && Object.keys(result).length > 0;
-    } catch (error) {
-      console.error("リポジトリ削除エラー:", error);
-      throw error;
-    }
-  }
-  
-  /**
-   * データベースのリポジトリをリポジトリ集約にマッピング
-   * @param repository データベースのリポジトリ
-   * @returns リポジトリ集約
-   */
-  private mapToRepositoryAggregate(repository: {
-    id: string;
-    userId: string;
-    name: string;
-    description: string;
-    githubUrl: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }): RepositoryAggregate {
-    // まずリポジトリエンティティを作成
-    const repositoryEntity = createRepository({
+    const repository = repositoryAggregate.repository;
+    const isNew = !(await this.findById(repository.id));
+    
+    const repositoryData = {
       id: repository.id,
       userId: repository.userId,
       name: repository.name,
-      owner: repository.userId,
-      defaultBranch: "main",
-      lastSyncedAt: repository.updatedAt,
-      status: "active",
+      description: repository.description || "",
+      url: repository.url || "",
+      provider: repository.provider,
       createdAt: repository.createdAt,
-      updatedAt: repository.updatedAt
-    });
+      updatedAt: new Date()
+    };
     
-    // リポジトリエンティティからリポジトリ集約を作成
-    return createRepositoryAggregate(repositoryEntity);
+    await this.db.insert(contentSchema.repositories)
+      .values(repositoryData)
+      .onConflictDoUpdate({
+        target: contentSchema.repositories.id,
+        set: {
+          name: repositoryData.name,
+          description: repositoryData.description,
+          url: repositoryData.url,
+          provider: repositoryData.provider,
+          updatedAt: repositoryData.updatedAt
+        }
+      });
+    
+    return repositoryAggregate;
   }
-
+  
   /**
    * トランザクション内でリポジトリを保存する
    * @param repositoryAggregate リポジトリ集約
@@ -212,59 +128,62 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
    * @returns 保存されたリポジトリ集約の結果
    */
   async saveWithTransaction(
-    repositoryAggregate: RepositoryAggregate,
+    repositoryAggregate: RepositoryAggregate, 
     context: TransactionContext
-  ): Promise<Result<RepositoryAggregate, InfrastructureError>> {
+  ): Promise<Result<RepositoryAggregate, DomainError>> {
     try {
-      // PostgreSQLのトランザクションコンテキストにキャスト
+      // PostgresTransactionContextにキャスト
       const pgContext = context as PostgresTransactionContext;
-      if (!pgContext.client) {
-        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
-      }
-
+      
+      // リポジトリデータを作成
       const repository = repositoryAggregate.repository;
+      const repositoryData = {
+        id: repository.id,
+        userId: repository.userId,
+        name: repository.name,
+        description: repository.description,
+        url: repository.url,
+        provider: repository.provider,
+        createdAt: repository.createdAt,
+        updatedAt: repository.updatedAt
+      };
       
-      // 既存のリポジトリを確認
-      const existingRepository = await this.findById(repository.id);
-      
-      if (existingRepository) {
-        // 更新
-        await pgContext.client.query(
-          `UPDATE repositories 
-           SET name = $1, description = $2, github_url = $3, updated_at = $4
-           WHERE id = $5`,
-          [
-            repository.name,
-            "", // エンティティにないフィールドにはデフォルト値を設定
-            "", // エンティティにないフィールドにはデフォルト値を設定
-            new Date().toISOString(),
-            repository.id
-          ]
-        );
-      } else {
-        // 新規作成
-        await pgContext.client.query(
-          `INSERT INTO repositories (id, user_id, name, description, github_url, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            repository.id,
-            repository.userId,
-            repository.name,
-            "", // エンティティにないフィールドにはデフォルト値を設定
-            "", // エンティティにないフィールドにはデフォルト値を設定
-            repository.createdAt.toISOString(),
-            repository.updatedAt.toISOString()
-          ]
-        );
-      }
+      // トランザクション内でリポジトリを保存
+      await pgContext.client.query(
+        `INSERT INTO repositories (id, user_id, name, description, url, provider, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO UPDATE
+         SET user_id = $2, name = $3, description = $4, url = $5, provider = $6, updated_at = $8`,
+        [
+          repositoryData.id,
+          repositoryData.userId,
+          repositoryData.name,
+          repositoryData.description,
+          repositoryData.url,
+          repositoryData.provider,
+          repositoryData.createdAt,
+          repositoryData.updatedAt
+        ]
+      );
       
       return ok(repositoryAggregate);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new InfrastructureError(`リポジトリの保存に失敗しました: ${errorMessage}`));
+    } catch (error) {
+      return err(new DomainError(`リポジトリの保存に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
   }
-
+  
+  /**
+   * リポジトリを削除する
+   * @param id リポジトリID
+   * @returns 削除に成功した場合はtrue、それ以外はfalse
+   */
+  async delete(id: string): Promise<boolean> {
+    const result = await this.db.delete(contentSchema.repositories)
+      .where(eq(contentSchema.repositories.id, id));
+    
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+  
   /**
    * トランザクション内でリポジトリを削除する
    * @param id リポジトリID
@@ -272,27 +191,139 @@ export class DrizzleRepositoryRepository implements RepositoryRepository {
    * @returns 削除結果
    */
   async deleteWithTransaction(
-    id: string,
+    id: string, 
     context: TransactionContext
-  ): Promise<Result<boolean, InfrastructureError>> {
+  ): Promise<Result<boolean, DomainError>> {
     try {
-      // PostgreSQLのトランザクションコンテキストにキャスト
+      // PostgresTransactionContextにキャスト
       const pgContext = context as PostgresTransactionContext;
-      if (!pgContext.client) {
-        return err(new InfrastructureError("無効なトランザクションコンテキストです"));
-      }
-
-      // リポジトリを削除
+      
+      // トランザクション内でリポジトリを削除
       const result = await pgContext.client.query(
-        "DELETE FROM repositories WHERE id = $1",
+        `DELETE FROM repositories WHERE id = $1`,
         [id]
       );
       
-      const rowCount = result.rowCount || 0;
-      return ok(rowCount > 0);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new InfrastructureError(`リポジトリの削除に失敗しました: ${errorMessage}`));
+      return ok(result.rowCount !== null && result.rowCount > 0);
+    } catch (error) {
+      return err(new DomainError(`リポジトリの削除に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
+  }
+
+  /**
+   * データベースから取得したデータからRepositoryAggregateを作成する
+   * @param repositoryData データベースから取得したリポジトリデータ
+   * @returns リポジトリ集約、または作成に失敗した場合はnull
+   */
+  private createRepositoryAggregateFromData(repositoryData: {
+    id: string;
+    userId: string;
+    name: string;
+    description: string | null;
+    url: string | null;
+    provider: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): RepositoryAggregate | null {
+    try {
+      // Repositoryエンティティを作成
+      const repository: Repository = {
+        id: repositoryData.id,
+        userId: repositoryData.userId,
+        name: repositoryData.name,
+        description: repositoryData.description || "",
+        url: repositoryData.url || "",
+        provider: repositoryData.provider,
+        owner: "owner", // 必要に応じて適切な値を設定
+        defaultBranch: "main", // デフォルト値
+        lastSyncedAt: new Date(), // 現在時刻をデフォルト値として使用
+        status: "active" as const, // デフォルトのステータス
+        createdAt: repositoryData.createdAt,
+        updatedAt: repositoryData.updatedAt,
+        
+        changeStatus(status) {
+          return { ...this, status, updatedAt: new Date() };
+        },
+        
+        updateLastSyncedAt(lastSyncedAt) {
+          return { ...this, lastSyncedAt, updatedAt: new Date() };
+        },
+        
+        changeDefaultBranch(defaultBranch) {
+          return { ...this, defaultBranch, updatedAt: new Date() };
+        }
+      };
+      
+      // RepositoryAggregateを作成
+      const repositoryAggregate: RepositoryAggregate = {
+        repository,
+        
+        updateName(name: string): RepositoryAggregate {
+          const updatedRepository = { 
+            ...this.repository, 
+            name, 
+            updatedAt: new Date() 
+          };
+          return { ...this, repository: updatedRepository };
+        },
+        
+        changeDefaultBranch(defaultBranch: string): RepositoryAggregate {
+          const updatedRepository = this.repository.changeDefaultBranch(defaultBranch);
+          return { ...this, repository: updatedRepository };
+        },
+        
+        startSync(): RepositoryAggregate {
+          const updatedRepository = this.repository.changeStatus("syncing");
+          return { ...this, repository: updatedRepository };
+        },
+        
+        completeSync(syncDate: Date): RepositoryAggregate {
+          const repositoryWithUpdatedSyncDate = this.repository.updateLastSyncedAt(syncDate);
+          const updatedRepository = repositoryWithUpdatedSyncDate.changeStatus("active");
+          return { ...this, repository: updatedRepository };
+        },
+        
+        deactivate(): RepositoryAggregate {
+          const updatedRepository = this.repository.changeStatus("inactive");
+          return { ...this, repository: updatedRepository };
+        },
+        
+        activate(): RepositoryAggregate {
+          const updatedRepository = this.repository.changeStatus("active");
+          return { ...this, repository: updatedRepository };
+        }
+      };
+      
+      return repositoryAggregate;
+    } catch (error) {
+      console.error(`リポジトリ集約の作成中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * 名前によってリポジトリを検索する
+   * @param userId ユーザーID
+   * @param name リポジトリ名
+   * @returns リポジトリ集約、存在しない場合はnull
+   */
+  async findByName(userId: string, name: string): Promise<RepositoryAggregate | null> {
+    const result = await this.db.select()
+      .from(contentSchema.repositories)
+      .where(
+        eq(contentSchema.repositories.userId, userId) && 
+        eq(contentSchema.repositories.name, name)
+      )
+      .limit(1);
+    
+    if (result.length === 0) {
+      return null;
+    }
+    
+    const repositoryData = result[0];
+    
+    // リポジトリ集約を作成して返す
+    const aggregateResult = this.createRepositoryAggregateFromData(repositoryData);
+    return aggregateResult ? aggregateResult : null;
   }
 } 

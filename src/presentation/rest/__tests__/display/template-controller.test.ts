@@ -2,28 +2,55 @@ import { assertEquals, assertInstanceOf } from "https://deno.land/std/assert/mod
 import { spy } from "https://deno.land/std/testing/mock.ts";
 import { ok, err, Result } from "neverthrow";
 
+// コンテキスト型の定義
+interface RequestContext {
+  req: {
+    param: (name: string) => string;
+  };
+}
+
+// テンプレート型の定義
+interface Template {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  content: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// エラー型の定義
+class TemplateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TemplateError";
+  }
+}
+
 interface TemplateController {
-  getTemplateById(c: any): Promise<Response>;
-  getAllTemplates(c: any): Promise<Response>;
+  getTemplateById(c: RequestContext): Promise<Response>;
+  getAllTemplates(c: RequestContext): Promise<Response>;
 }
 
 interface GetTemplateByIdQueryHandler {
-  execute(query: { name: string; id: string }): Promise<any>;
+  execute(query: { name: string; id: string }): Promise<Result<Template, TemplateError>>;
 }
 
 interface GetAllTemplatesQueryHandler {
-  execute(query: { name: string }): Promise<any>;
+  execute(query: { name: string }): Promise<Result<Template[], TemplateError>>;
 }
 
 interface TemplateRepository {
-  findById(id: string): Promise<any | null>;
-  findAll(): Promise<any[]>;
-  save(templateAggregate: any): Promise<any>;
+  findById(id: string): Promise<Template | null>;
+  findAll(): Promise<Template[]>;
+  save(templateAggregate: Template): Promise<Template>;
   delete(id: string): Promise<boolean>;
 }
 
 class MockTemplateRepository implements TemplateRepository {
-  private templates: Map<string, any> = new Map();
+  private templates: Map<string, Template> = new Map();
 
   constructor() {
     // テスト用のデータを初期化
@@ -56,7 +83,7 @@ class MockTemplateRepository implements TemplateRepository {
     description: string;
     content: string;
     isPublic: boolean;
-  }): any {
+  }): Template {
     return {
       id: params.id,
       userId: params.userId,
@@ -69,21 +96,21 @@ class MockTemplateRepository implements TemplateRepository {
     };
   }
 
-  async findById(id: string): Promise<any | null> {
-    return this.templates.get(id) || null;
+  findById(id: string): Promise<Template | null> {
+    return Promise.resolve(this.templates.get(id) || null);
   }
 
-  async findAll(): Promise<any[]> {
-    return Array.from(this.templates.values());
+  findAll(): Promise<Template[]> {
+    return Promise.resolve(Array.from(this.templates.values()));
   }
 
-  async save(template: any): Promise<any> {
+  save(template: Template): Promise<Template> {
     this.templates.set(template.id, template);
-    return template;
+    return Promise.resolve(template);
   }
 
-  async delete(id: string): Promise<boolean> {
-    return this.templates.delete(id);
+  delete(id: string): Promise<boolean> {
+    return Promise.resolve(this.templates.delete(id));
   }
 }
 
@@ -92,11 +119,11 @@ Deno.test("TemplateController", async (t) => {
     await t.step("存在するIDの場合、テンプレートを返すこと", async () => {
       // モックの準備
       const templateRepository = new MockTemplateRepository();
-      const getTemplateByIdQueryHandler = {
+      const getTemplateByIdQueryHandler: GetTemplateByIdQueryHandler = {
         execute: spy(async (query: { name: string; id: string }) => {
           const template = await templateRepository.findById(query.id);
           if (!template) {
-            return err(new Error("Template not found"));
+            return err(new TemplateError("Template not found"));
           }
           return ok(template);
         }),
@@ -112,7 +139,8 @@ Deno.test("TemplateController", async (t) => {
           });
 
           if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
+            const error = result.error;
+            return new Response(JSON.stringify({ error: error.message }), {
               status: 404,
               headers: { "Content-Type": "application/json" },
             });
@@ -123,13 +151,13 @@ Deno.test("TemplateController", async (t) => {
             headers: { "Content-Type": "application/json" },
           });
         },
-        async getAllTemplates() {
-          return new Response();
+        getAllTemplates() {
+          return Promise.resolve(new Response());
         },
       };
 
       // テスト実行
-      const context = {
+      const context: RequestContext = {
         req: {
           param: () => "template-1",
         },
@@ -146,11 +174,11 @@ Deno.test("TemplateController", async (t) => {
     await t.step("存在しないIDの場合、404エラーを返すこと", async () => {
       // モックの準備
       const templateRepository = new MockTemplateRepository();
-      const getTemplateByIdQueryHandler = {
+      const getTemplateByIdQueryHandler: GetTemplateByIdQueryHandler = {
         execute: spy(async (query: { name: string; id: string }) => {
           const template = await templateRepository.findById(query.id);
           if (!template) {
-            return err(new Error("Template not found"));
+            return err(new TemplateError("Template not found"));
           }
           return ok(template);
         }),
@@ -166,7 +194,8 @@ Deno.test("TemplateController", async (t) => {
           });
 
           if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
+            const error = result.error;
+            return new Response(JSON.stringify({ error: error.message }), {
               status: 404,
               headers: { "Content-Type": "application/json" },
             });
@@ -177,13 +206,13 @@ Deno.test("TemplateController", async (t) => {
             headers: { "Content-Type": "application/json" },
           });
         },
-        async getAllTemplates() {
-          return new Response();
+        getAllTemplates() {
+          return Promise.resolve(new Response());
         },
       };
 
       // テスト実行
-      const context = {
+      const context: RequestContext = {
         req: {
           param: () => "non-existent-id",
         },
@@ -201,7 +230,7 @@ Deno.test("TemplateController", async (t) => {
     await t.step("すべてのテンプレートを返すこと", async () => {
       // モックの準備
       const templateRepository = new MockTemplateRepository();
-      const getAllTemplatesQueryHandler = {
+      const getAllTemplatesQueryHandler: GetAllTemplatesQueryHandler = {
         execute: spy(async (query: { name: string }) => {
           const templates = await templateRepository.findAll();
           return ok(templates);
@@ -210,8 +239,8 @@ Deno.test("TemplateController", async (t) => {
 
       // コントローラーの実装
       const templateController: TemplateController = {
-        async getTemplateById() {
-          return new Response();
+        getTemplateById() {
+          return Promise.resolve(new Response());
         },
         async getAllTemplates(c) {
           const result = await getAllTemplatesQueryHandler.execute({
@@ -219,7 +248,8 @@ Deno.test("TemplateController", async (t) => {
           });
 
           if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
+            const error = result.error;
+            return new Response(JSON.stringify({ error: error.message }), {
               status: 500,
               headers: { "Content-Type": "application/json" },
             });
@@ -233,8 +263,10 @@ Deno.test("TemplateController", async (t) => {
       };
 
       // テスト実行
-      const context = {
-        req: {},
+      const context: RequestContext = {
+        req: {
+          param: () => "",
+        },
       };
 
       const response = await templateController.getAllTemplates(context);

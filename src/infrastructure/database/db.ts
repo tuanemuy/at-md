@@ -22,7 +22,7 @@ const connectionOptions = {
 };
 
 // PostgreSQL接続プールの作成
-const pool = new pg.Pool({
+export const pool = new pg.Pool({
   connectionString: DATABASE_URL,
   ...connectionOptions
 });

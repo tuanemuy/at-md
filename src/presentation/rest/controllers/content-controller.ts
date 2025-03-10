@@ -1,20 +1,11 @@
 /**
  * コンテンツコントローラー
- * コンテンツ関連のHTTPリクエストを処理するコントローラー
+ * 
+ * コンテンツの取得や操作に関するエンドポイントを提供します。
  */
 
-import { Context } from "hono";
-import { Result } from "npm:neverthrow";
-import { 
-  GetContentByIdQueryHandler, 
-  GetContentByIdQuery 
-} from "../../../application/content/queries/get-content-by-id-query.ts";
-import { 
-  CreateContentCommandHandler, 
-  CreateContentCommand 
-} from "../../../application/content/commands/create-content-command.ts";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { generateId } from "../../../core/common/id.ts";
+import { Context, Result, GetContentByIdQuery, GetContentByIdQueryHandler, CreateContentCommand, CreateContentCommandHandler, ContentAggregate, generateId } from "../deps.ts";
+import { handleError, handleErrorWithContext } from "../utils/error-handler.ts";
 
 /**
  * コンテンツコントローラー
@@ -42,20 +33,28 @@ export class ContentController {
    * @returns レスポンス
    */
   async getContentById(c: Context): Promise<Response> {
-    const id = c.req.param("id");
-    
-    if (!id) {
-      return c.json({ error: "コンテンツIDが指定されていません" }, 400);
+    try {
+      const id = c.req.param("id");
+      
+      if (!id) {
+        return c.json({ error: "コンテンツIDが指定されていません" }, 400);
+      }
+      
+      const query: GetContentByIdQuery = {
+        name: "GetContentById",
+        id
+      };
+      
+      const result = await this.getContentByIdQueryHandler.execute(query);
+      
+      if (result.isOk()) {
+        return c.json(this.contentToResponse(result.value));
+      } else {
+        return handleErrorWithContext(c, result.error);
+      }
+    } catch (error) {
+      return handleErrorWithContext(c, error);
     }
-    
-    const query: GetContentByIdQuery = {
-      name: "GetContentById",
-      id
-    };
-    
-    const result = await this.getContentByIdQueryHandler.execute(query);
-    
-    return this.handleContentResult(c, result);
   }
   
   /**
@@ -68,10 +67,24 @@ export class ContentController {
       const body = await c.req.json();
       
       // 必須フィールドの検証
-      if (!body.userId || !body.repositoryId || !body.path || !body.title || !body.body) {
-        return c.json({ 
-          error: "ユーザーID、リポジトリID、パス、タイトル、本文は必須です" 
-        }, 400);
+      if (!body.userId) {
+        return c.json({ error: "ユーザーIDは必須です" }, 400);
+      }
+      
+      if (!body.repositoryId) {
+        return c.json({ error: "リポジトリIDは必須です" }, 400);
+      }
+      
+      if (!body.path) {
+        return c.json({ error: "パスは必須です" }, 400);
+      }
+      
+      if (!body.title) {
+        return c.json({ error: "タイトルは必須です" }, 400);
+      }
+      
+      if (!body.body) {
+        return c.json({ error: "本文は必須です" }, 400);
       }
       
       const command: CreateContentCommand = {
@@ -81,41 +94,26 @@ export class ContentController {
         path: body.path,
         title: body.title,
         body: body.body,
-        metadata: body.metadata
+        metadata: body.metadata || {
+          tags: [],
+          categories: [],
+          language: "ja"
+        }
       };
       
       const result = await this.createContentCommandHandler.execute(command);
       
       if (result.isOk()) {
-        return c.json(this.contentToResponse(result.value), 201);
+        return c.json({
+          success: true,
+          message: "コンテンツが作成されました",
+          content: this.contentToResponse(result.value)
+        }, 201);
       } else {
-        return c.json({ error: result.error.message }, 400);
+        return handleErrorWithContext(c, result.error);
       }
     } catch (error) {
-      console.error("コンテンツ作成エラー:", error);
-      return c.json({ 
-        error: "コンテンツ作成中にエラーが発生しました" 
-      }, 500);
-    }
-  }
-  
-  /**
-   * コンテンツ結果の処理
-   * @param c Honoコンテキスト
-   * @param result コンテンツ結果
-   * @returns レスポンス
-   */
-  private handleContentResult(c: Context, result: Result<ContentAggregate, Error>): Response {
-    if (result.isOk()) {
-      return c.json(this.contentToResponse(result.value));
-    } else {
-      const errorMessage = result.error.message;
-      
-      if (errorMessage.includes("見つかりません")) {
-        return c.json({ error: errorMessage }, 404);
-      } else {
-        return c.json({ error: errorMessage }, 400);
-      }
+      return handleErrorWithContext(c, error);
     }
   }
   

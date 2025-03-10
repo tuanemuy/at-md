@@ -1,18 +1,32 @@
 /**
  * ユーザールート
- * ユーザー関連のHTTPルートを定義します。
+ * ユーザーに関するエンドポイントを定義します。
  */
 
-import { Hono } from "hono";
+import { Hono } from "../deps.ts";
 import { UserController } from "../controllers/user-controller.ts";
+import { GetUserByIdQueryHandler, CreateUserCommandHandler } from "../deps.ts";
 
 /**
  * ユーザールートを設定する
  * @param app Honoアプリケーション
  * @param userController ユーザーコントローラー
  */
-export function setupUserRoutes(app: Hono, userController: UserController): void {
-  // ユーザー関連のルートを定義
-  app.get("/api/users/:id", (c) => userController.getUserById(c));
-  app.post("/api/users", (c) => userController.createUser(c));
-} 
+export const userRoutes = (
+  getUserByIdQueryHandler: GetUserByIdQueryHandler,
+  createUserCommandHandler: CreateUserCommandHandler
+): Hono => {
+  const app = new Hono();
+  const controller = new UserController(
+    getUserByIdQueryHandler,
+    createUserCommandHandler
+  );
+
+  // ユーザーをIDで取得
+  app.get("/:id", (c) => controller.getUserById(c));
+
+  // ユーザーを作成
+  app.post("/", (c) => controller.createUser(c));
+
+  return app;
+}; 

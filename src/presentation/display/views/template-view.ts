@@ -9,6 +9,13 @@ export interface TemplateRenderResult {
   layout: string;
 }
 
+// テンプレートコンポーネントの型定義
+interface TemplateComponent {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+}
+
 /**
  * テンプレートビュー
  * 
@@ -27,7 +34,11 @@ export class TemplateView {
     
     // テンプレートのコンポーネントを使用してHTMLを生成
     // ここでは簡易的な実装
-    const componentHtml = template.components
+    const templateMetadata = template.metadata || {};
+    const components = templateMetadata.components as TemplateComponent[] || [];
+    const layout = templateMetadata.layout as string || 'default';
+    
+    const componentHtml = components
       .map(component => {
         // コンポーネントタイプに応じたレンダリング
         switch (component.type) {
@@ -77,10 +88,10 @@ export class TemplateView {
             }
           </style>
         </head>
-        <body data-template="${template.layout}">
+        <body data-template="${layout}">
           <div class="preview-info">
             <h1>${template.name}</h1>
-            <p>レイアウト: ${template.layout}</p>
+            <p>レイアウト: ${layout}</p>
             ${template.description ? `<p>説明: ${template.description}</p>` : ""}
           </div>
           ${componentHtml}
@@ -91,7 +102,7 @@ export class TemplateView {
     return {
       html,
       name: template.name,
-      layout: template.layout,
+      layout: layout,
     };
   }
 } 

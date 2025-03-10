@@ -5,7 +5,7 @@
 
 import { AtIdentifier, createAtIdentifier } from "../value-objects/mod.ts";
 import { UserAggregate } from "../aggregates/mod.ts";
-import { UserRepository } from "../../../application/account/repositories/user-repository.ts";
+import { UserRepository } from "../repositories/user-repository.ts";
 
 /**
  * 認証サービスのインターフェース
@@ -194,41 +194,41 @@ export class AuthServiceImpl implements AuthService {
    * @param token 認証トークン
    * @returns 検証結果
    */
-  async verifyToken(token: string): Promise<TokenVerificationResult> {
+  verifyToken(token: string): Promise<TokenVerificationResult> {
     try {
       // トークンを検証
       // 実際の実装では、JWTなどのライブラリを使用してトークンを検証します
       const decoded = this.decodeToken(token);
       
       if (!decoded) {
-        return {
+        return Promise.resolve({
           valid: false,
           errorMessage: "無効なトークンです"
-        };
+        });
       }
       
       // トークンの有効期限を確認
       if (decoded.exp < Date.now() / 1000) {
-        return {
+        return Promise.resolve({
           valid: false,
           errorMessage: "トークンの有効期限が切れています"
-        };
+        });
       }
       
       // ATプロトコル識別子を取得
       const atIdentifier = createAtIdentifier(decoded.did, decoded.handle);
       
-      return {
+      return Promise.resolve({
         valid: true,
         userId: decoded.userId,
         atIdentifier
-      };
+      });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "トークンの検証中にエラーが発生しました";
-      return {
+      return Promise.resolve({
         valid: false,
         errorMessage
-      };
+      });
     }
   }
   

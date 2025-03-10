@@ -7,6 +7,7 @@
 
 // Drizzle ORM
 export { eq, and, or, desc, asc, sql, inArray } from "drizzle-orm";
+export { pgTable, text, timestamp, uuid, varchar, jsonb } from "drizzle-orm/pg-core";
 export type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 // PostgreSQL

@@ -1,12 +1,14 @@
 /**
- * 配信サービス
- * 投稿の公開管理、スケジューリングなどの機能を提供します。
+ * 公開サービス
+ * 
+ * コンテンツの公開を担当するサービス
  */
+import { Result, ok, err } from "../deps.ts";
 import { Post } from "../entities/post.ts";
 import { Feed } from "../entities/feed.ts";
 import { PostAggregate, createPostAggregate } from "../aggregates/post-aggregate.ts";
 import { FeedAggregate, createFeedAggregate } from "../aggregates/feed-aggregate.ts";
-import { InvalidPostStateError } from "../../errors/domain.ts";
+import { DomainError, InvalidPostStateError } from "../../errors/mod.ts";
 
 /**
  * 配信サービス

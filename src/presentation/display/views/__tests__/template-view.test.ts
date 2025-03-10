@@ -10,24 +10,26 @@ describe("TemplateView", () => {
       id: "template-1",
       name: "テストテンプレート",
       description: "テスト用のテンプレートです",
-      layout: "blog",
-      components: [
-        {
-          id: "header-1",
-          type: "header",
-          props: { content: "ヘッダーコンテンツ" }
-        },
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        },
-        {
-          id: "footer-1",
-          type: "footer",
-          props: { content: "フッターコンテンツ" }
-        }
-      ],
+      metadata: {
+        layout: "blog",
+        components: [
+          {
+            id: "header-1",
+            type: "header",
+            props: { content: "ヘッダーコンテンツ" }
+          },
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          },
+          {
+            id: "footer-1",
+            type: "footer",
+            props: { content: "フッターコンテンツ" }
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -59,14 +61,17 @@ describe("TemplateView", () => {
     const templateDto: TemplateDto = {
       id: "template-2",
       name: "説明なしテンプレート",
-      layout: "default",
-      components: [
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        }
-      ],
+      description: "", // 空の説明を設定
+      metadata: {
+        layout: "default",
+        components: [
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -97,8 +102,10 @@ describe("TemplateView", () => {
       id: "template-3",
       name: "空のテンプレート",
       description: "コンポーネントのないテンプレートです",
-      layout: "custom",
-      components: [],
+      metadata: {
+        layout: "custom",
+        components: []
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -132,34 +139,36 @@ describe("TemplateView", () => {
       id: "template-4",
       name: "複合テンプレート",
       description: "様々なコンポーネントを含むテンプレート",
-      layout: "portfolio",
-      components: [
-        {
-          id: "header-1",
-          type: "header",
-          props: { content: "" } // 空のコンテンツ
-        },
-        {
-          id: "content-1",
-          type: "content",
-          props: {}
-        },
-        {
-          id: "footer-1",
-          type: "footer",
-          props: { content: "" } // 空のコンテンツ
-        },
-        {
-          id: "custom-1",
-          type: "sidebar",
-          props: { content: "サイドバーコンテンツ" }
-        },
-        {
-          id: "custom-2",
-          type: "gallery",
-          props: { images: ["image1.jpg", "image2.jpg"] }
-        }
-      ],
+      metadata: {
+        layout: "portfolio",
+        components: [
+          {
+            id: "header-1",
+            type: "header",
+            props: { content: "" } // 空のコンテンツ
+          },
+          {
+            id: "content-1",
+            type: "content",
+            props: {}
+          },
+          {
+            id: "footer-1",
+            type: "footer",
+            props: { content: "" } // 空のコンテンツ
+          },
+          {
+            id: "custom-1",
+            type: "sidebar",
+            props: { content: "サイドバーコンテンツ" }
+          },
+          {
+            id: "custom-2",
+            type: "gallery",
+            props: { images: ["image1.jpg", "image2.jpg"] }
+          }
+        ]
+      },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

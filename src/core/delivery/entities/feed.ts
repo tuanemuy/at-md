@@ -1,9 +1,10 @@
 /**
  * フィードエンティティ
- * 投稿のコレクションを表します。
+ * 
+ * フィードの基本的な属性と振る舞いを定義します。
  */
 import { FeedMetadata, createFeedMetadata, FeedMetadataProps } from "../value-objects/feed-metadata.ts";
-import { InvalidPostStateError } from "../../errors/domain.ts";
+import { DomainError, InvalidContentStateError, InvalidPostStateError } from "../../errors/mod.ts";
 
 /**
  * フィードエンティティのプロパティ

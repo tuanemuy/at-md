@@ -36,9 +36,11 @@ describe("Email値オブジェクト", () => {
   it("オブジェクトが不変であること", () => {
     const email = createEmail("test@example.com");
     
+    // プロパティを直接変更しようとしても変更されない
     expect(() => {
-      (email as any).value = "modified@example.com";
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (email as { value: string }).value = "modified@example.com";
+    }).not.toThrow();
   });
   
   it("特殊文字を含む有効なメールアドレスで作成できること", () => {

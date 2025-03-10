@@ -3,11 +3,15 @@
  * 新しいフィードを作成するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
-import { FeedAggregate, createNewFeedAggregate } from "../../../core/delivery/aggregates/feed-aggregate.ts";
-import { FeedRepository } from "../repositories/feed-repository.ts";
-import { FeedMetadataProps } from "../../../core/delivery/value-objects/feed-metadata.ts";
+import { Command, CommandHandler } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { 
+  FeedAggregate, 
+  createNewFeedAggregate,
+  FeedMetadataProps,
+  ApplicationError
+} from "../deps.ts";
+import { FeedRepository } from "../repositories/mod.ts";
 
 /**
  * フィード作成コマンド

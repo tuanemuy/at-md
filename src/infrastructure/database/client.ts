@@ -2,126 +2,81 @@
  * データベースクライアント
  */
 
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-import { Logger } from "../../core/logging/logger.ts";
+import postgres from "npm:postgres";
+import { drizzle } from "npm:drizzle-orm/postgres-js";
+import { Logger } from "../../core/logging/mod.ts";
 
-// スキーマのインポート
-import * as contentSchema from "./schema/content.ts";
-import * as deliverySchema from "./schema/delivery.ts";
-
-// 環境変数からデータベース接続情報を取得
-const DATABASE_URL = Deno.env.get("DATABASE_URL")!;
-
-// シングルトンインスタンス
-let dbInstance: DrizzleClient | null = null;
+const logger = new Logger("Database");
 
 /**
- * Drizzleクライアントクラス
- * データベース接続の作成と解放を管理する
+ * データベース接続設定
  */
-export class DrizzleClient {
-  /**
-   * Drizzleデータベースクライアント
-   */
-  public readonly db: ReturnType<typeof drizzle>;
-  
-  /**
-   * PostgreSQL接続プール
-   */
-  private readonly pool: pg.Pool;
-  
-  /**
-   * コンストラクタ
-   * @param connectionString データベース接続文字列
-   * @param logger ロガー
-   */
-  constructor(connectionString: string = DATABASE_URL, logger?: Logger) {
-    // 接続オプション
-    const connectionOptions = {
-      max: 10, // 最大接続数
-      idle_timeout: 30, // アイドルタイムアウト（秒）
-      connect_timeout: 10, // 接続タイムアウト（秒）
-    };
-    
-    // 接続プールの作成
-    this.pool = new pg.Pool({
-      connectionString,
-      ...connectionOptions
-    });
-    
-    // クエリログを出力する場合
-    if (logger) {
-      // TODO: postgres.jsの型定義が不完全なため、デバッグ機能は一時的に無効化
-      // client.debug((connection, query, params, types) => {
-      //   logger.debug("SQL Query", { query, params });
-      // });
-      logger.debug("Database client created", { connectionString });
-    }
-    
-    // Drizzleクライアントの作成
-    this.db = drizzle({
-      client: this.pool,
-      schema: {
-        ...contentSchema,
-        ...deliverySchema
-      }
-    });
-  }
-  
-  /**
-   * データベース接続を閉じる
-   * @returns 成功した場合はtrue
-   */
-  async close(): Promise<boolean> {
-    try {
-      await this.pool.end();
-      return true;
-    } catch (error) {
-      console.error("Failed to close database connection", error);
-      return false;
-    }
-  }
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  ssl?: boolean;
+  maxConnections?: number;
 }
 
 /**
- * Drizzleクライアントを作成する
- * @param connectionString データベース接続文字列
- * @param logger ロガー
- * @returns Drizzleクライアント
+ * 環境変数からデータベース設定を取得する
  */
-export function createDrizzleClient(
-  connectionString: string = DATABASE_URL,
-  logger?: Logger
-): DrizzleClient {
-  return new DrizzleClient(connectionString, logger);
+export function getDatabaseConfig(): DatabaseConfig {
+  return {
+    host: Deno.env.get("DB_HOST") || "localhost",
+    port: parseInt(Deno.env.get("DB_PORT") || "5432"),
+    database: Deno.env.get("DB_NAME") || "at-md",
+    username: Deno.env.get("DB_USER") || "postgres",
+    password: Deno.env.get("DB_PASSWORD") || "postgres",
+    ssl: Deno.env.get("DB_SSL") === "true",
+    maxConnections: parseInt(Deno.env.get("DB_MAX_CONNECTIONS") || "10")
+  };
 }
 
 /**
- * Drizzleクライアントのシングルトンインスタンスを取得する
- * @param logger ロガー
- * @returns Drizzleクライアント
+ * データベース接続文字列を生成する
  */
-export function getDrizzleClient(logger?: Logger): DrizzleClient {
-  if (!dbInstance) {
-    dbInstance = createDrizzleClient(DATABASE_URL, logger);
-  }
+export function getDatabaseUrl(config: DatabaseConfig): string {
+  const { host, port, database, username, password, ssl } = config;
+  const sslParam = ssl ? "?sslmode=require" : "";
+  return `postgres://${username}:${password}@${host}:${port}/${database}${sslParam}`;
+}
+
+/**
+ * PostgreSQLクライアントを作成する
+ */
+export function createPostgresClient(config: DatabaseConfig = getDatabaseConfig()): postgres.Sql {
+  const url = getDatabaseUrl(config);
+  logger.info(`データベースに接続します: ${config.host}:${config.port}/${config.database}`);
   
-  return dbInstance;
+  return postgres(url, {
+    max: config.maxConnections,
+    onnotice: (notice) => {
+      logger.debug(`PostgreSQL通知: ${notice.message}`);
+    }
+  });
 }
 
 /**
- * シングルトンのDrizzleクライアント接続を閉じる
- * @param logger ロガー
- * @returns 成功した場合はtrue
+ * Drizzle ORMクライアントを作成する
  */
-export async function closeDbConnection(logger?: Logger): Promise<boolean> {
-  if (dbInstance) {
-    const result = await dbInstance.close();
-    if (result) {
-      dbInstance = null;
-    }
-    return result;
-  }
-  return false;
+export function createDrizzleClient(postgresClient: postgres.Sql) {
+  return drizzle(postgresClient);
+}
+
+// デフォルトのPostgreSQLクライアント
+const postgresClient = createPostgresClient();
+
+// デフォルトのDrizzle ORMクライアント
+export const db = createDrizzleClient(postgresClient);
+
+/**
+ * データベース接続を閉じる
+ */
+export async function closeDatabase() {
+  logger.info("データベース接続を閉じます");
+  await postgresClient.end();
 } 

@@ -70,6 +70,8 @@ export function createUserAggregate(params: CreateUserAggregateParams): UserAggr
     username,
     email,
     atIdentifier,
+    did: params.atIdentifier.did,
+    passwordHash: "", // デフォルト値として空文字列を設定
     createdAt: params.createdAt,
     updatedAt: params.updatedAt
   });

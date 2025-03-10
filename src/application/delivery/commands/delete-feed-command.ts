@@ -3,8 +3,8 @@
  * 既存のフィードを削除するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
+import { Command } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
 import { FeedRepository } from "../repositories/feed-repository.ts";
 
 /**

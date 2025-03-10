@@ -1,18 +1,32 @@
 /**
  * コンテンツルート
- * コンテンツ関連のHTTPルートを定義します。
+ * コンテンツに関するエンドポイントを定義します。
  */
 
-import { Hono } from "hono";
+import { Hono } from "../deps.ts";
 import { ContentController } from "../controllers/content-controller.ts";
+import { GetContentByIdQueryHandler, CreateContentCommandHandler } from "../deps.ts";
 
 /**
  * コンテンツルートを設定する
  * @param app Honoアプリケーション
  * @param contentController コンテンツコントローラー
  */
-export function setupContentRoutes(app: Hono, contentController: ContentController): void {
-  // コンテンツ関連のルートを定義
-  app.get("/api/contents/:id", (c) => contentController.getContentById(c));
-  app.post("/api/contents", (c) => contentController.createContent(c));
-} 
+export const contentRoutes = (
+  getContentByIdQueryHandler: GetContentByIdQueryHandler,
+  createContentCommandHandler: CreateContentCommandHandler
+): Hono => {
+  const app = new Hono();
+  const controller = new ContentController(
+    getContentByIdQueryHandler,
+    createContentCommandHandler
+  );
+
+  // コンテンツをIDで取得
+  app.get("/:id", (c) => controller.getContentById(c));
+
+  // コンテンツを作成
+  app.post("/", (c) => controller.createContent(c));
+
+  return app;
+}; 

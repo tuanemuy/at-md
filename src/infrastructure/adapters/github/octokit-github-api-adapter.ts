@@ -208,16 +208,36 @@ export class OctokitGitHubApiAdapter implements GitHubApiAdapter {
   }
 
   /**
-   * ファイルの特定のコミット時点の内容を取得する
+   * 特定のコミットでのコンテンツを取得する
    * 
-   * @param owner リポジトリのオーナー
+   * @param owner リポジトリオーナー
    * @param repo リポジトリ名
    * @param path ファイルパス
    * @param sha コミットSHA
    * @returns コンテンツのResult
    */
   async getContentAtCommit(owner: string, repo: string, path: string, sha: string): Promise<Result<GitHubContent, GitHubApiError>> {
-    return this.getContent(owner, repo, path, sha);
+    try {
+      const response = await this.octokit.rest.repos.getContent({
+        owner,
+        repo,
+        path,
+        ref: sha
+      });
+      
+      // 単一ファイルの場合
+      if (!Array.isArray(response.data)) {
+        return ok(this.mapContent(response.data as OctokitContent));
+      }
+      
+      // ディレクトリの場合はエラー
+      return err(new GitHubApiError("指定されたパスはディレクトリです", "invalid_path"));
+    } catch (error) {
+      return err(new GitHubApiError(
+        `コンテンツの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+        "api_error"
+      ));
+    }
   }
 
   /**

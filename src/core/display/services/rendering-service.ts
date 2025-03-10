@@ -22,7 +22,7 @@ export interface RenderingService {
    * @param options レンダリングオプション
    * @returns レンダリング結果のHTML
    */
-  renderMarkdown(markdown: string, options: RenderingOptions): Promise<string>;
+  renderMarkdown(markdown: string, options: RenderingOptions): string;
 
   /**
    * OGイメージを生成する
@@ -30,7 +30,7 @@ export interface RenderingService {
    * @param page OGイメージを生成するページ集約
    * @returns 生成されたOGイメージのURL
    */
-  generateOgImage(page: PageAggregate): Promise<string>;
+  generateOgImage(page: PageAggregate): string;
 }
 
 /**
@@ -78,7 +78,7 @@ export class DefaultRenderingService implements RenderingService {
    * @param options レンダリングオプション
    * @returns レンダリング結果のHTML
    */
-  async renderMarkdown(markdown: string, options: RenderingOptions): Promise<string> {
+  renderMarkdown(markdown: string, options: RenderingOptions): string {
     // 実際の実装では、マークダウンパーサーを使用してHTMLに変換する
     // ここではシンプルな実装として、マークダウンをそのままHTMLとして返す
     let html = markdown
@@ -116,7 +116,7 @@ export class DefaultRenderingService implements RenderingService {
    * @param page OGイメージを生成するページ集約
    * @returns 生成されたOGイメージのURL
    */
-  async generateOgImage(page: PageAggregate): Promise<string> {
+  generateOgImage(page: PageAggregate): string {
     // 既にOGイメージが設定されている場合はそれを返す
     if (page.metadata.ogImage) {
       return page.metadata.ogImage;

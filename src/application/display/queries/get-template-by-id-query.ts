@@ -1,7 +1,8 @@
-import { Result, err, ok } from "npm:neverthrow";
-import { EntityNotFoundError } from "../../../core/errors/application.ts";
-import { ApplicationError } from "../../../core/errors/base.ts";
-import { ViewTemplate } from "../../../core/display/entities/view-template.ts";
+import { Query } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { ApplicationError } from "../deps.ts";
+import { EntityNotFoundError } from "../deps.ts";
+import { ViewTemplate } from "../deps.ts";
 import { TemplateRepository } from "../repositories/template-repository.ts";
 
 /**

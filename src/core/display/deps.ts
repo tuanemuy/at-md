@@ -1,12 +1,19 @@
 /**
- * 表示コンテキストの依存関係
+ * 表示ドメインの依存関係
  * 
- * 表示コンテキストで使用する内部依存をエクスポートします。
+ * 外部ライブラリや他のモジュールへの依存関係を管理します。
  */
 
-// 共通モジュール
-export * from "../common/mod.ts";
+// 外部ライブラリ
+export { Result, err, ok } from "npm:neverthrow";
+export { z } from "npm:zod";
 
-// 外部依存
-export { z } from "../../deps.ts";
-export { Result, ok, err } from "../../deps.ts"; 
+// 共通モジュール
+export { generateId } from "../common/mod.ts";
+
+// エラーモジュール
+export { 
+  DomainError, 
+  InvalidContentStateError, 
+  InvalidMetadataError
+} from "../errors/mod.ts"; 

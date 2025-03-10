@@ -17,6 +17,13 @@ export interface PageRenderResult {
   };
 }
 
+// テンプレートコンポーネントの型定義
+interface TemplateComponent {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+}
+
 /**
  * ページビュー
  * 
@@ -36,17 +43,21 @@ export class PageView {
     
     // メタデータの構築
     const metadata = {
-      description: page.metadata.description,
-      ogImage: page.metadata.ogImage,
-      keywords: page.metadata.keywords,
-      canonicalUrl: page.metadata.canonicalUrl,
-      publishedAt: page.metadata.publishedAt,
-      updatedAt: page.metadata.updatedAt,
+      description: page.metadata?.description,
+      ogImage: page.metadata?.ogImage,
+      keywords: page.metadata?.keywords,
+      canonicalUrl: page.metadata?.canonicalUrl,
+      publishedAt: page.metadata?.publishedAt,
+      updatedAt: page.metadata?.updatedAt,
     };
     
     // テンプレートのコンポーネントを使用してHTMLを生成
     // ここでは簡易的な実装
-    const componentHtml = template.components
+    const templateMetadata = template.metadata || {};
+    const components = templateMetadata.components as TemplateComponent[] || [];
+    const layout = templateMetadata.layout || 'default';
+    
+    const componentHtml = components
       .map(component => {
         // コンポーネントタイプに応じたレンダリング
         switch (component.type) {
@@ -55,7 +66,7 @@ export class PageView {
           case "footer":
             return `<footer>${component.props.content || ""}</footer>`;
           case "content":
-            return `<main>${page.content}</main>`;
+            return `<main>${page.metadata?.content || ""}</main>`;
           default:
             return `<div class="${component.type}">${component.props.content || ""}</div>`;
         }
@@ -76,7 +87,7 @@ export class PageView {
           ${metadata.keywords && metadata.keywords.length > 0 ? 
             `<meta name="keywords" content="${metadata.keywords.join(", ")}">` : ""}
         </head>
-        <body data-template="${template.layout}">
+        <body data-template="${layout}">
           ${componentHtml}
         </body>
       </html>

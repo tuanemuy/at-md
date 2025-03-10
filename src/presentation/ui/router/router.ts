@@ -147,18 +147,24 @@ export class Router implements IRouter {
       case Page.HOME:
         url = "/";
         break;
-      case Page.CONTENT_DETAIL:
+      case Page.CONTENT_EDIT:
+        url = "/content";
+        break;
+      case Page.CONTENT_DETAIL: {
         const contentId = this.appState.getSelectedContentId();
         url = `/content?id=${contentId}`;
         break;
-      case Page.USER_DETAIL:
+      }
+      case Page.USER_DETAIL: {
         const userId = this.appState.getSelectedUserId();
         url = `/user?id=${userId}`;
         break;
-      case Page.FEED_DETAIL:
+      }
+      case Page.FEED_DETAIL: {
         const feedId = this.appState.getSelectedFeedId();
         url = `/feed?id=${feedId}`;
         break;
+      }
       default:
         url = "/";
         break;
@@ -167,5 +173,38 @@ export class Router implements IRouter {
     // URLを更新（履歴に追加）
     // @ts-ignore: Window型にhistoryプロパティが存在することを保証
     this.window.history.pushState({}, "", url);
+  }
+
+  private getUrlFromPage(page: Page): string {
+    let url = "/";
+    
+    switch (page) {
+      case Page.HOME:
+        url = "/";
+        break;
+      case Page.CONTENT_EDIT:
+        url = "/content";
+        break;
+      case Page.CONTENT_DETAIL: {
+        const contentId = this.appState.getSelectedContentId();
+        url = `/content?id=${contentId}`;
+        break;
+      }
+      case Page.USER_DETAIL: {
+        const userId = this.appState.getSelectedUserId();
+        url = `/user?id=${userId}`;
+        break;
+      }
+      case Page.FEED_DETAIL: {
+        const feedId = this.appState.getSelectedFeedId();
+        url = `/feed?id=${feedId}`;
+        break;
+      }
+      default:
+        url = "/";
+        break;
+    }
+    
+    return url;
   }
 } 

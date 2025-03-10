@@ -1,6 +1,15 @@
-import { generateId } from "../../common/id.ts";
+/**
+ * ページ集約
+ * 
+ * ページエンティティとそれに関連する操作をカプセル化します。
+ */
+
+import { Result, err, ok } from "../deps.ts";
 import { Page } from "../entities/page.ts";
-import { PageMetadata, RenderingOptions } from "../value-objects/mod.ts";
+import { PageMetadata } from "../value-objects/page-metadata.ts";
+import { RenderingOptions } from "../value-objects/rendering-options.ts";
+import { generateId } from "../../common/mod.ts";
+import { DomainError } from "../../errors/mod.ts";
 
 /**
  * ページ集約

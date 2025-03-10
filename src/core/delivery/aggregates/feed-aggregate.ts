@@ -2,10 +2,11 @@
  * フィード集約
  * フィードの高レベル操作を提供します。
  */
+import { Result, err, ok } from "../deps.ts";
 import { Feed, createFeed, FeedProps } from "../entities/feed.ts";
 import { FeedMetadataProps, createFeedMetadata } from "../value-objects/feed-metadata.ts";
-import { generateId } from "../../common/id.ts";
-import { InvalidPostStateError } from "../../errors/domain.ts";
+import { generateId } from "../../common/mod.ts";
+import { DomainError, InvalidContentStateError } from "../../errors/mod.ts";
 
 /**
  * フィード集約のプロパティ
@@ -188,12 +189,12 @@ export function createFeedAggregate(props: FeedAggregateProps): FeedAggregate {
 export function createNewFeedAggregate(params: CreateFeedAggregateParams): FeedAggregate {
   // フィード名のバリデーション
   if (!params.name) {
-    throw new InvalidPostStateError("無効な状態", "フィード名が指定されていません");
+    throw new InvalidContentStateError("無効な状態", "フィード名が指定されていません");
   }
   
   // メタデータのバリデーション
   if (!params.metadataProps) {
-    throw new InvalidPostStateError("無効な状態", "メタデータが指定されていません");
+    throw new InvalidContentStateError("無効な状態", "メタデータが指定されていません");
   }
   
   // メタデータを作成

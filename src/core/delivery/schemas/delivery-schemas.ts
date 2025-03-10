@@ -4,13 +4,17 @@
  * 配信ドメインで使用するZodスキーマを定義します。
  */
 
-import { z } from "../../../deps.ts";
+import { z } from "../deps.ts";
 import {
   idSchema,
-  userIdSchema,
   contentIdSchema,
+  userIdSchema,
+  titleSchema,
   dateSchema,
-} from "../../common/schemas/base-schemas.ts";
+  repositoryIdSchema,
+  tagsSchema,
+  categoriesSchema,
+} from "../../common/schemas/mod.ts";
 
 /**
  * 配信ID用のスキーマ

@@ -1,114 +1,151 @@
-import { Result, err, ok } from "npm:neverthrow";
-import { PresentationError } from "../../../core/errors/base.ts";
-import { EntityNotFoundError } from "../../../core/errors/application.ts";
-import { 
-  GetPageByIdQuery, 
-  GetPageByIdQueryHandler,
-  GetPageBySlugQuery,
-  GetPageBySlugQueryHandler,
-  GetPageByContentIdQuery,
-  GetPageByContentIdQueryHandler
-} from "../../../application/display/queries/mod.ts";
-import { toPageDto, PageDto } from "../dtos/page-dto.ts";
-
-/**
- * ページコントローラーのエラー型
- */
-export type PageControllerError = PresentationError | EntityNotFoundError;
-
 /**
  * ページコントローラー
- * 
- * ページの取得に関するエンドポイントを提供する
  */
-export class PageController {
-  constructor(
-    private readonly getPageByIdQueryHandler: GetPageByIdQueryHandler,
-    private readonly getPageBySlugQueryHandler: GetPageBySlugQueryHandler,
-    private readonly getPageByContentIdQueryHandler: GetPageByContentIdQueryHandler
-  ) {}
 
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError,
+  type Page,
+  type PageMetadata,
+  type PageRepository,
+  type GetPageByIdQuery,
+  type GetPageByIdQueryHandler,
+  type GetPageBySlugQuery,
+  type GetPageBySlugQueryHandler
+} from "./deps.ts";
+
+import { PageDto, toPageDto, createPageMetadataFromDto } from "../dtos/page-dto.ts";
+
+/**
+ * ページコントローラーのインターフェース
+ */
+export interface PageController {
   /**
-   * IDでページを取得する
-   * 
+   * IDによってページを取得する
    * @param id ページID
-   * @returns ページDTOのResult
+   * @returns ページDTOの結果
    */
-  async getPageById(id: string): Promise<Result<PageDto, PageControllerError>> {
-    // IDの検証
-    if (!id) {
-      return err(new PresentationError("Page ID is required"));
-    }
-
-    // クエリを実行
-    const query: GetPageByIdQuery = { id };
-    const pageResult = await this.getPageByIdQueryHandler.execute(query);
-
-    // エラーハンドリング
-    if (pageResult.isErr()) {
-      if (pageResult.error instanceof EntityNotFoundError) {
-        return err(pageResult.error);
-      }
-      return err(new PresentationError(`Failed to get page: ${pageResult.error.message}`));
-    }
-
-    // ページをDTOに変換して返す
-    return ok(toPageDto(pageResult.value.page));
-  }
-
+  getPageById(id: string): Promise<Result<PageDto, ApplicationError>>;
+  
   /**
-   * スラッグでページを取得する
-   * 
+   * スラッグによってページを取得する
    * @param slug ページスラッグ
-   * @returns ページDTOのResult
+   * @returns ページDTOの結果
    */
-  async getPageBySlug(slug: string): Promise<Result<PageDto, PageControllerError>> {
-    // スラッグの検証
-    if (!slug) {
-      return err(new PresentationError("Page slug is required"));
-    }
-
-    // クエリを実行
-    const query: GetPageBySlugQuery = { slug };
-    const pageResult = await this.getPageBySlugQueryHandler.execute(query);
-
-    // エラーハンドリング
-    if (pageResult.isErr()) {
-      if (pageResult.error instanceof EntityNotFoundError) {
-        return err(pageResult.error);
-      }
-      return err(new PresentationError(`Failed to get page: ${pageResult.error.message}`));
-    }
-
-    // ページをDTOに変換して返す
-    return ok(toPageDto(pageResult.value.page));
-  }
-
+  getPageBySlug(slug: string): Promise<Result<PageDto, ApplicationError>>;
+  
   /**
-   * コンテンツIDでページを取得する
-   * 
-   * @param contentId コンテンツID
-   * @returns ページDTOのResult
+   * ページを作成する
+   * @param dto ページDTO
+   * @returns 作成されたページDTOの結果
    */
-  async getPageByContentId(contentId: string): Promise<Result<PageDto, PageControllerError>> {
-    // コンテンツIDの検証
-    if (!contentId) {
-      return err(new PresentationError("Content ID is required"));
+  createPage(dto: Partial<PageDto>): Promise<Result<PageDto, ApplicationError>>;
+  
+  /**
+   * ページを更新する
+   * @param id ページID
+   * @param dto ページDTO
+   * @returns 更新されたページDTOの結果
+   */
+  updatePage(id: string, dto: Partial<PageDto>): Promise<Result<PageDto, ApplicationError>>;
+  
+  /**
+   * ページを削除する
+   * @param id ページID
+   * @returns 削除が成功したかどうかの結果
+   */
+  deletePage(id: string): Promise<Result<boolean, ApplicationError>>;
+}
+
+/**
+ * ページコントローラーの実装
+ */
+export class PageControllerImpl implements PageController {
+  private readonly pageRepository: PageRepository;
+  private readonly getPageByIdQueryHandler: GetPageByIdQueryHandler;
+  private readonly getPageBySlugQueryHandler: GetPageBySlugQueryHandler;
+  
+  /**
+   * コンストラクタ
+   * @param pageRepository ページリポジトリ
+   * @param getPageByIdQueryHandler IDによるページ取得クエリハンドラー
+   * @param getPageBySlugQueryHandler スラッグによるページ取得クエリハンドラー
+   */
+  constructor(
+    pageRepository: PageRepository,
+    getPageByIdQueryHandler: GetPageByIdQueryHandler,
+    getPageBySlugQueryHandler: GetPageBySlugQueryHandler
+  ) {
+    this.pageRepository = pageRepository;
+    this.getPageByIdQueryHandler = getPageByIdQueryHandler;
+    this.getPageBySlugQueryHandler = getPageBySlugQueryHandler;
+  }
+  
+  /**
+   * IDによってページを取得する
+   * @param id ページID
+   * @returns ページDTOの結果
+   */
+  async getPageById(id: string): Promise<Result<PageDto, ApplicationError>> {
+    try {
+      const query: GetPageByIdQuery = { id };
+      const result = await this.getPageByIdQueryHandler.execute(query);
+      
+      return result.map(page => toPageDto(page));
+    } catch (error) {
+      return err(new ApplicationError(`ページの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
-
-    // クエリを実行
-    const query: GetPageByContentIdQuery = { contentId };
-    const pageResult = await this.getPageByContentIdQueryHandler.execute(query);
-
-    // エラーハンドリング
-    if (pageResult.isErr()) {
-      if (pageResult.error instanceof EntityNotFoundError) {
-        return err(pageResult.error);
-      }
-      return err(new PresentationError(`Failed to get page: ${pageResult.error.message}`));
+  }
+  
+  /**
+   * スラッグによってページを取得する
+   * @param slug ページスラッグ
+   * @returns ページDTOの結果
+   */
+  async getPageBySlug(slug: string): Promise<Result<PageDto, ApplicationError>> {
+    try {
+      const query: GetPageBySlugQuery = { slug };
+      const result = await this.getPageBySlugQueryHandler.execute(query);
+      
+      return result.map(page => toPageDto(page));
+    } catch (error) {
+      return err(new ApplicationError(`ページの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`));
     }
-
-    // ページをDTOに変換して返す
-    return ok(toPageDto(pageResult.value.page));
+  }
+  
+  /**
+   * ページを作成する
+   * @param dto ページDTO
+   * @returns 作成されたページDTOの結果
+   */
+  createPage(dto: Partial<PageDto>): Promise<Result<PageDto, ApplicationError>> {
+    // 実装はここに記述
+    throw new Error("Method not implemented.");
+  }
+  
+  /**
+   * ページを更新する
+   * @param id ページID
+   * @param dto ページDTO
+   * @returns 更新されたページDTOの結果
+   */
+  updatePage(id: string, dto: Partial<PageDto>): Promise<Result<PageDto, ApplicationError>> {
+    // 実装はここに記述
+    throw new Error("Method not implemented.");
+  }
+  
+  /**
+   * ページを削除する
+   * @param id ページID
+   * @returns 削除が成功したかどうかの結果
+   */
+  deletePage(id: string): Promise<Result<boolean, ApplicationError>> {
+    // 実装はここに記述
+    throw new Error("Method not implemented.");
   }
 } 

@@ -8,6 +8,15 @@ import { describe, it, beforeEach } from "@std/testing/bdd";
 import { AuthService, AuthResult, TokenVerificationResult } from "./auth-service.ts";
 import { AtIdentifier, createAtIdentifier } from "../value-objects/mod.ts";
 import { UserAggregate } from "../aggregates/mod.ts";
+import { Result, ok, err } from "npm:neverthrow";
+
+// OAuthエラークラスの定義
+class OAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OAuthError";
+  }
+}
 
 // モックのATプロトコルクライアント
 interface AtProtocolClient {
@@ -36,25 +45,25 @@ describe("AuthService", () => {
   beforeEach(() => {
     // モックの実装
     mockAtProtocolClient = {
-      exchangeAuthCode: async (authCode: string) => {
+      exchangeAuthCode: (authCode: string) => {
         if (authCode === "valid-code") {
-          return {
+          return Promise.resolve({
             success: true,
             accessToken: "mock-access-token"
-          };
+          });
         } else {
-          return {
+          return Promise.resolve({
             success: false,
             error: "無効な認証コード"
-          };
+          });
         }
       },
-      getUserInfo: async (accessToken: string) => {
+      getUserInfo: (accessToken: string) => {
         if (accessToken === "mock-access-token") {
-          return {
+          return Promise.resolve({
             did: "did:plc:abcdefghijklmnopqrstuvwxyz",
             handle: "@test.bsky.social"
-          };
+          });
         } else {
           throw new Error("無効なアクセストークン");
         }
@@ -62,11 +71,12 @@ describe("AuthService", () => {
     };
 
     mockUserRepository = {
-      findByAtIdentifier: async (did: string) => {
-        return null; // 新規ユーザーを想定
+      findByAtIdentifier: (did: string) => {
+        return Promise.resolve(null); // ユーザーが存在しない
       },
-      findById: async (id: string) => {
-        return null;
+      
+      findById: (id: string) => {
+        return Promise.resolve(null); // ユーザーが存在しない
       }
     };
 
@@ -118,16 +128,16 @@ describe("AuthService", () => {
         }
       },
       
-      verifyToken: async (token: string): Promise<TokenVerificationResult> => {
+      verifyToken: (token: string): Promise<TokenVerificationResult> => {
         if (token === "mock-jwt-token") {
-          return {
+          return Promise.resolve({
             valid: true,
             userId: "mock-user-id"
-          };
+          });
         } else {
-          return {
+          return Promise.resolve({
             valid: false
-          };
+          });
         }
       }
     };
@@ -186,5 +196,69 @@ describe("AuthService", () => {
     // Assert
     expect(result.valid).toBe(false);
     expect(result.userId).toBeUndefined();
+  });
+
+  it("認証コードを交換してユーザー情報を取得できる", () => {
+    // モックの作成
+    const mockOAuthAdapter = {
+      exchangeAuthCode: (authCode: string) => {
+        if (authCode === "valid-code") {
+          return Promise.resolve(ok({
+            accessToken: "test-access-token",
+            refreshToken: "test-refresh-token",
+            expiresIn: 3600,
+            tokenType: "Bearer"
+          }));
+        } else {
+          return Promise.resolve(err(new OAuthError("Invalid auth code")));
+        }
+      },
+      
+      getUserInfo: (accessToken: string) => {
+        if (accessToken === "test-access-token") {
+          return Promise.resolve(ok({
+            id: "test-user-id",
+            name: "Test User",
+            email: "test@example.com",
+            did: "did:plc:test123",
+            handle: "@test.bsky.social"
+          }));
+        } else {
+          return Promise.resolve(err(new OAuthError("Invalid access token")));
+        }
+      }
+    };
+    
+    const mockUserRepository = {
+      findByAtIdentifier: (did: string) => {
+        return Promise.resolve(null); // ユーザーが存在しない
+      },
+      
+      findById: (id: string) => {
+        return Promise.resolve(null); // ユーザーが存在しない
+      }
+    };
+
+    // ... existing code ...
+  });
+
+  it("トークンを検証できる", () => {
+    // モックの作成
+    const mockTokenService = {
+      verifyToken: (token: string): Promise<TokenVerificationResult> => {
+        if (token === "valid-token") {
+          return Promise.resolve({
+            valid: true,
+            userId: "test-user-id"
+          });
+        } else {
+          return Promise.resolve({
+            valid: false
+          });
+        }
+      }
+    };
+
+    // ... existing code ...
   });
 }); 

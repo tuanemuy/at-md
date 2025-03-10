@@ -1,6 +1,6 @@
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
-import { Repository, RepositoryParams, createRepository } from "./repository.ts";
+import { Repository, RepositoryParams, RepositoryStatus, createRepository } from "./repository.ts";
 
 describe("Repositoryエンティティ", () => {
   it("すべてのプロパティを指定して作成できること", () => {
@@ -135,10 +135,31 @@ describe("Repositoryエンティティ", () => {
         owner: "test-owner",
         defaultBranch: "main",
         lastSyncedAt: new Date(),
-        status: "invalid-status" as any,
+        // 型チェックをバイパスするために型アサーションを使用
+        status: "invalid-status" as unknown as RepositoryStatus,
         createdAt: new Date(),
         updatedAt: new Date()
       });
     }).toThrow("無効なステータスです");
+  });
+
+  it("無効なステータスの場合はエラーをスローする", () => {
+    const repository = createRepository({
+      id: "repo-1",
+      userId: "user-1",
+      name: "test-repo",
+      owner: "test-owner",
+      defaultBranch: "main",
+      lastSyncedAt: new Date(),
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // 無効なステータスを設定しようとするとエラーになる
+    expect(() => {
+      // 型チェックをバイパスするために型アサーションを使用
+      repository.changeStatus("invalid-status" as unknown as RepositoryStatus);
+    }).toThrow();
   });
 }); 

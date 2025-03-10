@@ -1,11 +1,12 @@
 /**
- * ユニットオブワークパターンのインターフェース
+ * ユニットオブワークインターフェース
  * 
- * 複数のリポジトリ操作を一つのトランザクションで実行するためのインターフェース
+ * トランザクション管理のためのインターフェース
  */
 
-import { Result } from "../../deps.ts";
-import { InfrastructureError } from "../../core/errors/base.ts";
+import { Result } from "./deps.ts";
+import { InfrastructureError } from "./deps.ts";
+import type { TransactionContext } from "./deps.ts";
 
 /**
  * トランザクションエラー
@@ -14,17 +15,6 @@ export class TransactionError extends InfrastructureError {
   constructor(message: string) {
     super(`トランザクション処理に失敗しました: ${message}`);
   }
-}
-
-/**
- * トランザクションコンテキスト
- * トランザクション内で使用するコンテキスト
- */
-export interface TransactionContext {
-  /**
-   * トランザクションID
-   */
-  readonly id: string;
 }
 
 /**

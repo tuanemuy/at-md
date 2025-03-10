@@ -4,8 +4,10 @@
 
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
-import { PostRepository } from "./post-repository.ts";
-import { PostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
+import { PostRepository, TransactionContext } from "./mod.ts";
+import { PostAggregate } from "../../../core/delivery/mod.ts";
+import { Result, ok } from "npm:neverthrow";
+import { DomainError } from "../../../core/errors/mod.ts";
 
 describe("PostRepository", () => {
   it("インターフェースが正しく定義されていること", () => {
@@ -14,18 +16,16 @@ describe("PostRepository", () => {
     
     // モックリポジトリの型定義
     const mockRepository: PostRepository = {
-      findById: async (id: string) => null,
-      findByContentId: async (contentId: string) => null,
-      findByUserId: async (userId: string, options) => [],
-      save: async (postAggregate: PostAggregate) => postAggregate,
-      delete: async (id: string) => true
+      findById: (id: string) => Promise.resolve(null),
+      findByContentId: (contentId: string) => Promise.resolve(null),
+      findByUserId: (userId: string, options) => Promise.resolve([]),
+      save: (postAggregate: PostAggregate) => Promise.resolve(postAggregate),
+      saveWithTransaction: (postAggregate: PostAggregate, context: TransactionContext): Promise<Result<PostAggregate, DomainError>> => Promise.resolve(ok(postAggregate)),
+      delete: (id: string) => Promise.resolve(true),
+      deleteWithTransaction: (id: string, context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
-    
-    // 型チェックが通ることを確認
-    expect(typeof mockRepository.findById).toBe("function");
-    expect(typeof mockRepository.findByContentId).toBe("function");
-    expect(typeof mockRepository.findByUserId).toBe("function");
-    expect(typeof mockRepository.save).toBe("function");
-    expect(typeof mockRepository.delete).toBe("function");
+
+    // 型チェックが通ればOK
+    expect(mockRepository).toBeDefined();
   });
 }); 

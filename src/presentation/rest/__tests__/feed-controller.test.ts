@@ -2,385 +2,338 @@
  * フィードコントローラーのテスト
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
-import { Hono } from "hono";
-import { err, ok } from "neverthrow";
+import { assertEquals } from "https://deno.land/std/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std/testing/bdd.ts";
+import { spy, assertSpyCalls } from "https://deno.land/std/testing/mock.ts";
 
-// モック
-import { FeedRepository } from "../../../application/delivery/repositories/feed-repository.ts";
-import { EntityNotFoundError } from "../../../core/errors/application.ts";
-import { 
-  FeedAggregate, 
-  createFeedAggregate 
-} from "../../../core/delivery/aggregates/feed-aggregate.ts";
-import { createFeed } from "../../../core/delivery/entities/feed.ts";
-import { createFeedMetadata } from "../../../core/delivery/value-objects/feed-metadata.ts";
+import {
+  Result,
+  ok,
+  err,
+  ApplicationError,
+  EntityNotFoundError,
+  createNewFeedAggregate,
+  type FeedAggregate,
+  type Feed,
+  type FeedMetadata,
+  type FeedRepository
+} from "./deps.ts";
 
-// テスト対象のインターフェース
-interface FeedController {
-  getFeedById(c: any): Promise<Response>;
-  getFeedsByUserId(c: any): Promise<Response>;
-  createFeed(c: any): Promise<Response>;
-}
-
-// モッククエリハンドラーとコマンドハンドラー
-interface GetFeedByIdQueryHandler {
-  execute(query: { name: string; id: string }): Promise<any>;
-}
-
-interface GetFeedsByUserIdQueryHandler {
-  execute(query: { name: string; userId: string; limit?: number; offset?: number }): Promise<any>;
-}
-
-interface CreateFeedCommandHandler {
-  execute(command: { 
-    name: string; 
-    userId: string; 
-    feedName: string; 
-    description?: string; 
-    tags?: string[]; 
-    isPublic?: boolean 
-  }): Promise<any>;
-}
-
-// モックフィードリポジトリ
-class MockFeedRepository implements FeedRepository {
-  private feeds: Map<string, FeedAggregate> = new Map();
-  
-  constructor() {
-    // テスト用のフィードを追加
-    const feed = createFeed({
-      id: "feed-1",
-      userId: "user-1",
-      name: "テストフィード",
-      metadata: createFeedMetadata({
-        type: "personal",
-        language: "ja"
-      }),
-      postIds: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    
-    const feedAggregate = createFeedAggregate({ feed });
-    this.feeds.set(feed.id, feedAggregate);
-  }
-  
-  async findById(id: string): Promise<FeedAggregate | null> {
-    return this.feeds.get(id) || null;
-  }
-  
-  async findByUserId(userId: string, options?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<FeedAggregate[]> {
-    const results: FeedAggregate[] = [];
-    for (const feed of this.feeds.values()) {
-      if (feed.feed.userId === userId) {
-        results.push(feed);
-      }
-    }
-    return results;
-  }
-  
-  async findByName(userId: string, name: string): Promise<FeedAggregate | null> {
-    for (const feed of this.feeds.values()) {
-      if (feed.feed.userId === userId && feed.feed.name === name) {
-        return feed;
-      }
-    }
-    return null;
-  }
-  
-  async save(feedAggregate: FeedAggregate): Promise<FeedAggregate> {
-    this.feeds.set(feedAggregate.feed.id, feedAggregate);
-    return feedAggregate;
-  }
-  
-  async delete(id: string): Promise<boolean> {
-    return this.feeds.delete(id);
-  }
-}
+import { FeedController } from "../controllers/feed-controller.ts";
 
 describe("FeedController", () => {
-  let app: Hono;
-  let feedController: FeedController;
-  let mockFeedRepository: MockFeedRepository;
-  let getFeedByIdQueryHandler: GetFeedByIdQueryHandler;
-  let getFeedsByUserIdQueryHandler: GetFeedsByUserIdQueryHandler;
-  let createFeedCommandHandler: CreateFeedCommandHandler;
+  let feedRepository: FeedRepository;
+  let controller: FeedController;
   
   beforeEach(() => {
-    // モックリポジトリの初期化
-    mockFeedRepository = new MockFeedRepository();
+    // モックリポジトリの作成
+    feedRepository = {
+      findById: spy(() => Promise.resolve(null)),
+      findBySlug: spy(() => Promise.resolve(null)),
+      findByUserId: spy((_userId: string, _options?: { limit?: number; offset?: number; }) => Promise.resolve([])),
+      save: spy((feed: FeedAggregate) => Promise.resolve(feed)),
+      delete: spy(() => Promise.resolve(true))
+    } as unknown as FeedRepository;
     
-    // クエリハンドラーの初期化
-    getFeedByIdQueryHandler = {
-      execute: async (query) => {
-        const feed = await mockFeedRepository.findById(query.id);
-        if (!feed) {
-          return err(new EntityNotFoundError("Feed", query.id));
-        }
-        return ok(feed);
-      }
-    };
-    
-    getFeedsByUserIdQueryHandler = {
-      execute: async (query) => {
-        const feeds = await mockFeedRepository.findByUserId(query.userId, {
-          limit: query.limit,
-          offset: query.offset
-        });
-        return ok(feeds);
-      }
-    };
-    
-    // コマンドハンドラーの初期化
-    createFeedCommandHandler = {
-      execute: async (command) => {
-        // 同じ名前のフィードが存在するか確認
-        const existingFeed = await mockFeedRepository.findByName(command.userId, command.feedName);
-        
-        if (existingFeed) {
-          return err(new Error(`同じ名前のフィードが既に存在します`));
-        }
-        
-        // メタデータの作成
-        const metadataProps = {
-          type: "personal" as const,
-          description: command.description,
-          language: "ja",
-        };
-        
-        // フィード集約の作成
-        const feed = createFeed({
-          id: `feed-${Date.now()}`,
-          userId: command.userId,
-          name: command.feedName,
-          metadata: createFeedMetadata(metadataProps),
-          postIds: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-        
-        const feedAggregate = createFeedAggregate({ feed });
-        
-        // フィードの保存
-        const savedFeed = await mockFeedRepository.save(feedAggregate);
-        
-        return ok(savedFeed);
-      }
-    };
-    
-    // モックコントローラーの作成（実装前のテスト用）
-    feedController = {
-      async getFeedById(c) {
-        const id = c.req.param("id");
-        
-        if (!id) {
-          return c.json({ error: "フィードIDが指定されていません" }, 400);
-        }
-        
-        const result = await getFeedByIdQueryHandler.execute({ name: "GetFeedById", id });
-        
-        if (result.isErr()) {
-          if (result.error instanceof EntityNotFoundError) {
-            return c.json({ error: result.error.message }, 404);
-          }
-          return c.json({ error: result.error.message }, 500);
-        }
-        
-        return c.json(result.value.feed);
-      },
-      
-      async getFeedsByUserId(c) {
-        const userId = c.req.param("userId");
-        
-        if (!userId) {
-          return c.json({ error: "ユーザーIDが指定されていません" }, 400);
-        }
-        
-        const result = await getFeedsByUserIdQueryHandler.execute({ 
-          name: "GetFeedsByUserId", 
-          userId,
-          limit: Number(c.req.query("limit")) || undefined,
-          offset: Number(c.req.query("offset")) || undefined
-        });
-        
-        if (result.isErr()) {
-          return c.json({ error: result.error.message }, 500);
-        }
-        
-        return c.json(result.value.map((feed: FeedAggregate) => feed.feed));
-      },
-      
-      async createFeed(c) {
-        try {
-          const body = await c.req.json();
-          
-          if (!body.userId || !body.name) {
-            return c.json({ error: "ユーザーIDとフィード名は必須です" }, 400);
-          }
-          
-          const result = await createFeedCommandHandler.execute({
-            name: "CreateFeed",
-            userId: body.userId,
-            feedName: body.name,
-            description: body.description || "",
-            tags: body.tags || [],
-            isPublic: body.isPublic !== undefined ? body.isPublic : false
-          });
-          
-          if (result.isErr()) {
-            return c.json({ error: result.error.message }, 400);
-          }
-          
-          return c.json(result.value.feed, 201);
-        } catch (error) {
-          return c.json({ error: "リクエストの解析に失敗しました" }, 400);
-        }
-      }
-    };
-    
-    // Honoアプリの初期化
-    app = new Hono();
-    app.get("/feeds/:id", (c) => feedController.getFeedById(c));
-    app.get("/users/:userId/feeds", (c) => feedController.getFeedsByUserId(c));
-    app.post("/feeds", (c) => feedController.createFeed(c));
+    // コントローラーの作成
+    controller = new FeedController(feedRepository);
   });
   
   describe("getFeedById", () => {
-    it("存在するIDの場合、フィードを返すこと", async () => {
-      // リクエストの実行
-      const res = await app.request("/feeds/feed-1");
+    it("存在するIDの場合はフィードを返す", async () => {
+      // テスト用のフィードを作成
+      const testFeed = createNewFeedAggregate({
+        id: "test-feed-id",
+        userId: "test-user-id",
+        name: "テストフィード",
+        description: "テストフィードの説明",
+        metadata: {
+          keywords: ["test", "feed"]
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      // レスポンスの検証
-      expect(res.status).toBe(200);
+      (feedRepository.findById as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.resolve(testFeed));
       
-      const body = await res.json();
-      expect(body.id).toBeDefined();
-      expect(body.id).toBe("feed-1");
-      expect(body.name).toBe("テストフィード");
+      // コントローラーのメソッドを呼び出す
+      const result = await controller.getFeedById("test-feed-id");
+      
+      // 結果を検証
+      assertEquals(result.isOk(), true);
+      
+      // リポジトリのメソッドが正しく呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
+      
+      // 結果のフィードを検証
+      result.map(feed => {
+        assertEquals(feed.id, "test-feed-id");
+        assertEquals(feed.title, "テストフィード");
+      });
     });
     
-    it("存在しないIDの場合、404エラーを返すこと", async () => {
-      // リクエストの実行
-      const res = await app.request("/feeds/non-existent-id");
+    it("存在しないIDの場合はエラーを返す", async () => {
+      // テスト実行
+      const result = await controller.getFeedById("non-existent-id");
       
-      // レスポンスの検証
-      expect(res.status).toBe(404);
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
       
-      const body = await res.json();
-      expect(body.error).toBeDefined();
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof EntityNotFoundError, true);
+      }
+    });
+    
+    it("リポジトリがエラーを投げた場合はエラーを返す", async () => {
+      // リポジトリがエラーを投げるようにモックを設定
+      const testError = new Error("テストエラー");
+      (feedRepository.findById as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.reject(testError));
+      
+      // テスト実行
+      const result = await controller.getFeedById("test-feed-id");
+      
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof ApplicationError, true);
+      }
     });
   });
   
-  describe("getFeedsByUserId", () => {
-    it("ユーザーIDに一致するフィードを返すこと", async () => {
-      // リクエストの実行
-      const res = await app.request("/users/user-1/feeds");
+  describe("getFeedBySlug", () => {
+    it("スラッグによってフィードを取得できる", async () => {
+      // モックの戻り値を設定
+      const testFeed = createNewFeedAggregate({
+        id: "test-feed-id",
+        slug: "test-feed",
+        title: "テストフィード",
+        description: "テストフィードの説明",
+        metadata: {
+          keywords: ["test", "feed"]
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      // レスポンスの検証
-      expect(res.status).toBe(200);
+      (feedRepository.findBySlug as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.resolve(testFeed));
       
-      const body = await res.json();
-      expect(Array.isArray(body)).toBe(true);
-      expect(body.length).toBe(1);
-      expect(body[0].id).toBe("feed-1");
-      expect(body[0].name).toBe("テストフィード");
+      // テスト実行
+      const result = await controller.getFeedBySlug("test-feed");
+      
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findBySlug as unknown as ReturnType<typeof spy>, 1);
+      
+      // 結果を検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        assertEquals(result.value.id, "test-feed-id");
+        assertEquals(result.value.slug, "test-feed");
+        assertEquals(result.value.title, "テストフィード");
+      }
     });
     
-    it("存在しないユーザーIDの場合、空配列を返すこと", async () => {
-      // リクエストの実行
-      const res = await app.request("/users/non-existent-user/feeds");
+    it("存在しないスラッグの場合はエラーを返す", async () => {
+      // テスト実行
+      const result = await controller.getFeedBySlug("non-existent-slug");
       
-      // レスポンスの検証
-      expect(res.status).toBe(200);
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findBySlug as unknown as ReturnType<typeof spy>, 1);
       
-      const body = await res.json();
-      expect(Array.isArray(body)).toBe(true);
-      expect(body.length).toBe(0);
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof EntityNotFoundError, true);
+      }
     });
   });
   
   describe("createFeed", () => {
-    it("有効なデータの場合、フィードを作成して返すこと", async () => {
-      // リクエストデータ
-      const requestData = {
-        userId: "user-1",
+    it("有効なデータでフィードを作成する", async () => {
+      // テスト用のフィードデータ
+      const feedData = {
+        userId: "test-user-id",
         name: "新しいフィード",
-        description: "新しく作成されたフィードです。",
-        tags: ["new", "feed"],
+        description: "新しいフィードの説明",
         isPublic: true
       };
       
-      // リクエストの実行
-      const res = await app.request("/feeds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestData)
+      // 作成されるフィードを模擬
+      const createdFeed = createNewFeedAggregate({
+        id: "new-feed-id",
+        userId: feedData.userId,
+        name: feedData.name,
+        description: feedData.description,
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       
-      // レスポンスの検証
-      expect(res.status).toBe(201);
+      // リポジトリのモックを設定
+      (feedRepository.save as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.resolve(createdFeed));
       
-      const body = await res.json();
-      expect(body.id).toBeDefined();
-      expect(body.name).toBe("新しいフィード");
-    });
-    
-    it("既存の名前の場合、エラーを返すこと", async () => {
-      // リクエストデータ（既存の名前を使用）
-      const requestData = {
-        userId: "user-1",
-        name: "テストフィード", // 既存の名前
-        description: "既存の名前を使用したフィードです。",
-        tags: ["duplicate"],
-        isPublic: true
-      };
+      // テスト実行
+      const result = await controller.createFeed(feedData);
       
-      // リクエストの実行
-      const res = await app.request("/feeds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestData)
+      // 結果を検証
+      assertEquals(result.isOk(), true);
+      
+      // リポジトリのメソッドが正しく呼び出されたことを確認
+      assertSpyCalls(feedRepository.save as unknown as ReturnType<typeof spy>, 1);
+      
+      // 結果のフィードを検証
+      result.map(feed => {
+        assertEquals(feed.id, "new-feed-id");
+        assertEquals(feed.userId, "test-user-id");
+        assertEquals(feed.name, "新しいフィード");
       });
-      
-      // レスポンスの検証
-      expect(res.status).toBe(400);
-      
-      const body = await res.json();
-      expect(body.error).toBeDefined();
     });
     
-    it("必須フィールドが欠けている場合、エラーを返すこと", async () => {
-      // 必須フィールドが欠けているリクエストデータ
-      const requestData = {
+    it("必須フィールドが欠けている場合はエラーを返す", async () => {
+      // 不完全なデータ
+      const incompleteData = {
         // userIdが欠けている
-        name: "不完全なフィード",
-        description: "必須フィールドが欠けているフィードです。",
-        isPublic: true
+        name: "新しいフィード"
       };
       
-      // リクエストの実行
-      const res = await app.request("/feeds", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+      // テスト実行
+      const result = await controller.createFeed(incompleteData);
+      
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof ValidationError, true);
+      }
+    });
+    
+    it("リポジトリがエラーを投げた場合はエラーを返す", async () => {
+      // テスト用のフィードデータ
+      const feedData = {
+        userId: "test-user-id",
+        name: "新しいフィード",
+        description: "新しいフィードの説明"
+      };
+      
+      // リポジトリがエラーを投げるようにモックを設定
+      const testError = new Error("テストエラー");
+      (feedRepository.save as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.reject(testError));
+      
+      // テスト実行
+      const result = await controller.createFeed(feedData);
+      
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof ApplicationError, true);
+      }
+    });
+  });
+  
+  describe("updateFeed", () => {
+    it("既存のフィードを更新できる", async () => {
+      // モックの戻り値を設定
+      const testFeed = createNewFeedAggregate({
+        id: "test-feed-id",
+        slug: "test-feed",
+        title: "テストフィード",
+        description: "テストフィードの説明",
+        metadata: {
+          keywords: ["test", "feed"]
         },
-        body: JSON.stringify(requestData)
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       
-      // レスポンスの検証
-      expect(res.status).toBe(400);
+      (feedRepository.findById as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.resolve(testFeed));
       
-      const body = await res.json();
-      expect(body.error).toBeDefined();
+      // テスト用のDTOを作成
+      const dto = {
+        title: "更新されたフィード",
+        description: "更新されたフィードの説明"
+      };
+      
+      // テスト実行
+      const result = await controller.updateFeed("test-feed-id", dto);
+      
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
+      assertSpyCalls(feedRepository.save as unknown as ReturnType<typeof spy>, 1);
+      
+      // 結果を検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        assertEquals(result.value.id, "test-feed-id");
+        assertEquals(result.value.title, "更新されたフィード");
+        assertEquals(result.value.description, "更新されたフィードの説明");
+      }
+    });
+    
+    it("存在しないIDの場合はエラーを返す", async () => {
+      // テスト用のDTOを作成
+      const dto = {
+        title: "更新されたフィード"
+      };
+      
+      // テスト実行
+      const result = await controller.updateFeed("non-existent-id", dto);
+      
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
+      assertSpyCalls(feedRepository.save as unknown as ReturnType<typeof spy>, 0);
+      
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof EntityNotFoundError, true);
+      }
+    });
+  });
+  
+  describe("deleteFeed", () => {
+    it("フィードを削除できる", async () => {
+      // モックの戻り値を設定
+      const testFeed = createNewFeedAggregate({
+        id: "test-feed-id",
+        slug: "test-feed",
+        title: "テストフィード",
+        description: "テストフィードの説明",
+        metadata: {
+          keywords: ["test", "feed"]
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      (feedRepository.findById as unknown as ReturnType<typeof spy>).mock.mockImplementation(() => Promise.resolve(testFeed));
+      
+      // テスト実行
+      const result = await controller.deleteFeed("test-feed-id");
+      
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
+      assertSpyCalls(feedRepository.delete as unknown as ReturnType<typeof spy>, 1);
+      
+      // 結果を検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        assertEquals(result.value, true);
+      }
+    });
+    
+    it("存在しないIDの場合はエラーを返す", async () => {
+      // テスト実行
+      const result = await controller.deleteFeed("non-existent-id");
+      
+      // リポジトリが呼び出されたことを確認
+      assertSpyCalls(feedRepository.findById as unknown as ReturnType<typeof spy>, 1);
+      assertSpyCalls(feedRepository.delete as unknown as ReturnType<typeof spy>, 0);
+      
+      // 結果を検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof EntityNotFoundError, true);
+      }
     });
   });
 }); 

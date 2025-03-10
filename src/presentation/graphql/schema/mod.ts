@@ -4,7 +4,7 @@
  * 各ドメインのスキーマを統合して提供します。
  */
 
-import { default as gql } from "graphql-tag";
+import { gql, makeExecutableSchema } from "../deps.ts";
 
 // 基本的な型定義
 const baseTypeDefs = gql`

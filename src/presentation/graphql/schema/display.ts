@@ -4,7 +4,7 @@
  * 表示関連の型定義とクエリ、ミューテーションを定義します。
  */
 
-import { default as gql } from "graphql-tag";
+import { gql } from "../deps.ts";
 
 export const displayTypeDefs = gql`
   extend type Query {

@@ -1,5 +1,5 @@
-import { InvalidContentStateError } from "../../errors/domain.ts";
 import { PageMetadata } from "../value-objects/page-metadata.ts";
+import { DomainError, InvalidContentStateError } from "../../errors/mod.ts";
 
 /**
  * ページエンティティ

@@ -1,426 +1,502 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std/assert/mod.ts";
-import { spy } from "https://deno.land/std/testing/mock.ts";
-import { ok, err } from "neverthrow";
+/**
+ * ページコントローラーのテスト
+ */
 
-// ドメインモデルのインポートはテスト実行時に必要になるため、コメントアウトしておきます
-// import { PageAggregate } from "../../../../domain/display/aggregates/page-aggregate.ts";
-// import { Page } from "../../../../domain/display/entities/page.ts";
-// import { PageMetadata } from "../../../../domain/display/value-objects/page-metadata.ts";
-// import { PageRepository } from "../../../../domain/display/repositories/page-repository.ts";
-// import { GetPageByIdQueryHandler } from "../../../../application/display/queries/get-page-by-id-query.ts";
-// import { GetPageBySlugQueryHandler } from "../../../../application/display/queries/get-page-by-slug-query.ts";
-// import { GetPageByContentIdQueryHandler } from "../../../../application/display/queries/get-page-by-content-id-query.ts";
+import { assertEquals, assertRejects } from "https://deno.land/std/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std/testing/bdd.ts";
+import { spy, assertSpyCalls } from "https://deno.land/std/testing/mock.ts";
 
-interface PageController {
-  getPageById(c: any): Promise<Response>;
-  getPageBySlug(c: any): Promise<Response>;
-  getPageByContentId(c: any): Promise<Response>;
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError,
+  generateId,
+  type Page,
+  type PageMetadata,
+  type PageAggregate,
+  type PageRepository,
+  type GetPageByIdQuery,
+  type GetPageBySlugQuery,
+  type GetPageByContentIdQuery,
+  GetPageByIdQueryHandler,
+  GetPageBySlugQueryHandler,
+  GetPageByContentIdQueryHandler
+} from "./deps.ts";
+
+// テスト用のPageDtoインターフェース
+interface PageDto {
+  id: string;
+  slug: string;
+  title: string;
+  contentId: string;
+  templateId: string;
+  metadata: PageMetadata;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-interface GetPageByIdQueryHandler {
-  execute(query: { name: string; id: string }): Promise<any>;
+// トランザクションコンテキスト型
+interface TransactionContext {
+  id: string;
 }
 
-interface GetPageBySlugQueryHandler {
-  execute(query: { name: string; slug: string }): Promise<any>;
-}
+// テスト用のPageAggregateスタブ
+class PageAggregateStub {
+  constructor(
+    public readonly id: string,
+    public readonly contentId: string,
+    public readonly slug: string,
+    public readonly title: string,
+    public readonly content: string,
+    public readonly templateId: string,
+    public readonly metadata: PageMetadata,
+    public readonly createdAt: Date,
+    public readonly updatedAt: Date
+  ) {}
 
-interface GetPageByContentIdQueryHandler {
-  execute(query: { name: string; contentId: string }): Promise<any>;
-}
-
-interface PageRepository {
-  findById(id: string): Promise<any | null>;
-  findBySlug(slug: string): Promise<any | null>;
-  findByContentId(contentId: string): Promise<any | null>;
-  findByUserId(userId: string, options?: { limit?: number; offset?: number }): Promise<any[]>;
-  save(pageAggregate: any): Promise<any>;
-  delete(id: string): Promise<boolean>;
-}
-
-class MockPageRepository implements PageRepository {
-  private pages: Map<string, any> = new Map();
-
-  constructor() {
-    // テスト用のデータを初期化
-    const page1 = this.createMockPageAggregate({
-      id: "page-1",
-      userId: "user-1",
-      title: "テストページ1",
-      slug: "test-page-1",
-      contentId: "content-1",
-      templateId: "template-1",
-      isPublic: true,
-    });
-
-    const page2 = this.createMockPageAggregate({
-      id: "page-2",
-      userId: "user-1",
-      title: "テストページ2",
-      slug: "test-page-2",
-      contentId: "content-2",
-      templateId: "template-1",
-      isPublic: false,
-    });
-
-    this.pages.set("page-1", page1);
-    this.pages.set("page-2", page2);
-  }
-
-  private createMockPageAggregate(params: {
+  get page(): {
     id: string;
-    userId: string;
-    title: string;
-    slug: string;
     contentId: string;
+    slug: string;
+    title: string;
+    content: string;
     templateId: string;
-    isPublic: boolean;
-  }): any {
-    const page = {
-      id: params.id,
-      userId: params.userId,
-      title: params.title,
-      slug: params.slug,
-      contentId: params.contentId,
-      templateId: params.templateId,
-      isPublic: params.isPublic,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    const metadata = {
-      title: params.title,
-      description: "テスト説明",
-      keywords: ["テスト", "ページ"],
-      ogImage: "https://example.com/image.jpg",
-    };
-
+    metadata: PageMetadata;
+    createdAt: Date;
+    updatedAt: Date;
+  } {
     return {
-      getPage: () => page,
-      getMetadata: () => metadata,
+      id: this.id,
+      contentId: this.contentId,
+      slug: this.slug,
+      title: this.title,
+      content: this.content,
+      templateId: this.templateId,
+      metadata: this.metadata,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
     };
   }
 
-  async findById(id: string): Promise<any | null> {
-    return this.pages.get(id) || null;
+  updateTitle(_title: string): PageAggregateStub {
+    return this;
   }
 
-  async findBySlug(slug: string): Promise<any | null> {
-    for (const page of this.pages.values()) {
-      if (page.getPage().slug === slug) {
-        return page;
-      }
-    }
-    return null;
+  updateSlug(_slug: string): PageAggregateStub {
+    return this;
   }
 
-  async findByContentId(contentId: string): Promise<any | null> {
-    for (const page of this.pages.values()) {
-      if (page.getPage().contentId === contentId) {
-        return page;
-      }
-    }
-    return null;
-  }
-
-  async findByUserId(userId: string, options?: {
-    limit?: number;
-    offset?: number;
-  }): Promise<any[]> {
-    const result: any[] = [];
-    for (const page of this.pages.values()) {
-      if (page.getPage().userId === userId) {
-        result.push(page);
-      }
-    }
-    return result;
-  }
-
-  async save(pageAggregate: any): Promise<any> {
-    this.pages.set(pageAggregate.getPage().id, pageAggregate);
-    return pageAggregate;
-  }
-
-  async delete(id: string): Promise<boolean> {
-    return this.pages.delete(id);
+  updateMetadata(_metadata: PageMetadata): PageAggregateStub {
+    return this;
   }
 }
 
-Deno.test("PageController", async (t) => {
-  await t.step("getPageById", async (t) => {
-    await t.step("存在するIDの場合、ページを返すこと", async () => {
-      // モックの準備
-      const pageRepository = new MockPageRepository();
-      const getPageByIdQueryHandler = {
-        execute: spy(async (query: { name: string; id: string }) => {
-          const page = await pageRepository.findById(query.id);
-          if (!page) {
-            return err(new Error("Page not found"));
-          }
-          return ok({
-            id: page.getPage().id,
-            userId: page.getPage().userId,
-            title: page.getPage().title,
-            slug: page.getPage().slug,
-            contentId: page.getPage().contentId,
-            templateId: page.getPage().templateId,
-            isPublic: page.getPage().isPublic,
-            metadata: page.getMetadata(),
-            createdAt: page.getPage().createdAt,
-            updatedAt: page.getPage().updatedAt,
-          });
-        }),
-      };
+// テスト用にGetPageByIdQueryの型を定義（拡張ではなく新しい型として定義）
+interface TestGetPageByIdQuery {
+  id: string;
+  name: string;
+}
 
-      // コントローラーの実装
-      const pageController: PageController = {
-        async getPageById(c) {
-          const id = c.req.param("id");
-          const result = await getPageByIdQueryHandler.execute({
-            name: "GetPageById",
-            id,
-          });
+// テスト用にGetPageBySlugQueryの型を定義
+interface TestGetPageBySlugQuery {
+  slug: string;
+  name: string;
+}
 
-          if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
+// テスト用にGetPageByContentIdQueryの型を定義
+interface TestGetPageByContentIdQuery {
+  contentId: string;
+  name: string;
+}
 
-          return new Response(JSON.stringify(result.value), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-        async getPageBySlug() {
-          return new Response();
-        },
-        async getPageByContentId() {
-          return new Response();
-        },
-      };
+// テスト用にPageControllerインターフェースを定義
+interface PageController {
+  getPageById(id: string): Promise<Result<PageDto, ApplicationError>>;
+  getPageBySlug(slug: string): Promise<Result<PageDto, ApplicationError>>;
+  getPageByContentId(contentId: string): Promise<Result<PageDto, ApplicationError>>;
+}
 
-      // テスト実行
-      const context = {
-        req: {
-          param: () => "page-1",
-        },
-      };
+// テスト用にPageControllerImplを定義
+class PageControllerImpl implements PageController {
+  constructor(
+    private readonly getPageByIdQueryHandler: MockGetPageByIdQueryHandler,
+    private readonly getPageBySlugQueryHandler: MockGetPageBySlugQueryHandler,
+    private readonly getPageByContentIdQueryHandler: MockGetPageByContentIdQueryHandler
+  ) {}
 
-      const response = await pageController.getPageById(context);
-      assertEquals(response.status, 200);
+  async getPageById(id: string): Promise<Result<PageDto, ApplicationError>> {
+    if (!id) {
+      return err(new ValidationError("ページIDは必須です", "id"));
+    }
 
-      const body = await response.json();
-      assertEquals(body.id, "page-1");
-      assertEquals(body.title, "テストページ1");
+    // テスト用にクエリオブジェクトを作成
+    const query: TestGetPageByIdQuery = { id, name: "GetPageById" };
+    const result = await this.getPageByIdQueryHandler.execute(query);
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const page = result.value;
+    const pageDto: PageDto = {
+      id: page.page.id,
+      slug: page.page.slug,
+      title: page.page.title,
+      contentId: page.page.contentId,
+      templateId: page.page.templateId,
+      metadata: page.page.metadata,
+      createdAt: page.page.createdAt,
+      updatedAt: page.page.updatedAt
+    };
+
+    return ok(pageDto);
+  }
+
+  async getPageBySlug(slug: string): Promise<Result<PageDto, ApplicationError>> {
+    if (!slug) {
+      return err(new ValidationError("ページスラッグは必須です", "slug"));
+    }
+
+    // テスト用にクエリオブジェクトを作成
+    const query: TestGetPageBySlugQuery = { slug, name: "GetPageBySlug" };
+    const result = await this.getPageBySlugQueryHandler.execute(query);
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const page = result.value;
+    const pageDto: PageDto = {
+      id: page.page.id,
+      slug: page.page.slug,
+      title: page.page.title,
+      contentId: page.page.contentId,
+      templateId: page.page.templateId,
+      metadata: page.page.metadata,
+      createdAt: page.page.createdAt,
+      updatedAt: page.page.updatedAt
+    };
+
+    return ok(pageDto);
+  }
+
+  async getPageByContentId(contentId: string): Promise<Result<PageDto, ApplicationError>> {
+    if (!contentId) {
+      return err(new ValidationError("コンテンツIDは必須です", "contentId"));
+    }
+
+    // テスト用にクエリオブジェクトを作成
+    const query: TestGetPageByContentIdQuery = { contentId, name: "GetPageByContentId" };
+    const result = await this.getPageByContentIdQueryHandler.execute(query);
+    if (result.isErr()) {
+      return err(result.error);
+    }
+
+    const page = result.value;
+    const pageDto: PageDto = {
+      id: page.page.id,
+      slug: page.page.slug,
+      title: page.page.title,
+      contentId: page.page.contentId,
+      templateId: page.page.templateId,
+      metadata: page.page.metadata,
+      createdAt: page.page.createdAt,
+      updatedAt: page.page.updatedAt
+    };
+
+    return ok(pageDto);
+  }
+}
+
+// モックリポジトリの作成
+class MockPageRepository {
+  private pages: Record<string, PageAggregateStub> = {};
+
+  findById(id: string): Promise<PageAggregateStub | null> {
+    return Promise.resolve(this.pages[id] || null);
+  }
+
+  findBySlug(slug: string): Promise<PageAggregateStub | null> {
+    const found = Object.values(this.pages).find(p => p.slug === slug);
+    return Promise.resolve(found || null);
+  }
+
+  findByContentId(contentId: string): Promise<PageAggregateStub | null> {
+    const found = Object.values(this.pages).find(p => p.contentId === contentId);
+    return Promise.resolve(found || null);
+  }
+
+  findAll(): Promise<PageAggregateStub[]> {
+    return Promise.resolve(Object.values(this.pages));
+  }
+
+  save(pageAggregate: PageAggregateStub): Promise<PageAggregateStub> {
+    this.pages[pageAggregate.id] = pageAggregate;
+    return Promise.resolve(pageAggregate);
+  }
+
+  delete(id: string): Promise<boolean> {
+    if (this.pages[id]) {
+      delete this.pages[id];
+      return Promise.resolve(true);
+    }
+    return Promise.resolve(false);
+  }
+
+  saveWithTransaction(pageAggregate: PageAggregateStub, context: TransactionContext): Promise<Result<PageAggregateStub, DomainError>> {
+    this.pages[pageAggregate.id] = pageAggregate;
+    return Promise.resolve(ok(pageAggregate));
+  }
+
+  deleteWithTransaction(id: string, context: TransactionContext): Promise<Result<boolean, DomainError>> {
+    if (this.pages[id]) {
+      delete this.pages[id];
+      return Promise.resolve(ok(true));
+    }
+    return Promise.resolve(ok(false));
+  }
+
+  // テスト用のヘルパーメソッド
+  addPage(page: PageAggregateStub): void {
+    this.pages[page.id] = page;
+  }
+
+  clear(): void {
+    this.pages = {};
+  }
+}
+
+// モッククエリハンドラーの作成
+class MockGetPageByIdQueryHandler {
+  constructor(private repository: MockPageRepository) {}
+
+  async execute(query: TestGetPageByIdQuery): Promise<Result<PageAggregateStub, ApplicationError>> {
+    const page = await this.repository.findById(query.id);
+    
+    if (!page) {
+      return err(new EntityNotFoundError("Page", query.id));
+    }
+    
+    return ok(page);
+  }
+}
+
+class MockGetPageBySlugQueryHandler {
+  constructor(private repository: MockPageRepository) {}
+
+  async execute(query: TestGetPageBySlugQuery): Promise<Result<PageAggregateStub, ApplicationError>> {
+    const page = await this.repository.findBySlug(query.slug);
+    
+    if (!page) {
+      return err(new EntityNotFoundError("Page", query.slug));
+    }
+    
+    return ok(page);
+  }
+}
+
+class MockGetPageByContentIdQueryHandler {
+  constructor(private repository: MockPageRepository) {}
+
+  async execute(query: TestGetPageByContentIdQuery): Promise<Result<PageAggregateStub, ApplicationError>> {
+    const page = await this.repository.findByContentId(query.contentId);
+    
+    if (!page) {
+      return err(new EntityNotFoundError("Page", query.contentId));
+    }
+    
+    return ok(page);
+  }
+}
+
+describe("PageController", () => {
+  let pageRepository: MockPageRepository;
+  let getPageByIdQueryHandler: MockGetPageByIdQueryHandler;
+  let getPageBySlugQueryHandler: MockGetPageBySlugQueryHandler;
+  let getPageByContentIdQueryHandler: MockGetPageByContentIdQueryHandler;
+  let controller: PageController;
+  let testPageId: string;
+
+  beforeEach(() => {
+    // テスト用のリポジトリとハンドラーを作成
+    pageRepository = new MockPageRepository();
+    getPageByIdQueryHandler = new MockGetPageByIdQueryHandler(pageRepository);
+    getPageBySlugQueryHandler = new MockGetPageBySlugQueryHandler(pageRepository);
+    getPageByContentIdQueryHandler = new MockGetPageByContentIdQueryHandler(pageRepository);
+    
+    // コントローラーの作成
+    controller = new PageControllerImpl(
+      getPageByIdQueryHandler,
+      getPageBySlugQueryHandler,
+      getPageByContentIdQueryHandler
+    );
+    
+    // テスト用のページIDを生成
+    testPageId = generateId();
+    
+    // リポジトリをクリア
+    pageRepository.clear();
+  });
+
+  describe("getPageById", () => {
+    it("存在するページIDを指定した場合、ページを返す", async () => {
+      // テスト用のページを作成
+      const testMetadata = {
+        description: "テストページの説明",
+        keywords: ["test", "page"],
+        update: () => ({} as unknown as PageMetadata),
+        equals: () => true
+      } as PageMetadata;
+      
+      // PageAggregateStubを使用してページを作成
+      const page = new PageAggregateStub(
+        testPageId,
+        "content-123",
+        "test-page",
+        "テストページ",
+        "テストコンテンツ",
+        "template-456",
+        testMetadata,
+        new Date(),
+        new Date()
+      );
+      
+      // リポジトリにページを追加
+      pageRepository.addPage(page);
+      
+      // クエリハンドラーのexecuteメソッドをスパイ
+      const executeSpy = spy(getPageByIdQueryHandler, "execute");
+      
+      // ページを取得
+      const result = await controller.getPageById(testPageId);
+      
+      // 検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        const pageDto = result.value;
+        assertEquals(pageDto.id, testPageId);
+        assertEquals(pageDto.slug, "test-page");
+        assertEquals(pageDto.title, "テストページ");
+        assertEquals(pageDto.contentId, "content-123");
+        assertEquals(pageDto.templateId, "template-456");
+      }
+      
+      // クエリハンドラーが正しく呼び出されたことを確認
+      assertSpyCalls(executeSpy, 1);
+      assertEquals(executeSpy.calls[0].args[0].id, testPageId);
     });
 
-    await t.step("存在しないIDの場合、404エラーを返すこと", async () => {
-      // モックの準備
-      const pageRepository = new MockPageRepository();
-      const getPageByIdQueryHandler = {
-        execute: spy(async (query: { name: string; id: string }) => {
-          const page = await pageRepository.findById(query.id);
-          if (!page) {
-            return err(new Error("Page not found"));
-          }
-          return ok({
-            id: page.getPage().id,
-            userId: page.getPage().userId,
-            title: page.getPage().title,
-            slug: page.getPage().slug,
-            contentId: page.getPage().contentId,
-            templateId: page.getPage().templateId,
-            isPublic: page.getPage().isPublic,
-            metadata: page.getMetadata(),
-            createdAt: page.getPage().createdAt,
-            updatedAt: page.getPage().updatedAt,
-          });
-        }),
-      };
-
-      // コントローラーの実装
-      const pageController: PageController = {
-        async getPageById(c) {
-          const id = c.req.param("id");
-          const result = await getPageByIdQueryHandler.execute({
-            name: "GetPageById",
-            id,
-          });
-
-          if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-
-          return new Response(JSON.stringify(result.value), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-        async getPageBySlug() {
-          return new Response();
-        },
-        async getPageByContentId() {
-          return new Response();
-        },
-      };
-
-      // テスト実行
-      const context = {
-        req: {
-          param: () => "non-existent-id",
-        },
-      };
-
-      const response = await pageController.getPageById(context);
-      assertEquals(response.status, 404);
-
-      const body = await response.json();
-      assertEquals(body.error, "Page not found");
+    it("存在しないページIDを指定した場合、エラーを返す", async () => {
+      // クエリハンドラーのexecuteメソッドをスパイ
+      const executeSpy = spy(getPageByIdQueryHandler, "execute");
+      
+      // 存在しないIDでページを取得
+      const result = await controller.getPageById("non-existent-id");
+      
+      // 検証
+      assertEquals(result.isErr(), true);
+      if (result.isErr()) {
+        assertEquals(result.error instanceof EntityNotFoundError, true);
+      }
+      
+      // クエリハンドラーが正しく呼び出されたことを確認
+      assertSpyCalls(executeSpy, 1);
+      assertEquals(executeSpy.calls[0].args[0].id, "non-existent-id");
     });
   });
 
-  await t.step("getPageBySlug", async (t) => {
-    await t.step("存在するスラグの場合、ページを返すこと", async () => {
-      // モックの準備
-      const pageRepository = new MockPageRepository();
-      const getPageBySlugQueryHandler = {
-        execute: spy(async (query: { name: string; slug: string }) => {
-          const page = await pageRepository.findBySlug(query.slug);
-          if (!page) {
-            return err(new Error("Page not found"));
-          }
-          return ok({
-            id: page.getPage().id,
-            userId: page.getPage().userId,
-            title: page.getPage().title,
-            slug: page.getPage().slug,
-            contentId: page.getPage().contentId,
-            templateId: page.getPage().templateId,
-            isPublic: page.getPage().isPublic,
-            metadata: page.getMetadata(),
-            createdAt: page.getPage().createdAt,
-            updatedAt: page.getPage().updatedAt,
-          });
-        }),
-      };
-
-      // コントローラーの実装
-      const pageController: PageController = {
-        async getPageById() {
-          return new Response();
-        },
-        async getPageBySlug(c) {
-          const slug = c.req.param("slug");
-          const result = await getPageBySlugQueryHandler.execute({
-            name: "GetPageBySlug",
-            slug,
-          });
-
-          if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-
-          return new Response(JSON.stringify(result.value), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-        async getPageByContentId() {
-          return new Response();
-        },
-      };
-
-      // テスト実行
-      const context = {
-        req: {
-          param: () => "test-page-1",
-        },
-      };
-
-      const response = await pageController.getPageBySlug(context);
-      assertEquals(response.status, 200);
-
-      const body = await response.json();
-      assertEquals(body.id, "page-1");
-      assertEquals(body.slug, "test-page-1");
+  describe("getPageBySlug", () => {
+    it("存在するスラッグを指定した場合、ページを返す", async () => {
+      // テスト用のページを作成
+      const testMetadata = {
+        description: "テストページの説明",
+        keywords: ["test", "page"],
+        update: () => ({} as unknown as PageMetadata),
+        equals: () => true
+      } as PageMetadata;
+      
+      // PageAggregateStubを使用してページを作成
+      const page = new PageAggregateStub(
+        testPageId,
+        "content-123",
+        "test-slug",
+        "テストページ",
+        "テストコンテンツ",
+        "template-456",
+        testMetadata,
+        new Date(),
+        new Date()
+      );
+      
+      // リポジトリにページを追加
+      pageRepository.addPage(page);
+      
+      // クエリハンドラーのexecuteメソッドをスパイ
+      const executeSpy = spy(getPageBySlugQueryHandler, "execute");
+      
+      // ページを取得
+      const result = await controller.getPageBySlug("test-slug");
+      
+      // 検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        const pageDto = result.value;
+        assertEquals(pageDto.id, testPageId);
+        assertEquals(pageDto.slug, "test-slug");
+        assertEquals(pageDto.title, "テストページ");
+      }
+      
+      // クエリハンドラーが正しく呼び出されたことを確認
+      assertSpyCalls(executeSpy, 1);
+      assertEquals(executeSpy.calls[0].args[0].slug, "test-slug");
     });
   });
 
-  await t.step("getPageByContentId", async (t) => {
-    await t.step("存在するコンテンツIDの場合、ページを返すこと", async () => {
-      // モックの準備
-      const pageRepository = new MockPageRepository();
-      const getPageByContentIdQueryHandler = {
-        execute: spy(async (query: { name: string; contentId: string }) => {
-          const page = await pageRepository.findByContentId(query.contentId);
-          if (!page) {
-            return err(new Error("Page not found"));
-          }
-          return ok({
-            id: page.getPage().id,
-            userId: page.getPage().userId,
-            title: page.getPage().title,
-            slug: page.getPage().slug,
-            contentId: page.getPage().contentId,
-            templateId: page.getPage().templateId,
-            isPublic: page.getPage().isPublic,
-            metadata: page.getMetadata(),
-            createdAt: page.getPage().createdAt,
-            updatedAt: page.getPage().updatedAt,
-          });
-        }),
-      };
-
-      // コントローラーの実装
-      const pageController: PageController = {
-        async getPageById() {
-          return new Response();
-        },
-        async getPageBySlug() {
-          return new Response();
-        },
-        async getPageByContentId(c) {
-          const contentId = c.req.param("contentId");
-          const result = await getPageByContentIdQueryHandler.execute({
-            name: "GetPageByContentId",
-            contentId,
-          });
-
-          if (result.isErr()) {
-            return new Response(JSON.stringify({ error: result.error.message }), {
-              status: 404,
-              headers: { "Content-Type": "application/json" },
-            });
-          }
-
-          return new Response(JSON.stringify(result.value), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-      };
-
-      // テスト実行
-      const context = {
-        req: {
-          param: () => "content-1",
-        },
-      };
-
-      const response = await pageController.getPageByContentId(context);
-      assertEquals(response.status, 200);
-
-      const body = await response.json();
-      assertEquals(body.id, "page-1");
-      assertEquals(body.contentId, "content-1");
+  describe("getPageByContentId", () => {
+    it("存在するコンテンツIDを指定した場合、ページを返す", async () => {
+      // テスト用のページを作成
+      const testMetadata = {
+        description: "テストページの説明",
+        keywords: ["test", "page"],
+        update: () => ({} as unknown as PageMetadata),
+        equals: () => true
+      } as PageMetadata;
+      
+      // PageAggregateStubを使用してページを作成
+      const page = new PageAggregateStub(
+        testPageId,
+        "content-123",
+        "test-page",
+        "テストページ",
+        "テストコンテンツ",
+        "template-456",
+        testMetadata,
+        new Date(),
+        new Date()
+      );
+      
+      // リポジトリにページを追加
+      pageRepository.addPage(page);
+      
+      // クエリハンドラーのexecuteメソッドをスパイ
+      const executeSpy = spy(getPageByContentIdQueryHandler, "execute");
+      
+      // ページを取得
+      const result = await controller.getPageByContentId("content-123");
+      
+      // 検証
+      assertEquals(result.isOk(), true);
+      if (result.isOk()) {
+        const pageDto = result.value;
+        assertEquals(pageDto.id, testPageId);
+        assertEquals(pageDto.contentId, "content-123");
+      }
+      
+      // クエリハンドラーが正しく呼び出されたことを確認
+      assertSpyCalls(executeSpy, 1);
+      assertEquals(executeSpy.calls[0].args[0].contentId, "content-123");
     });
   });
 }); 

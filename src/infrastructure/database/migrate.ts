@@ -1,60 +1,45 @@
 /**
- * データベースマイグレーションスクリプト
+ * データベースマイグレーション
  * 
- * このスクリプトは、drizzle-ormのマイグレーション機能を使用して、
- * データベーススキーマの変更を適用します。
+ * データベーススキーマを作成・更新するためのマイグレーションスクリプト
  */
 
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
-import { Logger } from "../../core/logging/logger.ts";
+import { migrate } from "npm:drizzle-orm/postgres-js/migrator";
+import { db } from "./db.ts";
+import { Logger } from "../../core/logging/mod.ts";
 
-// データベース接続文字列
-const DATABASE_URL = Deno.env.get("DATABASE_URL") || "postgres://test:test@localhost:55432/at-md";
+const logger = new Logger("migrate");
 
 /**
  * マイグレーションを実行する
- * @param migrationsFolder マイグレーションファイルが格納されているフォルダのパス
- * @param databaseUrl データベース接続文字列（省略時は環境変数から取得）
- * @returns マイグレーションが成功したかどうか
  */
-export async function runMigrations(
-  migrationsFolder: string = "./drizzle",
-  databaseUrl: string = DATABASE_URL
-): Promise<boolean> {
-  const logger = new Logger("Migration");
-  logger.info("データベースマイグレーションを開始します");
-  
-  // PostgreSQLクライアントを作成
-  const migrationClient = postgres(databaseUrl, { max: 1 });
+export async function runMigrations() {
+  logger.info("マイグレーションを開始します...");
   
   try {
-    // Drizzleクライアントを作成
-    const db = drizzle(migrationClient);
-    
     // マイグレーションを実行
-    await migrate(db, { migrationsFolder });
-    
-    logger.info("データベースマイグレーションが完了しました");
-    
-    return true;
+    await migrate(db, { migrationsFolder: "./drizzle" });
+    logger.info("マイグレーションが完了しました");
   } catch (error) {
-    logger.error("データベースマイグレーションに失敗しました", { error });
-    return false;
-  } finally {
-    // データベース接続を閉じる
-    await migrationClient.end();
+    logger.error(`マイグレーションエラー: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
   }
 }
 
 /**
- * スクリプトが直接実行された場合の処理
+ * メイン関数
  */
-if (import.meta.main) {
-  const success = await runMigrations();
-  
-  if (!success) {
+async function main() {
+  try {
+    await runMigrations();
+    Deno.exit(0);
+  } catch (error) {
+    logger.error(`マイグレーション実行エラー: ${error instanceof Error ? error.message : String(error)}`);
     Deno.exit(1);
   }
+}
+
+// スクリプトが直接実行された場合のみメイン関数を実行
+if (import.meta.main) {
+  main();
 } 

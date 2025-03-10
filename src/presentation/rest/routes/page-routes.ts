@@ -4,11 +4,9 @@
  * ページに関するエンドポイントのルーティングを定義します。
  */
 
-import { Hono } from "hono";
+import { Hono } from "../deps.ts";
 import { PageController } from "../controllers/page-controller.ts";
-import { GetPageByIdQueryHandler } from "../../../application/display/queries/get-page-by-id-query.ts";
-import { GetPageBySlugQueryHandler } from "../../../application/display/queries/get-page-by-slug-query.ts";
-import { GetPageByContentIdQueryHandler } from "../../../application/display/queries/get-page-by-content-id-query.ts";
+import { GetPageByIdQueryHandler, GetPageBySlugQueryHandler, GetPageByContentIdQueryHandler } from "../deps.ts";
 
 export const pageRoutes = (
   getPageByIdQueryHandler: GetPageByIdQueryHandler,

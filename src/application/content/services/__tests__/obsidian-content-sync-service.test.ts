@@ -4,40 +4,52 @@ import { Result, ok, err } from "npm:neverthrow";
 import { ObsidianContentSyncService } from "../obsidian-content-sync-service.ts";
 import { ContentRepository } from "../../repositories/content-repository.ts";
 import { RepositoryRepository } from "../../repositories/repository-repository.ts";
-import { ObsidianAdapter, ObsidianNote, ObsidianFolder, ObsidianVault, ObsidianError } from "../../../../infrastructure/adapters/obsidian/obsidian-adapter.ts";
-import { ContentAggregate } from "../../../../core/content/aggregates/content-aggregate.ts";
-import { RepositoryAggregate } from "../../../../core/content/aggregates/repository-aggregate.ts";
-import { Repository } from "../../../../core/content/entities/repository.ts";
-import { Content } from "../../../../core/content/entities/content.ts";
-import { ContentMetadata } from "../../../../core/content/value-objects/content-metadata.ts";
+import { 
+  ObsidianAdapter, 
+  ObsidianNote, 
+  ObsidianFolder, 
+  ObsidianVault, 
+  ObsidianAdapterError,
+  ContentAggregate,
+  RepositoryAggregate,
+  Repository,
+  Content,
+  ContentMetadata,
+  TransactionContext
+} from "../../../../core/content/mod.ts";
+import { DomainError } from "../../../../core/errors/mod.ts";
 
 // モックの作成
 class MockContentRepository implements ContentRepository {
-  findById = spy(async (_id: string): Promise<ContentAggregate | null> => null);
-  findByRepositoryIdAndPath = spy(async (_repositoryId: string, _path: string): Promise<ContentAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<ContentAggregate[]> => []);
-  findByRepositoryId = spy(async (_repositoryId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<ContentAggregate[]> => []);
-  save = spy(async (contentAggregate: ContentAggregate): Promise<ContentAggregate> => contentAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
+  findById = spy((_id: string): Promise<ContentAggregate | null> => Promise.resolve(null));
+  findByRepositoryIdAndPath = spy((_repositoryId: string, _path: string): Promise<ContentAggregate | null> => Promise.resolve(null));
+  findByUserId = spy((_userId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<ContentAggregate[]> => Promise.resolve([]));
+  findByRepositoryId = spy((_repositoryId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<ContentAggregate[]> => Promise.resolve([]));
+  save = spy((contentAggregate: ContentAggregate): Promise<ContentAggregate> => Promise.resolve(contentAggregate));
+  delete = spy((_id: string): Promise<boolean> => Promise.resolve(true));
+  saveWithTransaction = spy((contentAggregate: ContentAggregate, _context: TransactionContext): Promise<Result<ContentAggregate, DomainError>> => Promise.resolve(ok(contentAggregate)));
+  deleteWithTransaction = spy((_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true)));
 }
 
 class MockRepositoryRepository implements RepositoryRepository {
-  findById = spy(async (_id: string): Promise<RepositoryAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; }): Promise<RepositoryAggregate[]> => []);
-  findByName = spy(async (_userId: string, _name: string): Promise<RepositoryAggregate | null> => null);
-  save = spy(async (repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> => repositoryAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
+  findById = spy((_id: string): Promise<RepositoryAggregate | null> => Promise.resolve(null));
+  findByUserId = spy((_userId: string, _options?: { limit?: number; offset?: number; }): Promise<RepositoryAggregate[]> => Promise.resolve([]));
+  findByName = spy((_userId: string, _name: string): Promise<RepositoryAggregate | null> => Promise.resolve(null));
+  save = spy((repositoryAggregate: RepositoryAggregate): Promise<RepositoryAggregate> => Promise.resolve(repositoryAggregate));
+  delete = spy((_id: string): Promise<boolean> => Promise.resolve(true));
+  saveWithTransaction = spy((repositoryAggregate: RepositoryAggregate, _context: TransactionContext): Promise<Result<RepositoryAggregate, DomainError>> => Promise.resolve(ok(repositoryAggregate)));
+  deleteWithTransaction = spy((_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true)));
 }
 
 class MockObsidianAdapter implements ObsidianAdapter {
-  openVault = spy(async (_path: string) => ok({
+  openVault = spy((_path: string) => Promise.resolve(ok({
     path: "/path/to/vault",
     name: "Test Vault",
     rootFolders: ["folder1", "folder2"],
     rootNotes: ["note1.md", "note2.md"]
-  }));
+  })));
   
-  getNote = spy(async (_path: string) => ok({
+  getNote = spy((_path: string) => Promise.resolve(ok({
     path: "test.md",
     name: "Test Note",
     content: "# Test Note\n\nThis is a test note.",
@@ -47,9 +59,9 @@ class MockObsidianAdapter implements ObsidianAdapter {
     backlinks: [],
     createdAt: new Date(),
     modifiedAt: new Date()
-  }));
+  })));
   
-  saveNote = spy(async (_path: string, _content: string, _frontMatter?: Record<string, unknown>) => ok({
+  saveNote = spy((_path: string, _content: string, _frontMatter?: Record<string, unknown>) => Promise.resolve(ok({
     path: "test.md",
     name: "Test Note",
     content: "# Test Note\n\nThis is a test note.",
@@ -59,31 +71,31 @@ class MockObsidianAdapter implements ObsidianAdapter {
     backlinks: [],
     createdAt: new Date(),
     modifiedAt: new Date()
-  }));
+  })));
   
-  deleteNote = spy(async (_path: string) => ok(undefined));
+  deleteNote = spy((_path: string) => Promise.resolve(ok(undefined)));
   
-  getFolder = spy(async (_path: string) => ok({
+  getFolder = spy((_path: string) => Promise.resolve(ok({
     path: "folder1",
     name: "Folder 1",
     subfolders: ["folder1/subfolder1"],
     notes: ["folder1/note1.md", "folder1/note2.md"]
-  }));
+  })));
   
-  createFolder = spy(async (_path: string) => ok({
+  createFolder = spy((_path: string) => Promise.resolve(ok({
     path: "folder1",
     name: "Folder 1",
     subfolders: [],
     notes: []
-  }));
+  })));
   
-  deleteFolder = spy(async (_path: string, _recursive?: boolean) => ok(undefined));
+  deleteFolder = spy((_path: string, _recursive?: boolean) => Promise.resolve(ok(undefined)));
   
-  getBacklinks = spy(async (_path: string) => ok([]));
+  getBacklinks = spy((_path: string) => Promise.resolve(ok([])));
   
-  searchByTag = spy(async (_tag: string) => ok([]));
+  searchByTag = spy((_tag: string) => Promise.resolve(ok([])));
   
-  searchByText = spy(async (_query: string) => ok([]));
+  searchByText = spy((_query: string) => Promise.resolve(ok([])));
 }
 
 // モックのリポジトリ集約を作成する関数
@@ -134,9 +146,9 @@ function createMockContentAggregate(id: string, repositoryId: string, path: stri
     versions: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    addVersion: function() { return this; },
-    changeVisibility: function() { return this; },
-    updateMetadata: function() { return this; }
+    addVersion: function() { return ok(this); },
+    changeVisibility: function() { return ok(this); },
+    updateMetadata: function() { return ok(this); }
   };
 
   return {
@@ -189,7 +201,7 @@ Deno.test("ObsidianContentSyncService", async (t) => {
     
     // openVaultが失敗するようにモックを設定
     // @ts-ignore: 型の互換性の問題を無視
-    obsidianAdapter.openVault = spy(async (path: string) => err(new ObsidianError("ボールトを開けませんでした")));
+    obsidianAdapter.openVault = spy((path: string) => Promise.resolve(err(new ObsidianAdapterError("ボールトを開けませんでした"))));
     
     // テスト対象のサービスを作成
     const service = new ObsidianContentSyncService(
@@ -241,7 +253,7 @@ Deno.test("ObsidianContentSyncService", async (t) => {
     const contentAggregate = createMockContentAggregate("content1", "repo1", "test.md");
     
     // findByIdが失敗するようにモックを設定
-    repositoryRepository.findById = spy(async (id: string) => null);
+    repositoryRepository.findById = spy((id: string) => Promise.resolve(null));
     
     // テスト実行
     const result = await service.syncContent(contentAggregate);

@@ -1,5 +1,5 @@
 import { Result, err, ok } from "../deps.ts";
-import { DomainError } from "../../errors/base.ts";
+import { DomainError } from "../../errors/mod.ts";
 import { ContentMetadata } from "./content-metadata.ts";
 import { versionSchema, contentChangesSchema, ContentChangesSchema } from "../schemas/content-schemas.ts";
 

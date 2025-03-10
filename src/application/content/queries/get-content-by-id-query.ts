@@ -1,15 +1,17 @@
 /**
- * コンテンツ取得クエリ
- * IDによってコンテンツを取得するためのクエリ
+ * IDによるコンテンツ取得クエリ
+ * 
+ * 指定されたIDのコンテンツを取得するクエリ
  */
 
-import { Query } from "../../common/query.ts";
+import { Query, QueryHandler } from "../../common/mod.ts";
 import { Result, ok, err } from "npm:neverthrow";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { ContentRepository } from "../repositories/content-repository.ts";
+import { ContentAggregate } from "../../../core/content/mod.ts";
+import { ContentRepository } from "../repositories/mod.ts";
+import { ApplicationError, EntityNotFoundError } from "../../../core/errors/mod.ts";
 
 /**
- * コンテンツ取得クエリ
+ * コンテンツ取得クエリのパラメータ
  */
 export interface GetContentByIdQuery extends Query {
   readonly name: "GetContentById";
@@ -17,35 +19,25 @@ export interface GetContentByIdQuery extends Query {
 }
 
 /**
- * コンテンツ取得クエリハンドラー
+ * IDによってコンテンツを取得するクエリハンドラー
  */
-export class GetContentByIdQueryHandler {
-  private contentRepository: ContentRepository;
-  
-  /**
-   * コンストラクタ
-   * @param contentRepository コンテンツリポジトリ
-   */
-  constructor(contentRepository: ContentRepository) {
-    this.contentRepository = contentRepository;
-  }
-  
+export class GetContentByIdQueryHandler implements QueryHandler<GetContentByIdQuery, ContentAggregate> {
+  constructor(private readonly contentRepository: ContentRepository) {}
+
   /**
    * クエリを実行する
-   * @param query コンテンツ取得クエリ
-   * @returns 取得されたコンテンツ集約
+   * @param query クエリパラメータ
+   * @returns コンテンツ集約
    */
-  async execute(query: GetContentByIdQuery): Promise<Result<ContentAggregate, Error>> {
-    try {
-      const content = await this.contentRepository.findById(query.id);
-      
-      if (!content) {
-        return err(new Error(`コンテンツが見つかりません: ${query.id}`));
-      }
-      
-      return ok(content);
-    } catch (error) {
-      return err(error instanceof Error ? error : new Error(String(error)));
+  async execute(query: GetContentByIdQuery): Promise<Result<ContentAggregate, ApplicationError>> {
+    const { id } = query;
+    
+    const content = await this.contentRepository.findById(id);
+    
+    if (!content) {
+      return err(new EntityNotFoundError("Content", id));
     }
+    
+    return ok(content);
   }
 } 

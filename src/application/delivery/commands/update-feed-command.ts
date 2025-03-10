@@ -3,11 +3,11 @@
  * 既存のフィードを更新するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
-import { FeedAggregate } from "../../../core/delivery/aggregates/feed-aggregate.ts";
+import { Command } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { FeedAggregate } from "../deps.ts";
 import { FeedRepository } from "../repositories/feed-repository.ts";
-import { FeedMetadataProps } from "../../../core/delivery/value-objects/feed-metadata.ts";
+import { FeedMetadataProps } from "../deps.ts";
 
 /**
  * フィード更新コマンド

@@ -163,73 +163,94 @@ export class BskyAtProtocolAdapter implements AtProtocolAdapter {
 
   /**
    * フィードを作成する
-   * 
    * @param name フィード名
    * @param description フィードの説明
    * @returns フィード作成結果のResult
    */
-  async createFeed(name: string, description?: string): Promise<Result<{ uri: string; cid: string }, AtProtocolError>> {
+  createFeed(name: string, description?: string): Promise<Result<{ uri: string; cid: string }, AtProtocolError>> {
     try {
       // エージェントが認証されていることを確認
-      if (!this.agent.session) {
-        return err(new AtProtocolError("Not authenticated. Call login() first."));
+      if (!this.agent) {
+        return Promise.resolve(err(new AtProtocolError("認証されていません", new Error("auth_required"))));
       }
-
+      
       // 現在のところ、Bluesky APIではカスタムフィードの作成はサポートされていません
-      // 将来的にサポートされた場合に実装する予定
-      return err(new AtProtocolError("Creating custom feeds is not supported yet"));
+      // 実際の実装では、app.bsky.feed.generator.createのようなエンドポイントを使用します
+      return Promise.resolve(err(new AtProtocolError("未実装の機能です", new Error("not_implemented"))));
     } catch (error) {
-      return err(new AtProtocolError("Failed to create feed", error as Error));
+      return Promise.resolve(err(new AtProtocolError(
+        error instanceof Error ? error.message : "フィード作成中にエラーが発生しました", 
+        new Error("unknown_error")
+      )));
     }
   }
 
   /**
-   * フィードを取得する
-   * 
-   * @param uri フィードURI
+   * フィード情報を取得する
+   * @param uri フィードのURI
    * @returns フィード情報のResult
    */
-  async getFeed(uri: string): Promise<Result<AtpFeed, AtProtocolError>> {
+  getFeed(uri: string): Promise<Result<AtpFeed, AtProtocolError>> {
     try {
+      // エージェントが認証されていることを確認
+      if (!this.agent) {
+        return Promise.resolve(err(new AtProtocolError("認証されていません", new Error("auth_required"))));
+      }
+      
       // 現在のところ、Bluesky APIではカスタムフィードの取得はサポートされていません
-      // 将来的にサポートされた場合に実装する予定
-      return err(new AtProtocolError("Getting custom feeds is not supported yet"));
+      // 実際の実装では、app.bsky.feed.generator.getのようなエンドポイントを使用します
+      return Promise.resolve(err(new AtProtocolError("未実装の機能です", new Error("not_implemented"))));
     } catch (error) {
-      return err(new AtProtocolError(`Failed to get feed ${uri}`, error as Error));
+      return Promise.resolve(err(new AtProtocolError(
+        error instanceof Error ? error.message : "フィード取得中にエラーが発生しました", 
+        new Error("unknown_error")
+      )));
     }
   }
 
   /**
    * フィードに投稿を追加する
-   * 
-   * @param feedUri フィードURI
-   * @param postUri 投稿URI
+   * @param feedUri フィードのURI
+   * @param postUri 投稿のURI
    * @returns 追加結果のResult
    */
-  async addPostToFeed(feedUri: string, postUri: string): Promise<Result<{ uri: string; cid: string }, AtProtocolError>> {
+  addPostToFeed(feedUri: string, postUri: string): Promise<Result<{ uri: string; cid: string }, AtProtocolError>> {
     try {
+      // エージェントが認証されていることを確認
+      if (!this.agent) {
+        return Promise.resolve(err(new AtProtocolError("認証されていません", new Error("auth_required"))));
+      }
+      
       // 現在のところ、Bluesky APIではカスタムフィードへの投稿追加はサポートされていません
-      // 将来的にサポートされた場合に実装する予定
-      return err(new AtProtocolError("Adding posts to custom feeds is not supported yet"));
+      return Promise.resolve(err(new AtProtocolError("未実装の機能です", new Error("not_implemented"))));
     } catch (error) {
-      return err(new AtProtocolError(`Failed to add post ${postUri} to feed ${feedUri}`, error as Error));
+      return Promise.resolve(err(new AtProtocolError(
+        error instanceof Error ? error.message : "フィードへの投稿追加中にエラーが発生しました", 
+        new Error("unknown_error")
+      )));
     }
   }
 
   /**
    * フィードから投稿を削除する
-   * 
-   * @param feedUri フィードURI
-   * @param postUri 投稿URI
+   * @param feedUri フィードのURI
+   * @param postUri 投稿のURI
    * @returns 削除結果のResult
    */
-  async removePostFromFeed(feedUri: string, postUri: string): Promise<Result<void, AtProtocolError>> {
+  removePostFromFeed(feedUri: string, postUri: string): Promise<Result<void, AtProtocolError>> {
     try {
+      // エージェントが認証されていることを確認
+      if (!this.agent) {
+        return Promise.resolve(err(new AtProtocolError("認証されていません", new Error("auth_required"))));
+      }
+      
       // 現在のところ、Bluesky APIではカスタムフィードからの投稿削除はサポートされていません
-      // 将来的にサポートされた場合に実装する予定
-      return err(new AtProtocolError("Removing posts from custom feeds is not supported yet"));
+      return Promise.resolve(err(new AtProtocolError("未実装の機能です", new Error("not_implemented"))));
     } catch (error) {
-      return err(new AtProtocolError(`Failed to remove post ${postUri} from feed ${feedUri}`, error as Error));
+      return Promise.resolve(err(new AtProtocolError(
+        error instanceof Error ? error.message : "フィードからの投稿削除中にエラーが発生しました", 
+        new Error("unknown_error")
+      )));
     }
   }
 
@@ -253,12 +274,34 @@ export class BskyAtProtocolAdapter implements AtProtocolAdapter {
   }
 
   /**
-   * Blueskyの投稿オブジェクトをマッピングする
+   * Bluesky APIからの投稿データをAtpPost型にマッピングする
    * 
-   * @param post Blueskyの投稿オブジェクト
+   * @param post Bluesky APIからの投稿データ
    * @returns マッピングされた投稿情報
    */
-  private mapPost(post: any): AtpPost {
+  private mapPost(post: {
+    uri: string;
+    cid: string;
+    author: {
+      did: string;
+      handle: string;
+    };
+    record: {
+      text: string;
+      createdAt: string;
+      langs?: string[];
+      tags?: string[];
+      labels?: string[];
+    };
+    embed?: {
+      type: string;
+      [key: string]: unknown;
+    };
+    replyCount?: number;
+    repostCount?: number;
+    likeCount?: number;
+    indexedAt: string;
+  }): AtpPost {
     return {
       uri: post.uri,
       cid: post.cid,

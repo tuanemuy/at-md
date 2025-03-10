@@ -1,8 +1,17 @@
-import { Content, createContent } from "../entities/content.ts";
-import { Version, createVersion, ContentChanges } from "../value-objects/version.ts";
+/**
+ * バージョニングサービス
+ * 
+ * コンテンツのバージョン管理を担当するサービス
+ */
+
+import { Result, ok, err } from "../deps.ts";
+import { generateId } from "../../common/mod.ts";
+import { DomainError } from "../../errors/mod.ts";
+import { Content, ContentParams, createContent } from "../entities/content.ts";
+import { Version, createVersion, VersionParams, ContentChanges } from "../value-objects/version.ts";
 import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
-import { generateId } from "../../common/id.ts";
-import { InvalidContentStateError } from "../../errors/domain.ts";
+import { InvalidContentStateError } from "../../errors/mod.ts";
+import { titleSchema, bodySchema, languageSchema, tagSchema, categorySchema, readingTimeSchema } from "../../common/schemas/mod.ts";
 
 /**
  * バージョン管理サービス
@@ -20,17 +29,75 @@ export class VersioningService {
 
     // タイトルの変更を検出
     if (oldContent.title !== newContent.title) {
-      changes.title = newContent.title;
+      const titleResult = titleSchema.safeParse(newContent.title);
+      if (titleResult.success) {
+        changes.title = titleResult.data;
+      }
     }
 
     // 本文の変更を検出
     if (oldContent.body !== newContent.body) {
-      changes.body = newContent.body;
+      const bodyResult = bodySchema.safeParse(newContent.body);
+      if (bodyResult.success) {
+        changes.body = bodyResult.data;
+      }
     }
 
     // メタデータの変更を検出
     if (JSON.stringify(oldContent.metadata) !== JSON.stringify(newContent.metadata)) {
-      changes.metadata = newContent.metadata;
+      // 各プロパティを個別に処理してブランド型を維持
+      const metadata: ContentChanges['metadata'] = {};
+      
+      // 言語の処理
+      if (newContent.metadata.language) {
+        const languageResult = languageSchema.safeParse(newContent.metadata.language);
+        if (languageResult.success) {
+          metadata.language = languageResult.data;
+        }
+      }
+      
+      // タグの処理
+      if (newContent.metadata.tags && newContent.metadata.tags.length > 0) {
+        // タグは個別に処理してブランド型を維持
+        const brandedTags = newContent.metadata.tags.map(tag => {
+          const tagResult = tagSchema.safeParse(tag);
+          return tagResult.success ? tagResult.data : tag;
+        }).filter((tag): tag is typeof tagSchema._type => 
+          tagSchema.safeParse(tag).success
+        );
+        
+        if (brandedTags.length > 0) {
+          metadata.tags = brandedTags;
+        }
+      }
+      
+      // カテゴリの処理
+      if (newContent.metadata.categories && newContent.metadata.categories.length > 0) {
+        // カテゴリは個別に処理してブランド型を維持
+        const brandedCategories = newContent.metadata.categories.map(category => {
+          const categoryResult = categorySchema.safeParse(category);
+          return categoryResult.success ? categoryResult.data : category;
+        }).filter((category): category is typeof categorySchema._type => 
+          categorySchema.safeParse(category).success
+        );
+        
+        if (brandedCategories.length > 0) {
+          metadata.categories = brandedCategories;
+        }
+      }
+      
+      // 読了時間の処理
+      if (newContent.metadata.readingTime) {
+        const readingTimeResult = readingTimeSchema.safeParse(newContent.metadata.readingTime);
+        if (readingTimeResult.success) {
+          metadata.readingTime = readingTimeResult.data;
+        }
+      }
+      
+      // メタデータに変更がある場合のみ設定
+      if (Object.keys(metadata).length > 0) {
+        changes.metadata = metadata;
+      }
     }
 
     return changes;
@@ -47,14 +114,14 @@ export class VersioningService {
     content: Content,
     commitId: string,
     changes: ContentChanges
-  ): Content {
+  ): Result<Content, DomainError> {
     // 変更がない場合は元のコンテンツをそのまま返す
     if (Object.keys(changes).length === 0) {
-      return content;
+      return ok(content);
     }
 
     // 新しいバージョンを作成
-    const version = createVersion({
+    const versionResult = createVersion({
       id: generateId(),
       contentId: content.id,
       commitId,
@@ -62,11 +129,21 @@ export class VersioningService {
       changes
     });
 
+    if (versionResult.isErr()) {
+      return err(versionResult.error);
+    }
+
     // コンテンツにバージョンを追加
-    const updatedContent = content.addVersion(version);
+    const updatedContentResult = content.addVersion(versionResult.value);
+
+    if (updatedContentResult.isErr()) {
+      return err(updatedContentResult.error);
+    }
+
+    const updatedContent = updatedContentResult.value;
 
     // 変更を適用したコンテンツを作成
-    let newContent = { ...updatedContent };
+    let newContent: ContentParams = { ...updatedContent };
     
     if (changes.title) {
       newContent = { ...newContent, title: changes.title };
@@ -78,18 +155,22 @@ export class VersioningService {
     
     if (changes.metadata) {
       // メタデータが部分的な場合は、既存のメタデータとマージする
-      const mergedMetadata = createContentMetadata({
+      const mergedMetadataResult = createContentMetadata({
         language: changes.metadata.language || updatedContent.metadata.language,
         tags: changes.metadata.tags || updatedContent.metadata.tags,
         categories: changes.metadata.categories || updatedContent.metadata.categories,
-        publishedAt: changes.metadata.publishedAt || updatedContent.metadata.publishedAt,
-        lastPublishedAt: changes.metadata.lastPublishedAt || updatedContent.metadata.lastPublishedAt,
-        excerpt: changes.metadata.excerpt || updatedContent.metadata.excerpt,
-        featuredImage: changes.metadata.featuredImage || updatedContent.metadata.featuredImage,
+        publishedAt: updatedContent.metadata.publishedAt,
+        lastPublishedAt: updatedContent.metadata.lastPublishedAt,
+        excerpt: updatedContent.metadata.excerpt,
+        featuredImage: updatedContent.metadata.featuredImage,
         readingTime: changes.metadata.readingTime || updatedContent.metadata.readingTime
       });
       
-      newContent = { ...newContent, metadata: mergedMetadata };
+      if (mergedMetadataResult.isErr()) {
+        return err(mergedMetadataResult.error);
+      }
+      
+      newContent = { ...newContent, metadata: mergedMetadataResult.value };
     }
     
     return createContent({
@@ -126,14 +207,14 @@ export class VersioningService {
    * @returns 復元されたコンテンツ
    * @throws {InvalidContentStateError} 指定されたコミットIDのバージョンが見つからない場合
    */
-  restoreVersion(content: Content, commitId: string): Content {
+  restoreVersion(content: Content, commitId: string): Result<Content, DomainError> {
     // 指定されたコミットIDのバージョンを検索
     const targetVersion = this.findVersionByCommitId(content, commitId);
     if (!targetVersion) {
-      throw new InvalidContentStateError(
+      return err(new InvalidContentStateError(
         "バージョンが見つかりません",
         `コミットID ${commitId} のバージョンを復元`
-      );
+      ));
     }
 
     // バージョン履歴を時系列順にソート（古い順）
@@ -144,10 +225,10 @@ export class VersioningService {
     // 対象バージョンのインデックスを取得
     const targetIndex = sortedVersions.findIndex(v => v.commitId === commitId);
     if (targetIndex === -1) {
-      throw new InvalidContentStateError(
+      return err(new InvalidContentStateError(
         "バージョンが見つかりません",
         `コミットID ${commitId} のバージョンを復元`
-      );
+      ));
     }
 
     // 最初のバージョンの変更を適用する前の状態を推測
@@ -196,20 +277,24 @@ export class VersioningService {
       if (version.changes.metadata) {
         // メタデータが部分的な場合は、既存のメタデータとマージする
         const currentMetadata = restoredContent.metadata;
-        const mergedMetadata = createContentMetadata({
+        const mergedMetadataResult = createContentMetadata({
           language: version.changes.metadata.language || currentMetadata.language,
           tags: version.changes.metadata.tags || currentMetadata.tags,
           categories: version.changes.metadata.categories || currentMetadata.categories,
-          publishedAt: version.changes.metadata.publishedAt || currentMetadata.publishedAt,
-          lastPublishedAt: version.changes.metadata.lastPublishedAt || currentMetadata.lastPublishedAt,
-          excerpt: version.changes.metadata.excerpt || currentMetadata.excerpt,
-          featuredImage: version.changes.metadata.featuredImage || currentMetadata.featuredImage,
+          publishedAt: currentMetadata.publishedAt,
+          lastPublishedAt: currentMetadata.lastPublishedAt,
+          excerpt: currentMetadata.excerpt,
+          featuredImage: currentMetadata.featuredImage,
           readingTime: version.changes.metadata.readingTime || currentMetadata.readingTime
         });
         
+        if (mergedMetadataResult.isErr()) {
+          return err(mergedMetadataResult.error);
+        }
+        
         restoredContent = {
           ...restoredContent,
-          metadata: mergedMetadata
+          metadata: mergedMetadataResult.value
         };
       }
     }
@@ -219,16 +304,16 @@ export class VersioningService {
   }
 
   /**
-   * 元の値を推測する
+   * コンテンツの元の値を推測する
    * @param content 現在のコンテンツ
-   * @param sortedVersions ソートされたバージョン履歴
-   * @param property プロパティ名
+   * @param sortedVersions ソート済みのバージョン配列
+   * @param property 推測するプロパティ
    * @returns 推測された元の値
    * @protected テスト用にprotectedに変更
    */
   protected inferOriginalValue(content: Content, sortedVersions: Version[], property: "title" | "body"): string {
     // 最初のバージョンから現在までの変更を追跡
-    let currentValue = content[property];
+    const currentValue = content[property];
     
     // バージョン履歴を逆順に辿り、変更を元に戻す
     for (let i = sortedVersions.length - 1; i >= 0; i--) {
@@ -254,10 +339,30 @@ export class VersioningService {
    */
   protected inferOriginalMetadata(content: Content, sortedVersions: Version[]): ContentMetadata {
     // デフォルトのメタデータを作成
-    return createContentMetadata({
+    const metadataResult = createContentMetadata({
       language: "ja", // デフォルト言語
       tags: [],
       categories: []
     });
+    
+    if (metadataResult.isErr()) {
+      // エラーの場合は空のメタデータを返す
+      // 言語のブランド型を作成
+      const languageResult = languageSchema.safeParse("ja");
+      const language = languageResult.success ? languageResult.data : "ja";
+      
+      return {
+        language,
+        tags: [],
+        categories: [],
+        publishedAt: undefined,
+        lastPublishedAt: undefined,
+        excerpt: undefined,
+        featuredImage: undefined,
+        readingTime: undefined
+      };
+    }
+    
+    return metadataResult.value;
   }
 } 

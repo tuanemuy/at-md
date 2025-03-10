@@ -7,5 +7,11 @@
 // コアドメイン
 export * from "../../core/display/mod.ts";
 
+// エラー
+export * from "../../core/errors/mod.ts";
+
+// 共通モジュール
+export { generateId } from "../../core/common/mod.ts";
+
 // 外部依存
 export { Result, ok, err } from "../../deps.ts"; 

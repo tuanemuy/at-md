@@ -1,30 +1,32 @@
-import { ViewTemplate, TemplateComponent, TemplateLayout } from "../../../core/display/entities/view-template.ts";
+/**
+ * テンプレートDTOの定義
+ */
+
+import type { ViewTemplate, TemplateLayout, TemplateComponent } from "./deps.ts";
 
 /**
- * テンプレートコンポーネントのDTO
+ * テンプレートDTOのインターフェース
  */
-export type TemplateComponentDto = {
-  id: string;
-  type: string;
-  props: Record<string, unknown>;
-};
-
-/**
- * テンプレートのDTO
- */
-export type TemplateDto = {
+export interface TemplateDto {
   id: string;
   name: string;
   description?: string;
-  layout: string;
-  components: TemplateComponentDto[];
+  content?: string;
+  metadata?: {
+    layout?: string;
+    components?: Array<{
+      id: string;
+      type: string;
+      props: Record<string, unknown>;
+    }>;
+    [key: string]: unknown;
+  };
   createdAt: string;
   updatedAt: string;
-};
+}
 
 /**
- * テンプレートエンティティをDTOに変換する
- * 
+ * テンプレートエンティティからDTOに変換する
  * @param template テンプレートエンティティ
  * @returns テンプレートDTO
  */
@@ -33,13 +35,11 @@ export function toTemplateDto(template: ViewTemplate): TemplateDto {
     id: template.id,
     name: template.name,
     description: template.description,
-    layout: template.layout,
-    components: template.components.map(component => ({
-      id: component.id,
-      type: component.type,
-      props: component.props,
-    })),
+    metadata: {
+      layout: template.layout,
+      components: template.components
+    },
     createdAt: template.createdAt.toISOString(),
-    updatedAt: template.updatedAt.toISOString(),
+    updatedAt: template.updatedAt.toISOString()
   };
 } 

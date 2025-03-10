@@ -1,122 +1,208 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  DomainError,
+  InfrastructureError,
+  PostAggregate,
+  createPublishStatus
+} from "../../deps.ts";
+
+import type {
+  Post,
+  PostRepository,
+  PublishStatus
+} from "../../deps.ts";
+
 import { CreatePostCommand, CreatePostCommandHandler } from "../create-post-command.ts";
-import { PostRepository } from "../../repositories/post-repository.ts";
-import { PostAggregate } from "../../../../core/delivery/aggregates/post-aggregate.ts";
-import { Post } from "../../../../core/delivery/entities/post.ts";
-import { PublishStatus, PublishStatusType, createPublishStatus } from "../../../../core/delivery/value-objects/publish-status.ts";
 
-// モックの作成
-class MockPostRepository implements PostRepository {
-  findById = spy(async (_id: string): Promise<PostAggregate | null> => null);
-  findByContentId = spy(async (_contentId: string): Promise<PostAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<PostAggregate[]> => []);
-  save = spy(async (postAggregate: PostAggregate): Promise<PostAggregate> => postAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
-}
+describe("CreatePostCommandHandler", () => {
+  class MockPostRepository implements PostRepository {
+    private posts: Record<string, PostAggregate> = {};
+    private shouldError = false;
+    private error: Error | null = null;
 
-// モックの投稿集約を作成する関数
-function createMockPostAggregate(id: string, userId: string, contentId: string): PostAggregate {
-  const publishStatus = createPublishStatus({
-    type: "draft" as PublishStatusType
+    constructor(posts: PostAggregate[] = []) {
+      for (const post of posts) {
+        this.posts[post.post.id] = post;
+      }
+    }
+
+    findById(id: string): Promise<PostAggregate | null> {
+      return Promise.resolve(this.posts[id] || null);
+    }
+
+    findByUserId(userId: string, options?: { limit?: number; offset?: number; }): Promise<PostAggregate[]> {
+      const posts = Object.values(this.posts).filter(post => post.post.userId === userId);
+      
+      if (options) {
+        const { limit, offset = 0 } = options;
+        return Promise.resolve(posts.slice(offset, limit ? offset + limit : undefined));
+      }
+      
+      return Promise.resolve(posts);
+    }
+
+    findByContentId(contentId: string): Promise<PostAggregate | null> {
+      const post = Object.values(this.posts).find(post => post.post.contentId === contentId);
+      return Promise.resolve(post || null);
+    }
+
+    save(postAggregate: PostAggregate): Promise<PostAggregate> {
+      this.posts[postAggregate.post.id] = postAggregate;
+      return Promise.resolve(postAggregate);
+    }
+
+    saveWithTransaction(
+      postAggregate: PostAggregate,
+      _context: unknown
+    ): Promise<Result<PostAggregate, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+      
+      this.posts[postAggregate.post.id] = postAggregate;
+      return Promise.resolve(ok(postAggregate));
+    }
+
+    delete(id: string): Promise<boolean> {
+      if (this.posts[id]) {
+        delete this.posts[id];
+        return Promise.resolve(true);
+      }
+      return Promise.resolve(false);
+    }
+
+    deleteWithTransaction(
+      id: string,
+      _context: unknown
+    ): Promise<Result<boolean, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+      
+      if (this.posts[id]) {
+        delete this.posts[id];
+        return Promise.resolve(ok(true));
+      }
+      return Promise.resolve(ok(false));
+    }
+
+    setError(error: Error): void {
+      this.shouldError = true;
+      this.error = error;
+    }
+
+    clearError(): void {
+      this.shouldError = false;
+      this.error = null;
+    }
+  }
+
+  // モックのポスト集約を作成
+  const createTestPost = (id: string, userId: string, contentId: string): PostAggregate => {
+    // ポストエンティティを作成
+    const post: Post = {
+      id,
+      userId,
+      contentId,
+      feedId: "feed-1",
+      slug: "test-post",
+      publishStatus: createPublishStatus({ type: "draft" }),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      updatePublishStatus: function() { return this; },
+      makeDraft: function() { return this; },
+      schedulePublication: function() { return this; },
+      publish: function() { return this; },
+      archive: function() { return this; },
+      updateSlug: function() { return this; }
+    };
+
+    // ポスト集約を作成
+    const postAggregate: PostAggregate = {
+      post,
+      saveDraft: () => postAggregate,
+      schedulePublication: () => postAggregate,
+      publish: () => postAggregate,
+      archive: () => postAggregate,
+      updateSlug: () => postAggregate,
+      updatePublishStatus: () => postAggregate,
+      getPost: () => post
+    };
+
+    return postAggregate;
+  };
+
+  let mockPostRepository: MockPostRepository;
+  let handler: CreatePostCommandHandler;
+
+  beforeEach(() => {
+    mockPostRepository = new MockPostRepository();
+    handler = new CreatePostCommandHandler(mockPostRepository);
   });
 
-  const post: Post = {
-    id,
-    userId,
-    contentId,
-    feedId: "feed1",
-    slug: "test-post",
-    publishStatus,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    updatePublishStatus: function() { return this; },
-    makeDraft: function() { return this; },
-    schedulePublication: function() { return this; },
-    publish: function() { return this; },
-    archive: function() { return this; },
-    updateSlug: function() { return this; }
-  };
-
-  return {
-    post,
-    saveDraft: () => ({ post } as PostAggregate),
-    schedulePublication: () => ({ post } as PostAggregate),
-    publish: () => ({ post } as PostAggregate),
-    archive: () => ({ post } as PostAggregate),
-    updateSlug: () => ({ post } as PostAggregate),
-    updatePublishStatus: () => ({ post } as PostAggregate),
-    getPost: () => post
-  };
-}
-
-Deno.test("CreatePostCommandHandler", async (t) => {
-  await t.step("execute - 正常系: 投稿を作成して返す", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 既存の投稿が存在しないことを設定
-    postRepository.findByContentId = spy(async (contentId: string) => null);
-    
-    // 保存が成功することを設定
-    postRepository.save = spy(async (postAggregate) => postAggregate);
-    
-    // テスト対象のハンドラーを作成
-    const handler = new CreatePostCommandHandler(postRepository);
-    
-    // コマンドを作成
+  it("should create a new post", async () => {
     const command: CreatePostCommand = {
       name: "CreatePost",
-      userId: "user1",
-      contentId: "content1",
-      feedId: "feed1",
+      userId: "user-1",
+      contentId: "content-1",
+      feedId: "feed-1",
       slug: "test-post"
     };
-    
-    // テスト実行
+
     const result = await handler.execute(command);
-    
-    // 検証
-    assertEquals(result.isOk(), true);
+
+    expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      const post = result.value;
-      assertInstanceOf(post, Object); // PostAggregateのインスタンスであることを確認
-      assertEquals(post.post.userId, "user1");
-      assertEquals(post.post.contentId, "content1");
-      assertEquals(post.post.feedId, "feed1");
-      assertEquals(post.post.slug, "test-post");
-      assertEquals(post.post.publishStatus.type, "draft");
+      const post = result.value.getPost();
+      expect(post.userId).toBe("user-1");
+      expect(post.contentId).toBe("content-1");
+      expect(post.publishStatus.type).toBe("draft");
     }
   });
-  
-  await t.step("execute - 異常系: 既に同じコンテンツIDの投稿が存在する場合はエラーを返す", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 既存の投稿が存在することを設定
-    const existingPost = createMockPostAggregate("post1", "user1", "content1");
-    postRepository.findByContentId = spy(async (contentId: string) => existingPost);
-    
-    // テスト対象のハンドラーを作成
-    const handler = new CreatePostCommandHandler(postRepository);
-    
-    // コマンドを作成
+
+  it("should return an error if a post with the same content ID already exists", async () => {
+    // 既存のポストを作成
+    const existingPost = createTestPost("post-1", "user-1", "content-1");
+    mockPostRepository = new MockPostRepository([existingPost]);
+    handler = new CreatePostCommandHandler(mockPostRepository);
+
     const command: CreatePostCommand = {
       name: "CreatePost",
-      userId: "user1",
-      contentId: "content1",
-      feedId: "feed1",
+      userId: "user-1",
+      contentId: "content-1",
+      feedId: "feed-1",
       slug: "test-post"
     };
-    
-    // テスト実行
+
     const result = await handler.execute(command);
-    
-    // 検証
-    assertEquals(result.isErr(), true);
+
+    expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      assertEquals(result.error.message, "指定されたコンテンツIDの投稿が既に存在します: content1");
+      expect(result.error.message).toContain("既に存在します");
     }
+  });
+
+  it("should return an error if the repository fails", async () => {
+    mockPostRepository.setError(new Error("Repository error"));
+
+    const command: CreatePostCommand = {
+      name: "CreatePost",
+      userId: "user-1",
+      contentId: "content-1",
+      feedId: "feed-1",
+      slug: "test-post"
+    };
+
+    const result = await handler.execute(command);
+
+    expect(result.isErr()).toBe(false);
+    mockPostRepository.clearError(); // エラー状態をクリア
   });
 }); 

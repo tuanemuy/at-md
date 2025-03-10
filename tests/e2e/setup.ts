@@ -21,23 +21,36 @@ export function setupBrowserEnvironment(): void {
     storageQuota: 10000000,
   });
 
-  // グローバルオブジェクトにブラウザAPIをセット
-  global.window = dom.window as any;
+  // DOMをグローバルに設定
+  // deno-lint-ignore no-node-globals
+  global.window = dom.window as unknown as Window & typeof globalThis;
+  // deno-lint-ignore no-node-globals
   global.document = dom.window.document;
+  // deno-lint-ignore no-node-globals
   global.navigator = dom.window.navigator;
+  // deno-lint-ignore no-node-globals
   global.location = dom.window.location;
+  // deno-lint-ignore no-node-globals
   global.history = dom.window.history;
+  // deno-lint-ignore no-node-globals
   global.localStorage = dom.window.localStorage;
+  // deno-lint-ignore no-node-globals
   global.sessionStorage = dom.window.sessionStorage;
+  // deno-lint-ignore no-node-globals
   global.CustomEvent = dom.window.CustomEvent;
+  // deno-lint-ignore no-node-globals
   global.Event = dom.window.Event;
+  // deno-lint-ignore no-node-globals
   global.HTMLElement = dom.window.HTMLElement;
+  // deno-lint-ignore no-node-globals
   global.Element = dom.window.Element;
+  // deno-lint-ignore no-node-globals
   global.Node = dom.window.Node;
 
-  // コンソールログのモック
+  // コンソール出力を抑制（必要に応じて）
   const originalConsoleLog = console.log;
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
+    // deno-lint-ignore no-process-global
     if (process.env.DEBUG) {
       originalConsoleLog(...args);
     }
@@ -47,19 +60,19 @@ export function setupBrowserEnvironment(): void {
 /**
  * テスト用のデータベース設定
  */
-export async function setupTestDatabase(): Promise<void> {
-  // テスト用のデータベース設定
-  // 実際の実装では、テスト用のデータベースを初期化する処理を記述
-  console.log("Setting up test database...");
+export function setupTestDatabase(): Promise<void> {
+  // テスト用データベースのセットアップロジックをここに実装
+  // 例: テスト用のテーブル作成、初期データ投入など
+  return Promise.resolve();
 }
 
 /**
  * テスト終了時のクリーンアップ処理
  */
-export async function teardown(): Promise<void> {
-  // テスト終了時のクリーンアップ処理
-  // 実際の実装では、テスト用のデータベースをクリーンアップする処理を記述
-  console.log("Tearing down test environment...");
+export function teardown(): Promise<void> {
+  // テスト終了時のクリーンアップロジックをここに実装
+  // 例: テスト用データベースの削除、一時ファイルの削除など
+  return Promise.resolve();
 }
 
 /**

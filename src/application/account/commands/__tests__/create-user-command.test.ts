@@ -1,19 +1,42 @@
-import { assertEquals } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  spy,
+  UserAggregate,
+  createUserAggregate,
+  DomainError,
+  ApplicationError
+} from "../../__tests__/deps/mod.ts";
+
+import type {
+  User,
+  UserRepository
+} from "../../__tests__/deps/mod.ts";
+
+// トランザクションコンテキストのインターフェース
+interface TransactionContext {
+  id: string;
+}
+
 import { CreateUserCommand, CreateUserCommandHandler } from "../create-user-command.ts";
-import { UserRepository } from "../../repositories/user-repository.ts";
-import { UserAggregate } from "../../../../core/account/aggregates/user-aggregate.ts";
 
 // モックの作成
 class MockUserRepository implements UserRepository {
-  findById = spy(async (_id: string): Promise<UserAggregate | null> => null);
-  findByUsername = spy(async (_username: string): Promise<UserAggregate | null> => null);
-  findByEmail = spy(async (_email: string): Promise<UserAggregate | null> => null);
-  findByDid = spy(async (_did: string): Promise<UserAggregate | null> => null);
-  findByHandle = spy(async (_handle: string): Promise<UserAggregate | null> => null);
-  save = spy(async (userAggregate: UserAggregate): Promise<UserAggregate> => userAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
+  findById = spy((_id: string): Promise<UserAggregate | null> => Promise.resolve(null));
+  findByUsername = spy((_username: string): Promise<UserAggregate | null> => Promise.resolve(null));
+  findByEmail = spy((_email: string): Promise<UserAggregate | null> => Promise.resolve(null));
+  findByDid = spy((_did: string): Promise<UserAggregate | null> => Promise.resolve(null));
+  findByHandle = spy((_handle: string): Promise<UserAggregate | null> => Promise.resolve(null));
+  save = spy((userAggregate: UserAggregate): Promise<UserAggregate> => Promise.resolve(userAggregate));
+  saveWithTransaction = spy((userAggregate: UserAggregate, _context: TransactionContext): Promise<Result<UserAggregate, DomainError>> => {
+    return Promise.resolve(ok(userAggregate));
+  });
+  delete = spy((_id: string): Promise<boolean> => Promise.resolve(true));
+  deleteWithTransaction = spy((_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => {
+    return Promise.resolve(ok(true));
+  });
 }
 
 // モックのユーザー集約を作成する関数
@@ -43,11 +66,11 @@ Deno.test("CreateUserCommandHandler", async (t) => {
     
     // 同じユーザー名のユーザーが存在することを設定
     const existingUser = createMockUserAggregate("user2", "testuser", "other@example.com", "did:plc:hijklmn");
-    userRepository.findByUsername = spy(async (username: string) => {
+    userRepository.findByUsername = spy((username: string) => {
       if (username === "testuser") {
-        return existingUser;
+        return Promise.resolve(existingUser);
       }
-      return null;
+      return Promise.resolve(null);
     });
     
     // テスト対象のハンドラーを作成
@@ -69,10 +92,10 @@ Deno.test("CreateUserCommandHandler", async (t) => {
     const result = await handler.execute(command);
     
     // 検証
-    assertEquals(result.isErr(), true);
-    assertEquals(userRepository.findByUsername.calls.length, 1);
+    expect(result.isErr()).toBe(true);
+    expect(userRepository.findByUsername.calls.length).toBe(1);
     if (result.isErr()) {
-      assertEquals(result.error.message.includes("ユーザー名"), true);
+      expect(result.error.message.includes("ユーザー名")).toBe(true);
     }
   });
   
@@ -81,15 +104,15 @@ Deno.test("CreateUserCommandHandler", async (t) => {
     const userRepository = new MockUserRepository();
     
     // ユーザー名は存在しないことを設定
-    userRepository.findByUsername = spy(async (username: string) => null);
+    userRepository.findByUsername = spy((username: string) => Promise.resolve(null));
     
     // 同じメールアドレスのユーザーが存在することを設定
     const existingUser = createMockUserAggregate("user2", "otheruser", "test@example.com", "did:plc:hijklmn");
-    userRepository.findByEmail = spy(async (email: string) => {
+    userRepository.findByEmail = spy((email: string) => {
       if (email === "test@example.com") {
-        return existingUser;
+        return Promise.resolve(existingUser);
       }
-      return null;
+      return Promise.resolve(null);
     });
     
     // テスト対象のハンドラーを作成
@@ -111,11 +134,11 @@ Deno.test("CreateUserCommandHandler", async (t) => {
     const result = await handler.execute(command);
     
     // 検証
-    assertEquals(result.isErr(), true);
-    assertEquals(userRepository.findByUsername.calls.length, 1);
-    assertEquals(userRepository.findByEmail.calls.length, 1);
+    expect(result.isErr()).toBe(true);
+    expect(userRepository.findByUsername.calls.length).toBe(1);
+    expect(userRepository.findByEmail.calls.length).toBe(1);
     if (result.isErr()) {
-      assertEquals(result.error.message.includes("メールアドレス"), true);
+      expect(result.error.message.includes("メールアドレス")).toBe(true);
     }
   });
 }); 

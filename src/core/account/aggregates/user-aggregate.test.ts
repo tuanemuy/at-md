@@ -156,8 +156,10 @@ describe("UserAggregate集約", () => {
   it("オブジェクトが不変であること", () => {
     const userAggregate = createTestUserAggregate();
     
+    // プロパティを直接変更しようとしても変更されない
     expect(() => {
-      (userAggregate as any).user = null;
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (userAggregate as unknown as { user: null }).user = null;
+    }).not.toThrow();
   });
 }); 

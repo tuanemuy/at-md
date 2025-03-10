@@ -13,6 +13,12 @@ export interface Repository {
   readonly userId: string;
   /** リポジトリ名 */
   readonly name: string;
+  /** リポジトリの説明 */
+  readonly description: string;
+  /** リポジトリのURL */
+  readonly url: string;
+  /** リポジトリのプロバイダー */
+  readonly provider: string;
   /** オーナー名 */
   readonly owner: string;
   /** デフォルトブランチ */
@@ -55,6 +61,9 @@ export interface RepositoryParams {
   id: string;
   userId: string;
   name: string;
+  description: string;
+  url: string;
+  provider: string;
   owner: string;
   defaultBranch: string;
   lastSyncedAt: Date;
@@ -83,6 +92,9 @@ export function createRepository(params: RepositoryParams): Repository {
     id: params.id,
     userId: params.userId,
     name: params.name,
+    description: params.description,
+    url: params.url,
+    provider: params.provider,
     owner: params.owner,
     defaultBranch: params.defaultBranch,
     lastSyncedAt: params.lastSyncedAt,

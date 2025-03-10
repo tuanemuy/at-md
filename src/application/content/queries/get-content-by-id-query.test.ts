@@ -5,10 +5,10 @@
 import { expect } from "@std/expect";
 import { describe, it, beforeEach } from "@std/testing/bdd";
 import { GetContentByIdQuery, GetContentByIdQueryHandler } from "./get-content-by-id-query.ts";
-import { ContentRepository } from "../repositories/content-repository.ts";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { Content } from "../../../core/content/entities/content.ts";
-import { ContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
+import { ContentRepository } from "../repositories/mod.ts";
+import { ContentAggregate, Content, ContentMetadata } from "../../../core/content/mod.ts";
+import { Result, ok } from "npm:neverthrow";
+import { DomainError } from "../../../core/errors/mod.ts";
 
 describe("GetContentByIdQueryHandler", () => {
   // モックリポジトリ
@@ -57,17 +57,19 @@ describe("GetContentByIdQueryHandler", () => {
   beforeEach(() => {
     // モックリポジトリの作成
     mockContentRepository = {
-      findById: async (id) => {
+      findById: (id) => {
         if (id === "content-123") {
-          return mockContentAggregate;
+          return Promise.resolve(mockContentAggregate);
         }
-        return null;
+        return Promise.resolve(null);
       },
-      findByRepositoryIdAndPath: async () => null,
-      findByUserId: async () => [],
-      findByRepositoryId: async () => [],
-      save: async (contentAggregate) => contentAggregate,
-      delete: async () => true
+      findByRepositoryIdAndPath: () => Promise.resolve(null),
+      findByUserId: () => Promise.resolve([]),
+      findByRepositoryId: () => Promise.resolve([]),
+      save: (contentAggregate) => Promise.resolve(contentAggregate),
+      saveWithTransaction: (contentAggregate, _context) => Promise.resolve(ok(contentAggregate)),
+      delete: () => Promise.resolve(true),
+      deleteWithTransaction: (_id, _context) => Promise.resolve(ok(true))
     };
     
     // ハンドラーの作成
@@ -105,8 +107,8 @@ describe("GetContentByIdQueryHandler", () => {
   
   it("リポジトリでエラーが発生した場合にエラーが返されること", async () => {
     // モックの設定
-    mockContentRepository.findById = async () => {
-      throw new Error("データベースエラー");
+    mockContentRepository.findById = () => {
+      return Promise.reject(new Error("データベースエラー"));
     };
     
     // クエリ実行
@@ -116,6 +118,22 @@ describe("GetContentByIdQueryHandler", () => {
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
       expect(result.error.message).toBe("データベースエラー");
+    }
+  });
+  
+  it("存在しないコンテンツIDでnullが返されること", async () => {
+    // モックの設定
+    mockContentRepository.findById = () => {
+      return Promise.resolve(null);
+    };
+    
+    // クエリ実行
+    const result = await handler.execute(validQuery);
+    
+    // 検証
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.message).toContain("コンテンツが見つかりません");
     }
   });
 }); 

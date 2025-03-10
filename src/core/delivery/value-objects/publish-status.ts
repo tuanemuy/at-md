@@ -1,6 +1,10 @@
 /**
+ * 公開状態値オブジェクト
+ * 
  * 投稿の公開状態を表す値オブジェクト
  */
+
+import { DomainError, InvalidMetadataError } from "../../errors/mod.ts";
 
 /**
  * 公開状態の種類
@@ -40,7 +44,8 @@ export interface PublishStatusProps {
  * 公開状態の値オブジェクト
  */
 export interface PublishStatus extends PublishStatusProps {
-  readonly [key: string]: any;
+  // インデックスシグネチャを使用して追加のプロパティを許可
+  readonly [key: string]: unknown;
 }
 
 /**

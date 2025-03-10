@@ -1,6 +1,7 @@
-import { Result, err, ok } from "npm:neverthrow";
-import { ApplicationError } from "../../../core/errors/base.ts";
-import { ViewTemplate } from "../../../core/display/entities/view-template.ts";
+import { Query } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { ApplicationError } from "../deps.ts";
+import { ViewTemplate } from "../deps.ts";
 import { TemplateRepository } from "../repositories/template-repository.ts";
 
 /**
@@ -11,10 +12,11 @@ export type GetAllTemplatesQueryError = ApplicationError;
 /**
  * すべてのテンプレート取得クエリ
  * 
- * パラメータは不要
+ * パラメータは不要だが、クエリ名を識別するためのnameプロパティを持つ
  */
 export interface GetAllTemplatesQuery {
-  // パラメータなし
+  // クエリ名
+  name: string;
 }
 
 /**

@@ -3,12 +3,12 @@
  * コンテンツを公開するためのコマンド
  */
 
-import { Command } from "../../common/command.ts";
-import { Result, ok, err } from "npm:neverthrow";
-import { PostAggregate, createNewPostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
+import { Command } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { PostAggregate, createNewPostAggregate } from "../deps.ts";
 import { PostRepository } from "../repositories/post-repository.ts";
-import { ContentRepository } from "../../content/repositories/content-repository.ts";
-import { generateId } from "../../../core/common/id.ts";
+import { ContentRepository } from "../../content/mod.ts";
+import { generateId } from "../deps.ts";
 
 /**
  * コンテンツ公開コマンド

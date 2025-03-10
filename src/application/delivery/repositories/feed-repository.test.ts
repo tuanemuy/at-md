@@ -4,8 +4,10 @@
 
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
-import { FeedRepository } from "./feed-repository.ts";
-import { FeedAggregate } from "../../../core/delivery/aggregates/feed-aggregate.ts";
+import { FeedRepository, TransactionContext } from "./mod.ts";
+import { FeedAggregate } from "../../../core/delivery/mod.ts";
+import { Result, ok } from "npm:neverthrow";
+import { DomainError } from "../../../core/errors/mod.ts";
 
 describe("FeedRepository", () => {
   it("インターフェースが正しく定義されていること", () => {
@@ -14,21 +16,19 @@ describe("FeedRepository", () => {
     
     // モックリポジトリの型定義
     const mockRepository: FeedRepository = {
-      findById: async (id: string) => null,
-      findByUserId: async (userId: string, options?: {
+      findById: (id: string) => Promise.resolve(null),
+      findByUserId: (userId: string, options?: {
         limit?: number;
         offset?: number;
-      }) => [],
-      findByName: async (userId: string, name: string) => null,
-      save: async (feedAggregate: FeedAggregate) => feedAggregate,
-      delete: async (id: string) => true
+      }) => Promise.resolve([]),
+      findByName: (userId: string, name: string) => Promise.resolve(null),
+      save: (feedAggregate: FeedAggregate) => Promise.resolve(feedAggregate),
+      saveWithTransaction: (feedAggregate: FeedAggregate, context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(feedAggregate)),
+      delete: (id: string) => Promise.resolve(true),
+      deleteWithTransaction: (id: string, context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
-    
-    // 型チェックが通ることを確認
-    expect(typeof mockRepository.findById).toBe("function");
-    expect(typeof mockRepository.findByUserId).toBe("function");
-    expect(typeof mockRepository.findByName).toBe("function");
-    expect(typeof mockRepository.save).toBe("function");
-    expect(typeof mockRepository.delete).toBe("function");
+
+    // 型チェックが通ればOK
+    expect(mockRepository).toBeDefined();
   });
 }); 

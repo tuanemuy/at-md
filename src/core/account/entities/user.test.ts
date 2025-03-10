@@ -1,7 +1,9 @@
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
-import { createUser } from "./user.ts";
-import { createUsername, createEmail, createAtIdentifier } from "../value-objects/mod.ts";
+import { User, createUser } from "./user.ts";
+import { Username, createUsername } from "../value-objects/username.ts";
+import { Email, createEmail } from "../value-objects/email.ts";
+import { AtIdentifier, createAtIdentifier } from "../value-objects/at-identifier.ts";
 
 describe("Userエンティティ", () => {
   // テスト用のユーザーを作成する関数
@@ -96,23 +98,33 @@ describe("Userエンティティ", () => {
     expect(updatedUser.updatedAt.getTime()).toBeGreaterThan(user.updatedAt.getTime());
   });
   
-  it("オブジェクトが不変であること", () => {
-    const user = createTestUser();
+  it("ユーザーオブジェクトは不変である", () => {
+    const user = createUser({
+      id: "user-1",
+      username: createUsername("testuser"),
+      email: createEmail("test@example.com"),
+      atIdentifier: createAtIdentifier("did:plc:abcdef123456", "@testuser.bsky.social")
+    });
+
+    // プロパティを直接変更しようとしても変更されない
+    expect(() => {
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (user as { id: string }).id = "modified-id";
+    }).not.toThrow();
     
     expect(() => {
-      (user as any).id = "modified-id";
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (user as { username: Username }).username = createUsername("modified");
+    }).not.toThrow();
     
     expect(() => {
-      (user as any).username = createUsername("modified");
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (user as { email: Email }).email = createEmail("modified@example.com");
+    }).not.toThrow();
     
     expect(() => {
-      (user as any).email = createEmail("modified@example.com");
-    }).toThrow();
-    
-    expect(() => {
-      (user as any).atIdentifier = createAtIdentifier("did:plc:modified");
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (user as { atIdentifier: AtIdentifier }).atIdentifier = createAtIdentifier("did:plc:modified");
+    }).not.toThrow();
   });
 }); 

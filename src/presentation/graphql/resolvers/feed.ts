@@ -3,12 +3,47 @@
  * 
  * フィード関連のクエリとミューテーションの実装を提供します。
  */
+import { Result } from "npm:neverthrow";
+import { 
+  ApplicationError,
+  PostAggregate
+} from "../deps.ts";
+import type {
+  Feed,
+  User,
+  Content
+} from "../deps.ts";
+
+// GraphQLコンテキストの型定義
+interface GraphQLContext {
+  queryHandlers: {
+    getFeedByIdQueryHandler: { execute: (query: { name: string; id: string }) => Promise<Result<Feed, ApplicationError>> };
+    getFeedByNameQueryHandler: { execute: (query: { name: string; userId: string; feedName: string }) => Promise<Result<Feed, ApplicationError>> };
+    getFeedsByUserIdQueryHandler: { execute: (query: { name: string; userId: string; limit?: number; offset?: number }) => Promise<Result<Feed[], ApplicationError>> };
+    getPostByIdQueryHandler: { execute: (query: { name: string; id: string }) => Promise<Result<PostAggregate, ApplicationError>> };
+    getPostByContentIdQueryHandler: { execute: (query: { name: string; contentId: string }) => Promise<Result<PostAggregate, ApplicationError>> };
+    getPostsByUserIdQueryHandler: { execute: (query: { name: string; userId: string; limit?: number; offset?: number }) => Promise<Result<PostAggregate[], ApplicationError>> };
+    getPostsByFeedIdQueryHandler: { execute: (query: { name: string; feedId: string; limit?: number; offset?: number }) => Promise<Result<PostAggregate[], ApplicationError>> };
+    getAllFeedsQueryHandler: { execute: (query: { name: string }) => Promise<Result<Feed[], ApplicationError>> };
+    getUserByIdQueryHandler: { execute: (query: { name: string; id: string }) => Promise<Result<User, ApplicationError>> };
+    getContentByIdQueryHandler: { execute: (query: { name: string; id: string }) => Promise<Result<Content, ApplicationError>> };
+  };
+  commandHandlers: {
+    createFeedCommandHandler: { execute: (command: { name: string; [key: string]: unknown }) => Promise<Result<Feed, ApplicationError>> };
+    updateFeedCommandHandler: { execute: (command: { name: string; id: string; [key: string]: unknown }) => Promise<Result<Feed, ApplicationError>> };
+    deleteFeedCommandHandler: { execute: (command: { name: string; id: string }) => Promise<Result<boolean, ApplicationError>> };
+    createPostCommandHandler: { execute: (command: { name: string; [key: string]: unknown }) => Promise<Result<PostAggregate, ApplicationError>> };
+    updatePostCommandHandler: { execute: (command: { name: string; id: string; [key: string]: unknown }) => Promise<Result<PostAggregate, ApplicationError>> };
+    deletePostCommandHandler: { execute: (command: { name: string; id: string }) => Promise<Result<boolean, ApplicationError>> };
+    publishPostCommandHandler: { execute: (command: { name: string; id: string }) => Promise<Result<PostAggregate, ApplicationError>> };
+    unpublishPostCommandHandler: { execute: (command: { name: string; id: string }) => Promise<Result<PostAggregate, ApplicationError>> };
+  };
+}
 
 // リゾルバーの型定義
 export const feedResolvers = {
   Query: {
-    // フィードをIDで取得
-    feed: async (_: any, { id }: { id: string }, { queryHandlers }: any) => {
+    feed: async (_: unknown, { id }: { id: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getFeedByIdQueryHandler.execute({
         name: "GetFeedById",
         id,
@@ -23,9 +58,9 @@ export const feedResolvers = {
 
     // フィードを名前で取得
     feedByName: async (
-      _: any,
+      _: unknown,
       { userId, name }: { userId: string; name: string },
-      { queryHandlers }: any
+      { queryHandlers }: GraphQLContext
     ) => {
       const result = await queryHandlers.getFeedByNameQueryHandler.execute({
         name: "GetFeedByName",
@@ -42,9 +77,9 @@ export const feedResolvers = {
 
     // ユーザーIDによるフィード一覧取得
     feedsByUserId: async (
-      _: any,
+      _: unknown,
       { userId, limit, offset }: { userId: string; limit?: number; offset?: number },
-      { queryHandlers }: any
+      { queryHandlers }: GraphQLContext
     ) => {
       const result = await queryHandlers.getFeedsByUserIdQueryHandler.execute({
         name: "GetFeedsByUserId",
@@ -60,8 +95,7 @@ export const feedResolvers = {
       return result.value;
     },
 
-    // 投稿をIDで取得
-    post: async (_: any, { id }: { id: string }, { queryHandlers }: any) => {
+    post: async (_: unknown, { id }: { id: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getPostByIdQueryHandler.execute({
         name: "GetPostById",
         id,
@@ -74,8 +108,7 @@ export const feedResolvers = {
       return result.value;
     },
 
-    // 投稿をコンテンツIDで取得
-    postByContentId: async (_: any, { contentId }: { contentId: string }, { queryHandlers }: any) => {
+    postByContentId: async (_: unknown, { contentId }: { contentId: string }, { queryHandlers }: GraphQLContext) => {
       const result = await queryHandlers.getPostByContentIdQueryHandler.execute({
         name: "GetPostByContentId",
         contentId,
@@ -90,9 +123,9 @@ export const feedResolvers = {
 
     // ユーザーIDによる投稿一覧取得
     postsByUserId: async (
-      _: any,
+      _: unknown,
       { userId, limit, offset }: { userId: string; limit?: number; offset?: number },
-      { queryHandlers }: any
+      { queryHandlers }: GraphQLContext
     ) => {
       const result = await queryHandlers.getPostsByUserIdQueryHandler.execute({
         name: "GetPostsByUserId",
@@ -110,9 +143,9 @@ export const feedResolvers = {
 
     // フィードIDによる投稿一覧取得
     postsByFeedId: async (
-      _: any,
+      _: unknown,
       { feedId, limit, offset }: { feedId: string; limit?: number; offset?: number },
-      { queryHandlers }: any
+      { queryHandlers }: GraphQLContext
     ) => {
       const result = await queryHandlers.getPostsByFeedIdQueryHandler.execute({
         name: "GetPostsByFeedId",
@@ -127,14 +160,28 @@ export const feedResolvers = {
 
       return result.value;
     },
+
+    feedBySlug: async (_: unknown, { slug }: { slug: string }, { queryHandlers }: GraphQLContext) => {
+      // ... existing code ...
+    },
+
+    allFeeds: async (_: unknown, __: unknown, { queryHandlers }: GraphQLContext) => {
+      // ... existing code ...
+    }
   },
 
   Mutation: {
-    // フィードを作成
-    createFeed: async (_: any, { input }: any, { commandHandlers }: any) => {
+    createFeed: async (
+      _: unknown, 
+      { input }: { input: { userId: string; name: string; description?: string; isPublic?: boolean } }, 
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.createFeedCommandHandler.execute({
         name: "CreateFeed",
-        ...input,
+        userId: input.userId,
+        description: input.description,
+        isPublic: input.isPublic,
+        feedName: input.name
       });
 
       if (result.isErr()) {
@@ -152,8 +199,11 @@ export const feedResolvers = {
       };
     },
 
-    // フィードを更新
-    updateFeed: async (_: any, { id, input }: any, { commandHandlers }: any) => {
+    updateFeed: async (
+      _: unknown, 
+      { id, input }: { id: string; input: { name?: string; description?: string; isPublic?: boolean } }, 
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.updateFeedCommandHandler.execute({
         name: "UpdateFeed",
         id,
@@ -175,8 +225,7 @@ export const feedResolvers = {
       };
     },
 
-    // フィードを削除
-    deleteFeed: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    deleteFeed: async (_: unknown, { id }: { id: string }, { commandHandlers }: GraphQLContext) => {
       const result = await commandHandlers.deleteFeedCommandHandler.execute({
         name: "DeleteFeed",
         id,
@@ -189,8 +238,11 @@ export const feedResolvers = {
       return true;
     },
 
-    // 投稿を作成
-    createPost: async (_: any, { input }: any, { commandHandlers }: any) => {
+    createPost: async (
+      _: unknown, 
+      { input }: { input: { userId: string; feedId: string; contentId: string; title?: string; description?: string } }, 
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.createPostCommandHandler.execute({
         name: "CreatePost",
         ...input,
@@ -211,8 +263,11 @@ export const feedResolvers = {
       };
     },
 
-    // 投稿を更新
-    updatePost: async (_: any, { id, input }: any, { commandHandlers }: any) => {
+    updatePost: async (
+      _: unknown, 
+      { id, input }: { id: string; input: { title?: string; description?: string } }, 
+      { commandHandlers }: GraphQLContext
+    ) => {
       const result = await commandHandlers.updatePostCommandHandler.execute({
         name: "UpdatePost",
         id,
@@ -234,8 +289,7 @@ export const feedResolvers = {
       };
     },
 
-    // 投稿を削除
-    deletePost: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    deletePost: async (_: unknown, { id }: { id: string }, { commandHandlers }: GraphQLContext) => {
       const result = await commandHandlers.deletePostCommandHandler.execute({
         name: "DeletePost",
         id,
@@ -248,8 +302,7 @@ export const feedResolvers = {
       return true;
     },
 
-    // 投稿を公開
-    publishPost: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    publishPost: async (_: unknown, { id }: { id: string }, { commandHandlers }: GraphQLContext) => {
       const result = await commandHandlers.publishPostCommandHandler.execute({
         name: "PublishPost",
         id,
@@ -270,8 +323,7 @@ export const feedResolvers = {
       };
     },
 
-    // 投稿の公開を取り消し
-    unpublishPost: async (_: any, { id }: { id: string }, { commandHandlers }: any) => {
+    unpublishPost: async (_: unknown, { id }: { id: string }, { commandHandlers }: GraphQLContext) => {
       const result = await commandHandlers.unpublishPostCommandHandler.execute({
         name: "UnpublishPost",
         id,
@@ -295,8 +347,7 @@ export const feedResolvers = {
 
   // Feed型のリゾルバー
   Feed: {
-    // ユーザー情報を取得
-    user: async (parent: any, _: any, { queryHandlers }: any) => {
+    user: async (parent: { userId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.userId) return null;
 
       const result = await queryHandlers.getUserByIdQueryHandler.execute({
@@ -311,8 +362,7 @@ export const feedResolvers = {
       return result.value;
     },
 
-    // 投稿一覧を取得
-    posts: async (parent: any, _: any, { queryHandlers }: any) => {
+    posts: async (parent: { id?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.id) return [];
 
       const result = await queryHandlers.getPostsByFeedIdQueryHandler.execute({
@@ -330,8 +380,7 @@ export const feedResolvers = {
 
   // Post型のリゾルバー
   Post: {
-    // フィード情報を取得
-    feed: async (parent: any, _: any, { queryHandlers }: any) => {
+    feed: async (parent: { feedId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.feedId) return null;
 
       const result = await queryHandlers.getFeedByIdQueryHandler.execute({
@@ -346,8 +395,7 @@ export const feedResolvers = {
       return result.value;
     },
 
-    // コンテンツ情報を取得
-    content: async (parent: any, _: any, { queryHandlers }: any) => {
+    content: async (parent: { contentId?: string }, _: unknown, { queryHandlers }: GraphQLContext) => {
       if (!parent.contentId) return null;
 
       const result = await queryHandlers.getContentByIdQueryHandler.execute({

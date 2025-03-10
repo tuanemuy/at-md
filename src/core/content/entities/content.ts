@@ -6,7 +6,7 @@ import {
   contentVisibilitySchema, 
   ContentVisibilitySchema 
 } from "../schemas/content-schemas.ts";
-import { DomainError } from "../../errors/base.ts";
+import { DomainError } from "../../errors/mod.ts";
 
 /**
  * コンテンツの公開範囲を表す型

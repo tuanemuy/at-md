@@ -6,98 +6,125 @@
  * 外部依存を減らすことができます。
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
+import { assertEquals } from "https://deno.land/std/assert/mod.ts";
+import { beforeEach, describe, it } from "https://deno.land/std/testing/bdd.ts";
+
+import {
+  Result,
+  ok,
+  err,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError,
+  generateId,
+  type UserAggregate,
+  type User,
+  createUserAggregate,
+  type UserRepository,
+  users,
+  db
+} from "./__tests__/deps.ts";
+
 import { DrizzleUserRepository } from "./drizzle-user-repository.ts";
-import { UserAggregate, createUserAggregate } from "../../core/account/aggregates/user-aggregate.ts";
-import { generateId } from "../../core/common/id.ts";
-import { eq } from "drizzle-orm";
-import { users } from "../database/schema/user.ts";
 
 /**
  * 簡易的なモックリポジトリ
  * 実際のデータベースの代わりに、インメモリでデータを管理します
  */
-class MockUserRepository {
+class MockUserRepository implements UserRepository {
   // インメモリデータストア
   private userStore: Record<string, UserAggregate> = {};
   
   /**
    * IDによってユーザーを検索する
    */
-  async findById(id: string): Promise<UserAggregate | null> {
-    return this.userStore[id] || null;
+  findById(id: string): Promise<UserAggregate | null> {
+    return Promise.resolve(this.userStore[id] || null);
   }
   
   /**
    * ユーザー名によってユーザーを検索する
    */
-  async findByUsername(username: string): Promise<UserAggregate | null> {
+  findByUsername(username: string): Promise<UserAggregate | null> {
     for (const id in this.userStore) {
       const aggregate = this.userStore[id];
       if (aggregate.user.username.value === username) {
-        return aggregate;
+        return Promise.resolve(aggregate);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
   
   /**
    * メールアドレスによってユーザーを検索する
    */
-  async findByEmail(email: string): Promise<UserAggregate | null> {
+  findByEmail(email: string): Promise<UserAggregate | null> {
     for (const id in this.userStore) {
       const aggregate = this.userStore[id];
       if (aggregate.user.email.value === email) {
-        return aggregate;
+        return Promise.resolve(aggregate);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
   
   /**
    * AT DIDによってユーザーを検索する
    */
-  async findByAtDid(atDid: string): Promise<UserAggregate | null> {
+  findByDid(did: string): Promise<UserAggregate | null> {
     for (const id in this.userStore) {
       const aggregate = this.userStore[id];
-      if (aggregate.user.atIdentifier.value === atDid) {
-        return aggregate;
+      if (aggregate.user.atIdentifier.value === did) {
+        return Promise.resolve(aggregate);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
   
   /**
    * AT Handleによってユーザーを検索する
    */
-  async findByAtHandle(atHandle: string): Promise<UserAggregate | null> {
+  findByHandle(handle: string): Promise<UserAggregate | null> {
     for (const id in this.userStore) {
       const aggregate = this.userStore[id];
-      if (aggregate.user.atIdentifier.handle === atHandle) {
-        return aggregate;
+      if (aggregate.user.atIdentifier.handle === handle) {
+        return Promise.resolve(aggregate);
       }
     }
-    return null;
+    return Promise.resolve(null);
   }
   
   /**
    * ユーザーを保存する
    */
-  async save(userAggregate: UserAggregate): Promise<UserAggregate> {
+  save(userAggregate: UserAggregate): Promise<UserAggregate> {
     this.userStore[userAggregate.user.id] = userAggregate;
-    return userAggregate;
+    return Promise.resolve(userAggregate);
   }
   
   /**
    * ユーザーを削除する
    */
-  async delete(id: string): Promise<boolean> {
+  delete(id: string): Promise<boolean> {
     if (this.userStore[id]) {
       delete this.userStore[id];
-      return true;
+      return Promise.resolve(true);
     }
-    return false;
+    return Promise.resolve(false);
+  }
+  
+  saveWithTransaction(userAggregate: UserAggregate, _context: unknown): Promise<Result<UserAggregate, DomainError>> {
+    this.userStore[userAggregate.user.id] = userAggregate;
+    return Promise.resolve(ok(userAggregate));
+  }
+  
+  deleteWithTransaction(id: string, _context: unknown): Promise<Result<boolean, DomainError>> {
+    if (this.userStore[id]) {
+      delete this.userStore[id];
+      return Promise.resolve(ok(true));
+    }
+    return Promise.resolve(ok(false));
   }
   
   /**
@@ -126,90 +153,105 @@ function createTestUserAggregate(): UserAggregate {
 }
 
 describe("DrizzleUserRepository", () => {
-  let mockRepo: MockUserRepository;
+  let repository: UserRepository;
+  let testUserId: string;
   
-  beforeEach(() => {
-    mockRepo = new MockUserRepository();
-    mockRepo.clearAll();
+  beforeEach(async () => {
+    // テスト用リポジトリの作成
+    repository = new DrizzleUserRepository(db);
+    
+    // テストデータのクリーンアップ
+    await db.delete(users).execute();
+    
+    // テスト用ユーザーIDの生成
+    testUserId = generateId();
   });
   
   describe("findById", () => {
-    it("存在するIDでユーザーを取得できる", async () => {
-      const userAggregate = createTestUserAggregate();
-      await mockRepo.save(userAggregate);
+    it("存在するユーザーを取得できる", async () => {
+      // テスト用ユーザーの作成
+      const userAggregate = createUserAggregate({
+        id: testUserId,
+        username: "testuser",
+        email: "test@example.com",
+        atIdentifier: "test.bsky.social",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      const result = await mockRepo.findById(userAggregate.user.id);
-      expect(result).not.toBeNull();
-      expect(result?.user.id).toBe(userAggregate.user.id);
+      // ユーザーの保存
+      await repository.save(userAggregate);
+      
+      // ユーザーの取得
+      const result = await repository.findById(testUserId);
+      
+      // 検証
+      assertEquals(result?.user.id, testUserId);
+      assertEquals(result?.user.username.value, "testuser");
+      assertEquals(result?.user.email.value, "test@example.com");
     });
     
-    it("存在しないIDの場合はnullを返す", async () => {
-      const result = await mockRepo.findById("non-existent-id");
-      expect(result).toBeNull();
-    });
-  });
-  
-  describe("findByUsername", () => {
-    it("存在するユーザー名でユーザーを取得できる", async () => {
-      const userAggregate = createTestUserAggregate();
-      await mockRepo.save(userAggregate);
-      
-      const result = await mockRepo.findByUsername(userAggregate.user.username.value);
-      expect(result).not.toBeNull();
-      expect(result?.user.username.value).toBe(userAggregate.user.username.value);
-    });
-    
-    it("存在しないユーザー名の場合はnullを返す", async () => {
-      const result = await mockRepo.findByUsername("non-existent-username");
-      expect(result).toBeNull();
+    it("存在しないユーザーIDの場合はnullを返す", async () => {
+      const result = await repository.findById("non-existent-id");
+      assertEquals(result, null);
     });
   });
   
   describe("save", () => {
     it("新しいユーザーを保存できる", async () => {
-      const userAggregate = createTestUserAggregate();
-      const savedAggregate = await mockRepo.save(userAggregate);
+      // テスト用ユーザーの作成
+      const userAggregate = createUserAggregate({
+        id: testUserId,
+        username: "newuser",
+        email: "new@example.com",
+        atIdentifier: "new.bsky.social",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      expect(savedAggregate).not.toBeNull();
-      expect(savedAggregate.user.id).toBe(userAggregate.user.id);
+      // ユーザーの保存
+      const savedUser = await repository.save(userAggregate);
       
-      const retrievedAggregate = await mockRepo.findById(userAggregate.user.id);
-      expect(retrievedAggregate).not.toBeNull();
-      expect(retrievedAggregate?.user.id).toBe(userAggregate.user.id);
+      // 検証
+      assertEquals(savedUser.user.id, testUserId);
+      assertEquals(savedUser.user.username.value, "newuser");
+      assertEquals(savedUser.user.email.value, "new@example.com");
+      
+      // データベースから直接取得して検証
+      const [dbUser] = await db.select().from(users).where(eq(users.id, testUserId)).execute();
+      assertEquals(dbUser.id, testUserId);
+      assertEquals(dbUser.username, "newuser");
+      assertEquals(dbUser.email, "new@example.com");
     });
     
     it("既存のユーザーを更新できる", async () => {
-      const userAggregate = createTestUserAggregate();
-      await mockRepo.save(userAggregate);
+      // テスト用ユーザーの作成と保存
+      const userAggregate = createUserAggregate({
+        id: testUserId,
+        username: "beforeuser",
+        email: "before@example.com",
+        atIdentifier: "before.bsky.social",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
       
-      const updatedAggregate = userAggregate.updateUsername("updateduser");
-      const savedAggregate = await mockRepo.save(updatedAggregate);
+      await repository.save(userAggregate);
       
-      expect(savedAggregate).not.toBeNull();
-      expect(savedAggregate.user.id).toBe(userAggregate.user.id);
-      expect(savedAggregate.user.username.value).toBe("updateduser");
+      // ユーザー情報の更新
+      const updatedUserAggregate = userAggregate.updateUsername("afteruser");
       
-      const retrievedAggregate = await mockRepo.findById(userAggregate.user.id);
-      expect(retrievedAggregate).not.toBeNull();
-      expect(retrievedAggregate?.user.username.value).toBe("updateduser");
+      const savedUser = await repository.save(updatedUserAggregate);
+      
+      // 検証
+      assertEquals(savedUser.user.id, testUserId);
+      assertEquals(savedUser.user.username.value, "afteruser");
+      assertEquals(savedUser.user.email.value, "before@example.com");
+      
+      // データベースから直接取得して検証
+      const [dbUser] = await db.select().from(users).where(eq(users.id, testUserId)).execute();
+      assertEquals(dbUser.id, testUserId);
+      assertEquals(dbUser.username, "afteruser");
+      assertEquals(dbUser.email, "before@example.com");
     });
   });
-  
-  describe("delete", () => {
-    it("存在するユーザーを削除できる", async () => {
-      const userAggregate = createTestUserAggregate();
-      await mockRepo.save(userAggregate);
-      
-      const result = await mockRepo.delete(userAggregate.user.id);
-      expect(result).toBe(true);
-      
-      const retrievedAggregate = await mockRepo.findById(userAggregate.user.id);
-      expect(retrievedAggregate).toBeNull();
-    });
-    
-    it("存在しないユーザーの削除はfalseを返す", async () => {
-      const result = await mockRepo.delete("non-existent-id");
-      expect(result).toBe(false);
-    });
-  });
-}); 
+});

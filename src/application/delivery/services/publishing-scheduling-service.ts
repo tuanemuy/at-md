@@ -3,8 +3,8 @@
  * 投稿の公開スケジュールを管理するサービス
  */
 
-import { Result, ok, err } from "npm:neverthrow";
-import { PostAggregate } from "../../../core/delivery/aggregates/post-aggregate.ts";
+import { Result, ok, err } from "../deps.ts";
+import { PostAggregate } from "../deps.ts";
 import { PostRepository } from "../repositories/post-repository.ts";
 
 /**

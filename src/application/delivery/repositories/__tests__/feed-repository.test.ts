@@ -1,6 +1,8 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { FeedRepository } from "../feed-repository.ts";
-import { FeedAggregate } from "../../../../core/delivery/aggregates/feed-aggregate.ts";
+import { assertEquals, assertInstanceOf } from "https://deno.land/std/assert/mod.ts";
+import { FeedRepository, TransactionContext } from "../mod.ts";
+import { FeedAggregate } from "../../../../core/delivery/mod.ts";
+import { Result, ok } from "npm:neverthrow";
+import { DomainError } from "../../../../core/errors/mod.ts";
 
 /**
  * FeedRepositoryインターフェースのテスト
@@ -17,7 +19,9 @@ Deno.test("FeedRepository", async (t) => {
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number }) => Promise.resolve([]),
       findByName: (_userId: string, _name: string) => Promise.resolve(null),
       save: (_feedAggregate: FeedAggregate) => Promise.resolve(_feedAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(_feedAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -34,7 +38,9 @@ Deno.test("FeedRepository", async (t) => {
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number }) => Promise.resolve([]),
       findByName: (_userId: string, _name: string) => Promise.resolve(null),
       save: (_feedAggregate: FeedAggregate) => Promise.resolve(_feedAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(_feedAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -52,7 +58,9 @@ Deno.test("FeedRepository", async (t) => {
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number }) => Promise.resolve([]),
       findByName: (_userId: string, _name: string) => Promise.resolve(null),
       save: (_feedAggregate: FeedAggregate) => Promise.resolve(_feedAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(_feedAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -70,7 +78,9 @@ Deno.test("FeedRepository", async (t) => {
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number }) => Promise.resolve([]),
       findByName: (_userId: string, _name: string) => Promise.resolve(null),
       save: (_feedAggregate: FeedAggregate) => Promise.resolve(_feedAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(_feedAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）
@@ -88,7 +98,9 @@ Deno.test("FeedRepository", async (t) => {
       findByUserId: (_userId: string, _options?: { limit?: number; offset?: number }) => Promise.resolve([]),
       findByName: (_userId: string, _name: string) => Promise.resolve(null),
       save: (_feedAggregate: FeedAggregate) => Promise.resolve(_feedAggregate),
-      delete: (_id: string) => Promise.resolve(true)
+      saveWithTransaction: (_feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(_feedAggregate)),
+      delete: (_id: string) => Promise.resolve(true),
+      deleteWithTransaction: (_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true))
     };
     
     // 実際のテスト（実装時にはこのアサーションが通るようにする）

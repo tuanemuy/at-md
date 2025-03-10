@@ -1,17 +1,16 @@
 /**
- * ユーザースキーマ
- * ユーザー関連のデータベーステーブルを定義します。
+ * ユーザーテーブルのスキーマ定義
  */
 
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { generateId } from "../../../core/common/id.ts";
+import { pgTable, text, timestamp } from "npm:drizzle-orm/pg-core";
+import { generateId } from "../../../core/common/mod.ts";
 
 /**
  * ユーザーテーブル
  */
 export const users = pgTable("users", {
   // ユーザーID
-  id: text("id").primaryKey().$defaultFn(() => generateId()),
+  id: text("id").primaryKey().notNull().$defaultFn(() => generateId()),
   
   // ユーザー名
   username: text("username").notNull().unique(),
@@ -20,10 +19,13 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   
   // ATプロトコルのDID
-  atDid: text("at_did").notNull().unique(),
+  atIdentifier: text("at_identifier"),
   
   // ATプロトコルのハンドル（オプション）
-  atHandle: text("at_handle").unique(),
+  did: text("did"),
+  
+  // パスワードハッシュ
+  passwordHash: text("password_hash"),
   
   // 作成日時
   createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -2,13 +2,32 @@
  * コンテンツ作成コマンドのテスト
  */
 
-import { expect } from "@std/expect";
-import { describe, it, beforeEach } from "@std/testing/bdd";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  describe,
+  it,
+  beforeEach,
+  ContentAggregate,
+  RepositoryAggregate,
+  createContentAggregate,
+  createRepositoryAggregate,
+  DomainError,
+  ApplicationError,
+  ValidationError,
+  EntityNotFoundError
+} from "../__tests__/deps/mod.ts";
+
+import type {
+  Content,
+  Repository,
+  ContentRepository,
+  RepositoryRepository
+} from "../__tests__/deps/mod.ts";
+
 import { CreateContentCommand, CreateContentCommandHandler } from "./create-content-command.ts";
-import { ContentRepository } from "../repositories/content-repository.ts";
-import { RepositoryRepository } from "../repositories/repository-repository.ts";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { RepositoryAggregate } from "../../../core/content/aggregates/repository-aggregate.ts";
 
 describe("CreateContentCommandHandler", () => {
   // モックリポジトリ
@@ -34,25 +53,29 @@ describe("CreateContentCommandHandler", () => {
   beforeEach(() => {
     // モックリポジトリの作成
     mockContentRepository = {
-      findById: async () => null,
-      findByRepositoryIdAndPath: async () => null,
-      findByUserId: async () => [],
-      findByRepositoryId: async () => [],
-      save: async (contentAggregate) => contentAggregate,
-      delete: async () => true
+      findById: () => Promise.resolve(null),
+      findByRepositoryIdAndPath: () => Promise.resolve(null),
+      findByUserId: () => Promise.resolve([]),
+      findByRepositoryId: () => Promise.resolve([]),
+      save: (contentAggregate) => Promise.resolve(contentAggregate),
+      saveWithTransaction: (contentAggregate, _context) => Promise.resolve(ok(contentAggregate)),
+      delete: () => Promise.resolve(true),
+      deleteWithTransaction: (_id, _context) => Promise.resolve(ok(true))
     };
     
     mockRepositoryRepository = {
-      findById: async (id) => {
+      findById: (id) => {
         if (id === "repo-123") {
-          return {} as RepositoryAggregate; // 簡易的なモック
+          return Promise.resolve({} as RepositoryAggregate); // 簡易的なモック
         }
-        return null;
+        return Promise.resolve(null);
       },
-      findByUserId: async () => [],
-      findByName: async () => null,
-      save: async (repositoryAggregate) => repositoryAggregate,
-      delete: async () => true
+      findByUserId: () => Promise.resolve([]),
+      findByName: () => Promise.resolve(null),
+      save: (repositoryAggregate) => Promise.resolve(repositoryAggregate),
+      saveWithTransaction: (repositoryAggregate, _context) => Promise.resolve(ok(repositoryAggregate)),
+      delete: () => Promise.resolve(true),
+      deleteWithTransaction: (_id, _context) => Promise.resolve(ok(true))
     };
     
     // ハンドラーの作成
@@ -65,9 +88,9 @@ describe("CreateContentCommandHandler", () => {
   it("有効なコマンドでコンテンツが作成されること", async () => {
     // モックの設定
     let savedContent: ContentAggregate | null = null;
-    mockContentRepository.save = async (contentAggregate) => {
+    mockContentRepository.save = (contentAggregate) => {
       savedContent = contentAggregate;
-      return contentAggregate;
+      return Promise.resolve(contentAggregate);
     };
     
     // コマンド実行
@@ -89,7 +112,7 @@ describe("CreateContentCommandHandler", () => {
   
   it("存在しないリポジトリIDでエラーが返されること", async () => {
     // モックの設定
-    mockRepositoryRepository.findById = async () => null;
+    mockRepositoryRepository.findById = () => Promise.resolve(null);
     
     // コマンド実行
     const result = await handler.execute(validCommand);
@@ -103,8 +126,8 @@ describe("CreateContentCommandHandler", () => {
   
   it("既存のパスでエラーが返されること", async () => {
     // モックの設定
-    mockContentRepository.findByRepositoryIdAndPath = async () => {
-      return {} as ContentAggregate; // 既存のコンテンツがあるとする
+    mockContentRepository.findByRepositoryIdAndPath = () => {
+      return Promise.resolve({} as ContentAggregate); // 既存のコンテンツがあるとする
     };
     
     // コマンド実行

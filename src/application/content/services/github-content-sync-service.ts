@@ -214,8 +214,17 @@ export class GitHubContentSyncService implements ContentSyncService {
           updatedAt: new Date()
         });
         
-        const updatedAggregate = createContentAggregate(updatedContent);
-        const savedContent = await this.contentRepository.save(updatedAggregate);
+        if (updatedContent.isErr()) {
+          return err(updatedContent.error);
+        }
+        
+        const updatedAggregateResult = createContentAggregate(updatedContent.value);
+        
+        if (updatedAggregateResult.isErr()) {
+          return err(updatedAggregateResult.error);
+        }
+        
+        const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
         
         return ok(savedContent);
       }
@@ -312,8 +321,7 @@ export class GitHubContentSyncService implements ContentSyncService {
       
       if (existingFileResult && existingFileResult.isOk()) {
         // 既存のファイルを更新
-        // 実際の実装では、GitHubApiAdapterにupdateContentメソッドを追加する必要があります
-        updateResult = await this.updateGitHubContent(
+        updateResult = this.updateGitHubContent(
           externalConfig.owner,
           externalConfig.repo,
           content.path,
@@ -324,8 +332,7 @@ export class GitHubContentSyncService implements ContentSyncService {
         );
       } else {
         // 新規ファイルを作成
-        // 実際の実装では、GitHubApiAdapterにcreateContentメソッドを追加する必要があります
-        updateResult = await this.createGitHubContent(
+        updateResult = this.createGitHubContent(
           externalConfig.owner,
           externalConfig.repo,
           content.path,
@@ -345,8 +352,17 @@ export class GitHubContentSyncService implements ContentSyncService {
         updatedAt: new Date()
       });
       
-      const updatedAggregate = createContentAggregate(updatedContent);
-      const savedContent = await this.contentRepository.save(updatedAggregate);
+      if (updatedContent.isErr()) {
+        return err(updatedContent.error);
+      }
+      
+      const updatedAggregateResult = createContentAggregate(updatedContent.value);
+      
+      if (updatedAggregateResult.isErr()) {
+        return err(updatedAggregateResult.error);
+      }
+      
+      const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
       
       return ok(savedContent);
     } catch (error) {
@@ -379,8 +395,17 @@ export class GitHubContentSyncService implements ContentSyncService {
         updatedAt: new Date()
       });
       
-      const updatedAggregate = createContentAggregate(updatedContent);
-      const savedContent = await this.contentRepository.save(updatedAggregate);
+      if (updatedContent.isErr()) {
+        throw updatedContent.error;
+      }
+      
+      const updatedAggregateResult = createContentAggregate(updatedContent.value);
+      
+      if (updatedAggregateResult.isErr()) {
+        throw updatedAggregateResult.error;
+      }
+      
+      const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
       
       result.updated.push(savedContent);
     }
@@ -402,11 +427,15 @@ export class GitHubContentSyncService implements ContentSyncService {
     content: string,
     result: SyncResult
   ): Promise<void> {
-    const metadata = createContentMetadata({
+    const metadataResult = createContentMetadata({
       tags: [],
       categories: [],
       language: "ja"
     });
+    
+    if (metadataResult.isErr()) {
+      throw metadataResult.error;
+    }
     
     const newContent = createContent({
       id: generateId(),
@@ -415,15 +444,24 @@ export class GitHubContentSyncService implements ContentSyncService {
       path,
       title,
       body: content,
-      metadata,
+      metadata: metadataResult.value,
       visibility: "private",
       versions: [],
       createdAt: new Date(),
       updatedAt: new Date()
     });
     
-    const newAggregate = createContentAggregate(newContent);
-    const savedContent = await this.contentRepository.save(newAggregate);
+    if (newContent.isErr()) {
+      throw newContent.error;
+    }
+    
+    const newAggregateResult = createContentAggregate(newContent.value);
+    
+    if (newAggregateResult.isErr()) {
+      throw newAggregateResult.error;
+    }
+    
+    const savedContent = await this.contentRepository.save(newAggregateResult.value);
     
     result.added.push(savedContent);
   }
@@ -501,17 +539,16 @@ export class GitHubContentSyncService implements ContentSyncService {
   
   /**
    * GitHubコンテンツを更新する
-   * 
-   * @param owner リポジトリのオーナー
+   * @param owner リポジトリオーナー
    * @param repo リポジトリ名
    * @param path ファイルパス
-   * @param content ファイルの内容
+   * @param content ファイル内容
    * @param message コミットメッセージ
-   * @param sha ファイルのSHA
+   * @param sha 現在のSHA
    * @param branch ブランチ名
    * @returns 更新結果
    */
-  private async updateGitHubContent(
+  private updateGitHubContent(
     owner: string,
     repo: string,
     path: string,
@@ -527,16 +564,15 @@ export class GitHubContentSyncService implements ContentSyncService {
   
   /**
    * GitHubコンテンツを作成する
-   * 
-   * @param owner リポジトリのオーナー
+   * @param owner リポジトリオーナー
    * @param repo リポジトリ名
    * @param path ファイルパス
-   * @param content ファイルの内容
+   * @param content ファイル内容
    * @param message コミットメッセージ
    * @param branch ブランチ名
    * @returns 作成結果
    */
-  private async createGitHubContent(
+  private createGitHubContent(
     owner: string,
     repo: string,
     path: string,
@@ -546,6 +582,6 @@ export class GitHubContentSyncService implements ContentSyncService {
   ) {
     // 実際の実装では、GitHubApiAdapterのメソッドを呼び出します
     // ここではダミーの実装を返します
-    return ok({ sha: "created-sha" });
+    return ok({ sha: "new-sha" });
   }
 } 

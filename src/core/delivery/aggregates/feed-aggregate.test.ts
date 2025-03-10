@@ -1,8 +1,12 @@
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
-import { createFeedAggregate, createNewFeedAggregate } from "./feed-aggregate.ts";
+import { 
+  FeedAggregate, 
+  createFeedAggregate, 
+  createNewFeedAggregate 
+} from "./feed-aggregate.ts";
 import { createFeed } from "../entities/feed.ts";
-import { createFeedMetadata } from "../value-objects/feed-metadata.ts";
+import { createFeedMetadata, FeedMetadataProps } from "../value-objects/feed-metadata.ts";
 
 describe("FeedAggregate", () => {
   // テスト用のフィードを作成する関数
@@ -159,8 +163,31 @@ describe("FeedAggregate", () => {
       createNewFeedAggregate({
         userId: "user-123",
         name: "テストフィード",
-        metadataProps: null as any
+        metadataProps: null as unknown as FeedMetadataProps
       });
+    }).toThrow();
+  });
+
+  // 無効なメタデータの場合
+  it("無効なメタデータの場合はエラーをスローする", () => {
+    const feed = createFeed({
+      id: "feed-1",
+      userId: "user-1",
+      name: "Test Feed",
+      metadata: createFeedMetadata({
+        type: "personal",
+        description: "Test Feed",
+        language: "ja"
+      }),
+      postIds: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    // nullのメタデータを設定しようとするとエラーになる
+    expect(() => {
+      // nullをFeedMetadataPropsとして扱うことでエラーを発生させる
+      feed.updateMetadata(null as unknown as FeedMetadataProps);
     }).toThrow();
   });
 }); 

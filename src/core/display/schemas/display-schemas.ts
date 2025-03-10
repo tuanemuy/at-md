@@ -4,13 +4,13 @@
  * 表示ドメインで使用するZodスキーマを定義します。
  */
 
-import { z } from "../../../deps.ts";
+import { z } from "../deps.ts";
 import {
   idSchema,
   userIdSchema,
   contentIdSchema,
   dateSchema,
-} from "../../common/schemas/base-schemas.ts";
+} from "../../common/schemas/mod.ts";
 
 /**
  * テーマID用のスキーマ

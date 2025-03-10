@@ -1,19 +1,20 @@
-import { assertEquals } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
+import { assertEquals } from "https://deno.land/std/assert/mod.ts";
+import { spy } from "@std/testing/mock";
+import { ok, err, Result } from "npm:neverthrow";
 import { GetFeedByIdQuery, GetFeedByIdQueryHandler, GetFeedsByUserIdQuery, GetFeedsByUserIdQueryHandler, GetFeedByNameQuery, GetFeedByNameQueryHandler } from "../feed-query.ts";
-import { FeedRepository } from "../../repositories/feed-repository.ts";
-import { FeedAggregate } from "../../../../core/delivery/aggregates/feed-aggregate.ts";
-import { Feed } from "../../../../core/delivery/entities/feed.ts";
-import { FeedMetadata, FeedMetadataProps } from "../../../../core/delivery/value-objects/feed-metadata.ts";
+import { FeedRepository, TransactionContext } from "../../repositories/mod.ts";
+import { FeedAggregate, Feed, FeedMetadata, FeedMetadataProps } from "../../../../core/delivery/mod.ts";
+import { DomainError } from "../../../../core/errors/mod.ts";
 
 // モックの作成
 class MockFeedRepository implements FeedRepository {
-  findById = spy(async (_id: string): Promise<FeedAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; }): Promise<FeedAggregate[]> => []);
-  findByName = spy(async (_userId: string, _name: string): Promise<FeedAggregate | null> => null);
-  save = spy(async (feedAggregate: FeedAggregate): Promise<FeedAggregate> => feedAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
+  findById = spy((_id: string): Promise<FeedAggregate | null> => Promise.resolve(null));
+  findByUserId = spy((_userId: string, _options?: { limit?: number; offset?: number; }): Promise<FeedAggregate[]> => Promise.resolve([]));
+  findByName = spy((_userId: string, _name: string): Promise<FeedAggregate | null> => Promise.resolve(null));
+  save = spy((feedAggregate: FeedAggregate): Promise<FeedAggregate> => Promise.resolve(feedAggregate));
+  saveWithTransaction = spy((feedAggregate: FeedAggregate, _context: TransactionContext): Promise<Result<FeedAggregate, DomainError>> => Promise.resolve(ok(feedAggregate)));
+  delete = spy((_id: string): Promise<boolean> => Promise.resolve(true));
+  deleteWithTransaction = spy((_id: string, _context: TransactionContext): Promise<Result<boolean, DomainError>> => Promise.resolve(ok(true)));
 }
 
 // モックのフィード集約を作成する関数
@@ -64,11 +65,11 @@ Deno.test("GetFeedByIdQueryHandler", async (t) => {
     const existingFeed = createMockFeedAggregate("feed1", "user1", "Test Feed");
     
     // フィードが存在することを設定
-    feedRepository.findById = spy(async (id: string) => {
+    feedRepository.findById = spy((id: string) => {
       if (id === "feed1") {
-        return existingFeed;
+        return Promise.resolve(existingFeed);
       }
-      return null;
+      return Promise.resolve(null);
     });
     
     // テスト対象のハンドラーを作成
@@ -99,7 +100,7 @@ Deno.test("GetFeedByIdQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // フィードが存在しないことを設定
-    feedRepository.findById = spy(async (id: string) => null);
+    feedRepository.findById = spy((id: string) => Promise.resolve(null));
     
     // テスト対象のハンドラーを作成
     const handler = new GetFeedByIdQueryHandler(feedRepository);
@@ -126,7 +127,7 @@ Deno.test("GetFeedByIdQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // エラーが発生することを設定
-    feedRepository.findById = spy(async (id: string) => {
+    feedRepository.findById = spy((id: string) => {
       throw new Error("Repository error");
     });
     
@@ -159,11 +160,11 @@ Deno.test("GetFeedsByUserIdQueryHandler", async (t) => {
     const feed2 = createMockFeedAggregate("feed2", "user1", "Test Feed 2");
     
     // フィードが存在することを設定
-    feedRepository.findByUserId = spy(async (userId: string, options?: { limit?: number; offset?: number; }) => {
+    feedRepository.findByUserId = spy((userId: string, options?: { limit?: number; offset?: number; }) => {
       if (userId === "user1") {
-        return [feed1, feed2];
+        return Promise.resolve([feed1, feed2]);
       }
-      return [];
+      return Promise.resolve([]);
     });
     
     // テスト対象のハンドラーを作成
@@ -196,7 +197,7 @@ Deno.test("GetFeedsByUserIdQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // フィードが存在しないことを設定
-    feedRepository.findByUserId = spy(async (userId: string, options?: { limit?: number; offset?: number; }) => []);
+    feedRepository.findByUserId = spy((userId: string, options?: { limit?: number; offset?: number; }) => Promise.resolve([]));
     
     // テスト対象のハンドラーを作成
     const handler = new GetFeedsByUserIdQueryHandler(feedRepository);
@@ -223,7 +224,7 @@ Deno.test("GetFeedsByUserIdQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // エラーが発生することを設定
-    feedRepository.findByUserId = spy(async (userId: string, options?: { limit?: number; offset?: number; }) => {
+    feedRepository.findByUserId = spy((userId: string, options?: { limit?: number; offset?: number; }) => {
       throw new Error("Repository error");
     });
     
@@ -255,11 +256,11 @@ Deno.test("GetFeedByNameQueryHandler", async (t) => {
     const existingFeed = createMockFeedAggregate("feed1", "user1", "Test Feed");
     
     // フィードが存在することを設定
-    feedRepository.findByName = spy(async (userId: string, name: string) => {
+    feedRepository.findByName = spy((userId: string, name: string) => {
       if (userId === "user1" && name === "Test Feed") {
-        return existingFeed;
+        return Promise.resolve(existingFeed);
       }
-      return null;
+      return Promise.resolve(null);
     });
     
     // テスト対象のハンドラーを作成
@@ -291,7 +292,7 @@ Deno.test("GetFeedByNameQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // フィードが存在しないことを設定
-    feedRepository.findByName = spy(async (userId: string, name: string) => null);
+    feedRepository.findByName = spy((userId: string, name: string) => Promise.resolve(null));
     
     // テスト対象のハンドラーを作成
     const handler = new GetFeedByNameQueryHandler(feedRepository);
@@ -319,7 +320,7 @@ Deno.test("GetFeedByNameQueryHandler", async (t) => {
     const feedRepository = new MockFeedRepository();
     
     // エラーが発生することを設定
-    feedRepository.findByName = spy(async (userId: string, name: string) => {
+    feedRepository.findByName = spy((userId: string, name: string) => {
       throw new Error("Repository error");
     });
     

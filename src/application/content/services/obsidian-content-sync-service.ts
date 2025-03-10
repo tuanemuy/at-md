@@ -4,16 +4,19 @@
  */
 
 import { Result, ok, err } from "npm:neverthrow";
-import { ContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { RepositoryAggregate } from "../../../core/content/aggregates/repository-aggregate.ts";
+import { 
+  ContentAggregate,
+  RepositoryAggregate,
+  ObsidianAdapter,
+  ObsidianNote,
+  createContent,
+  createContentAggregate,
+  createContentMetadata
+} from "../../../core/content/mod.ts";
+import { generateId } from "../../../core/common/mod.ts";
 import { ContentSyncService, SyncResult } from "./content-sync-service.ts";
 import { ContentRepository } from "../repositories/content-repository.ts";
 import { RepositoryRepository } from "../repositories/repository-repository.ts";
-import { ObsidianAdapter, ObsidianNote } from "../../../infrastructure/adapters/obsidian/obsidian-adapter.ts";
-import { createContent } from "../../../core/content/entities/content.ts";
-import { createContentAggregate } from "../../../core/content/aggregates/content-aggregate.ts";
-import { createContentMetadata } from "../../../core/content/value-objects/content-metadata.ts";
-import { generateId } from "../../../core/common/id.ts";
 
 /**
  * 外部リポジトリ設定
@@ -110,8 +113,17 @@ export class ObsidianContentSyncService implements ContentSyncService {
                 updatedAt: new Date()
               });
               
-              const updatedAggregate = createContentAggregate(updatedContent);
-              const savedContent = await this.contentRepository.save(updatedAggregate);
+              if (updatedContent.isErr()) {
+                throw updatedContent.error;
+              }
+              
+              const updatedAggregateResult = createContentAggregate(updatedContent.value);
+              
+              if (updatedAggregateResult.isErr()) {
+                throw updatedAggregateResult.error;
+              }
+              
+              const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
               
               result.updated.push(savedContent);
               currentContentMap.delete(note.path);
@@ -121,11 +133,15 @@ export class ObsidianContentSyncService implements ContentSyncService {
             }
           } else {
             // 新規コンテンツを作成
-            const metadata = createContentMetadata({
+            const metadataResult = createContentMetadata({
               tags: note.tags,
               categories: [],
               language: "ja"
             });
+            
+            if (metadataResult.isErr()) {
+              throw metadataResult.error;
+            }
             
             const newContent = createContent({
               id: generateId(),
@@ -134,15 +150,24 @@ export class ObsidianContentSyncService implements ContentSyncService {
               path: note.path,
               title: note.name,
               body: note.content,
-              metadata,
+              metadata: metadataResult.value,
               visibility: "private",
               versions: [],
               createdAt: note.createdAt || new Date(),
               updatedAt: note.modifiedAt || new Date()
             });
             
-            const newAggregate = createContentAggregate(newContent);
-            const savedContent = await this.contentRepository.save(newAggregate);
+            if (newContent.isErr()) {
+              throw newContent.error;
+            }
+            
+            const newAggregateResult = createContentAggregate(newContent.value);
+            
+            if (newAggregateResult.isErr()) {
+              throw newAggregateResult.error;
+            }
+            
+            const savedContent = await this.contentRepository.save(newAggregateResult.value);
             
             result.added.push(savedContent);
           }
@@ -216,8 +241,17 @@ export class ObsidianContentSyncService implements ContentSyncService {
           updatedAt: new Date()
         });
         
-        const updatedAggregate = createContentAggregate(updatedContent);
-        const savedContent = await this.contentRepository.save(updatedAggregate);
+        if (updatedContent.isErr()) {
+          return err(updatedContent.error);
+        }
+        
+        const updatedAggregateResult = createContentAggregate(updatedContent.value);
+        
+        if (updatedAggregateResult.isErr()) {
+          return err(updatedAggregateResult.error);
+        }
+        
+        const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
         
         return ok(savedContent);
       }
@@ -340,8 +374,17 @@ export class ObsidianContentSyncService implements ContentSyncService {
         updatedAt: new Date()
       });
       
-      const updatedAggregate = createContentAggregate(updatedContent);
-      const savedContent = await this.contentRepository.save(updatedAggregate);
+      if (updatedContent.isErr()) {
+        return err(updatedContent.error);
+      }
+      
+      const updatedAggregateResult = createContentAggregate(updatedContent.value);
+      
+      if (updatedAggregateResult.isErr()) {
+        return err(updatedAggregateResult.error);
+      }
+      
+      const savedContent = await this.contentRepository.save(updatedAggregateResult.value);
       
       return ok(savedContent);
     } catch (error) {

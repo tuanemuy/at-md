@@ -1,7 +1,8 @@
+import { assertEquals, assertThrows } from "https://deno.land/std@0.220.1/assert/mod.ts";
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
 import { Version, ContentChanges, createVersion, VersionCreationError } from "./version.ts";
-import { titleSchema, bodySchema, tagsSchema, categoriesSchema, languageSchema } from "../../common/schemas/base-schemas.ts";
+import { titleSchema, bodySchema, tagsSchema, categoriesSchema, languageSchema } from "../../common/schemas/mod.ts";
 
 describe("Version値オブジェクト", () => {
   it("すべてのプロパティを指定して作成できること", () => {

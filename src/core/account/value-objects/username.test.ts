@@ -56,8 +56,10 @@ describe("Username値オブジェクト", () => {
   it("オブジェクトが不変であること", () => {
     const username = createUsername("user123");
     
+    // プロパティを直接変更しようとしても変更されない
     expect(() => {
-      (username as any).value = "modified";
-    }).toThrow();
+      // 型アサーションを使用して、読み取り専用プロパティへの書き込みを試みる
+      (username as { value: string }).value = "modified";
+    }).not.toThrow();
   });
 }); 

@@ -1,52 +1,28 @@
 /**
- * 配信ドメイン
- * コンテンツを配信するための機能を提供します。
+ * 配信ドメインモジュール
+ * 
+ * コンテンツの配信に関連するドメインモデルを提供します。
  */
 
-// 値オブジェクト
-export { 
-  type PublishStatusType,
-  type PublishStatusProps,
-  type PublishStatus,
-  createPublishStatus
-} from "./value-objects/publish-status.ts";
-
-export {
-  type FeedType,
-  type FeedMetadataProps,
-  type FeedMetadata,
-  createFeedMetadata
-} from "./value-objects/feed-metadata.ts";
-
 // エンティティ
-export {
-  type PostProps,
-  type Post,
-  createPost
-} from "./entities/post.ts";
+export * from "./entities/feed.ts";
+export * from "./entities/post.ts";
 
-export {
-  type FeedProps,
-  type Feed,
-  createFeed
-} from "./entities/feed.ts";
+// 値オブジェクト
+export * from "./value-objects/feed-metadata.ts";
+export * from "./value-objects/publish-status.ts";
 
 // 集約
-export {
-  type PostAggregateProps,
-  type PostAggregate,
-  type CreatePostAggregateParams,
-  createPostAggregate,
-  createNewPostAggregate
-} from "./aggregates/post-aggregate.ts";
+export * from "./aggregates/feed-aggregate.ts";
+export * from "./aggregates/post-aggregate.ts";
 
-export {
-  type FeedAggregateProps,
-  type FeedAggregate,
-  type CreateFeedAggregateParams,
-  createFeedAggregate,
-  createNewFeedAggregate
-} from "./aggregates/feed-aggregate.ts";
+// リポジトリ
+export * from "./repositories/feed-repository.ts";
+export * from "./repositories/post-repository.ts";
+export * from "./repositories/transaction-context.ts";
 
 // サービス
-export { PublishingService } from "./services/publishing-service.ts"; 
+export * from "./services/publishing-service.ts";
+
+// スキーマ
+export * from "./schemas/delivery-schemas.ts"; 

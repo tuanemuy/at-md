@@ -1,4 +1,10 @@
-import { InvalidMetadataError } from "../../errors/domain.ts";
+/**
+ * レンダリングオプション値オブジェクト
+ * 
+ * コンテンツのレンダリング方法を制御するオプションを定義します。
+ */
+
+import { DomainError, InvalidMetadataError } from "../../errors/mod.ts";
 
 /**
  * レンダリングオプションのテーマ

@@ -30,6 +30,16 @@ export interface User {
   readonly atIdentifier: AtIdentifier;
   
   /**
+   * 分散型識別子
+   */
+  readonly did: string;
+  
+  /**
+   * パスワードハッシュ
+   */
+  readonly passwordHash: string;
+  
+  /**
    * 作成日時
    */
   readonly createdAt: Date;
@@ -69,6 +79,8 @@ export interface CreateUserParams {
   username: Username;
   email: Email;
   atIdentifier: AtIdentifier;
+  did: string;
+  passwordHash: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -104,6 +116,8 @@ export function createUser(params: CreateUserParams): User {
     username: params.username,
     email: params.email,
     atIdentifier: params.atIdentifier,
+    did: params.did,
+    passwordHash: params.passwordHash,
     createdAt: params.createdAt || now,
     updatedAt: params.updatedAt || now,
     

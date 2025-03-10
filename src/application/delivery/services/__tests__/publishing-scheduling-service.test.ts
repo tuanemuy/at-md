@@ -1,263 +1,231 @@
-import { assertEquals } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
-import { PublishingSchedulingService, DefaultPublishingSchedulingService } from "../publishing-scheduling-service.ts";
-import { PostRepository } from "../../repositories/post-repository.ts";
-import { PostAggregate } from "../../../../core/delivery/aggregates/post-aggregate.ts";
-import { Post } from "../../../../core/delivery/entities/post.ts";
-import { PublishStatus } from "../../../../core/delivery/value-objects/publish-status.ts";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  DomainError,
+  ApplicationError,
+  InfrastructureError,
+  PostAggregate,
+  createPublishStatus
+} from "../../deps.ts";
 
-// モックの作成
-class MockPostRepository implements PostRepository {
-  findById = spy(async (_id: string): Promise<PostAggregate | null> => null);
-  findByContentId = spy(async (_contentId: string): Promise<PostAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; status?: string; }): Promise<PostAggregate[]> => []);
-  save = spy(async (postAggregate: PostAggregate): Promise<PostAggregate> => postAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
-}
+import type {
+  Post,
+  PostRepository,
+  TransactionContext,
+  PublishStatusType
+} from "../../deps.ts";
 
-// モックの投稿集約を作成する関数
-function createMockPostAggregate(id: string, userId: string, contentId: string, slug: string, statusType: string, scheduledAt?: Date): PostAggregate {
-  // 実際のcreatePostAggregateを使用せず、モックを作成
-  const publishStatus: PublishStatus = {
-    type: statusType as "draft" | "scheduled" | "published" | "archived",
-    scheduledAt: statusType === "scheduled" ? scheduledAt : undefined,
-    publishedAt: statusType === "published" ? new Date() : undefined,
-    archivedAt: statusType === "archived" ? new Date() : undefined,
+import { PublishingSchedulingService } from "../publishing-scheduling-service.ts";
+
+import { DefaultPublishingSchedulingService } from "../publishing-scheduling-service.ts";
+
+describe("DefaultPublishingSchedulingService", () => {
+  class MockPostRepository implements PostRepository {
+    private posts: Map<string, PostAggregate> = new Map();
+    private shouldError = false;
+    private error: Error | null = null;
+
+    constructor(posts: PostAggregate[] = []) {
+      posts.forEach(post => {
+        this.posts.set(post.getPost().id, post);
+      });
+    }
+
+    findById(id: string): Promise<PostAggregate | null> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(this.posts.get(id) || null);
+    }
+
+    findByUserId(userId: string, options?: { limit?: number; offset?: number; status?: string; }): Promise<PostAggregate[]> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      if (options?.status === "scheduled") {
+        return Promise.resolve(Array.from(this.posts.values()).filter(post => 
+          post.getPost().publishStatus.type === "scheduled"
+        ));
+      }
+
+      return Promise.resolve(Array.from(this.posts.values()).filter(post => post.getPost().userId === userId));
+    }
+
+    findByContentId(contentId: string): Promise<PostAggregate | null> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(Array.from(this.posts.values()).find(post => post.getPost().contentId === contentId) || null);
+    }
+
+    save(postAggregate: PostAggregate): Promise<PostAggregate> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      this.posts.set(postAggregate.getPost().id, postAggregate);
+      return Promise.resolve(postAggregate);
+    }
+
+    saveWithTransaction(
+      postAggregate: PostAggregate, 
+      _context: TransactionContext
+    ): Promise<Result<PostAggregate, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+
+      this.posts.set(postAggregate.getPost().id, postAggregate);
+      return Promise.resolve(ok(postAggregate));
+    }
+
+    delete(id: string): Promise<boolean> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(this.posts.delete(id));
+    }
+
+    deleteWithTransaction(
+      id: string, 
+      _context: TransactionContext
+    ): Promise<Result<boolean, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+
+      const result = this.posts.delete(id);
+      return Promise.resolve(ok(result));
+    }
+
+    setError(error: Error) {
+      this.shouldError = true;
+      this.error = error;
+    }
+
+    clearError() {
+      this.shouldError = false;
+      this.error = null;
+    }
+  }
+
+  // モックのポスト集約を作成
+  const createTestPost = (id: string, userId: string, contentId: string, scheduledAt?: Date): PostAggregate => {
+    // ポストエンティティを作成
+    const post: Post = {
+      id,
+      userId,
+      contentId,
+      feedId: "feed-1",
+      slug: "test-post",
+      publishStatus: scheduledAt 
+        ? createPublishStatus({ type: "scheduled", scheduledAt }) 
+        : createPublishStatus({ type: "draft" }),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      updatePublishStatus: function(statusProps) { 
+        this.publishStatus = createPublishStatus(statusProps);
+        return this; 
+      },
+      makeDraft: function() { return this; },
+      schedulePublication: function() { return this; },
+      publish: function() { 
+        this.publishStatus = createPublishStatus({ type: "published", publishedAt: new Date() });
+        return this; 
+      },
+      archive: function() { return this; },
+      updateSlug: function() { return this; }
+    };
+
+    // ポスト集約を作成
+    const postAggregate: PostAggregate = {
+      post,
+      saveDraft: () => postAggregate,
+      schedulePublication: () => postAggregate,
+      publish: () => {
+        post.publish();
+        return postAggregate;
+      },
+      archive: () => postAggregate,
+      updateSlug: () => postAggregate,
+      updatePublishStatus: () => postAggregate,
+      getPost: () => post
+    };
+
+    return postAggregate;
   };
 
-  // Postインターフェースに必要なメソッドを含むモックを作成
-  const post = {
-    id,
-    userId,
-    contentId,
-    feedId: "feed1",
-    slug,
-    publishStatus,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    
-    // 必要なメソッド
-    updatePublishStatus: function() { return this; },
-    makeDraft: function() { return this; },
-    schedulePublication: function() { return this; },
-    publish: function() { return this; },
-    archive: function() { return this; },
-    updateSlug: function() { return this; }
-  } as Post;
+  let mockPostRepository: MockPostRepository;
+  let service: DefaultPublishingSchedulingService;
 
-  const postAggregate = {
-    post,
-    saveDraft: () => postAggregate,
-    schedulePublication: () => postAggregate,
-    publish: () => postAggregate,
-    archive: () => postAggregate,
-    updateSlug: () => postAggregate,
-    updatePublishStatus: () => postAggregate,
-    getPost: () => post
-  };
+  beforeEach(() => {
+    mockPostRepository = new MockPostRepository();
+    service = new DefaultPublishingSchedulingService(mockPostRepository);
+  });
 
-  return postAggregate;
-}
+  it("should publish scheduled posts by date", async () => {
+    // 現在時刻より前に予定されたポストを作成
+    const pastDate = new Date();
+    pastDate.setHours(pastDate.getHours() - 1);
+    
+    const scheduledPost1 = createTestPost("post-1", "user-1", "content-1", pastDate);
+    const scheduledPost2 = createTestPost("post-2", "user-2", "content-2", pastDate);
+    
+    // 現在時刻より後に予定されたポストを作成
+    const futureDate = new Date();
+    futureDate.setHours(futureDate.getHours() + 1);
+    
+    const scheduledPost3 = createTestPost("post-3", "user-3", "content-3", futureDate);
+    
+    // 下書きのポストを作成
+    const draftPost = createTestPost("post-4", "user-4", "content-4");
+    
+    mockPostRepository = new MockPostRepository([
+      scheduledPost1, 
+      scheduledPost2, 
+      scheduledPost3, 
+      draftPost
+    ]);
+    
+    service = new DefaultPublishingSchedulingService(mockPostRepository);
 
-Deno.test("DefaultPublishingSchedulingService", async (t) => {
-  await t.step("getScheduledPosts - 正常系: 指定された日付の公開予定投稿を返す", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 今日の日付
-    const today = new Date();
-    
-    // 昨日の日付
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // 明日の日付
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    // 公開予定の投稿を作成
-    const post1 = createMockPostAggregate("post1", "user1", "content1", "test-post-1", "scheduled", today);
-    const post2 = createMockPostAggregate("post2", "user1", "content2", "test-post-2", "scheduled", yesterday);
-    const post3 = createMockPostAggregate("post3", "user1", "content3", "test-post-3", "scheduled", tomorrow);
-    const post4 = createMockPostAggregate("post4", "user1", "content4", "test-post-4", "draft");
-    
-    // 投稿が存在することを設定
-    postRepository.findByUserId = spy(async (userId: string, options?: { limit?: number; offset?: number; status?: string; }) => {
-      if (options?.status === "scheduled") {
-        return [post1, post2, post3];
-      }
-      return [];
-    });
-    
-    // テスト対象のサービスを作成
-    const service = new DefaultPublishingSchedulingService(postRepository);
-    
-    // テスト実行
-    const result = await service.getScheduledPosts(today);
-    
-    // 検証
-    assertEquals(result.isOk(), true);
-    assertEquals(postRepository.findByUserId.calls.length, 1);
+    const result = await service.publishScheduledPostsByDate(new Date());
+
+    expect(result.isOk()).toBe(true);
     if (result.isOk()) {
-      const posts = result.value;
-      // 今日の日付の投稿のみが含まれていることを確認
-      assertEquals(posts.length, 1);
-      assertEquals(posts[0].getPost().id, "post1");
+      expect(result.value.length).toBe(2);
+      
+      // 公開されたポストを確認
+      const post1 = await mockPostRepository.findById("post-1");
+      const post2 = await mockPostRepository.findById("post-2");
+      
+      expect(post1?.getPost().publishStatus.type).toBe("published");
+      expect(post2?.getPost().publishStatus.type).toBe("published");
+      
+      // 他のポストは変更されていないことを確認
+      const post3 = await mockPostRepository.findById("post-3");
+      const post4 = await mockPostRepository.findById("post-4");
+      
+      expect(post3?.getPost().publishStatus.type).toBe("scheduled");
+      expect(post4?.getPost().publishStatus.type).toBe("draft");
     }
   });
-  
-  await t.step("publishScheduledPost - 正常系: 公開予定の投稿を公開する", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 公開予定の投稿を作成
-    const scheduledPost = createMockPostAggregate("post1", "user1", "content1", "test-post", "scheduled", new Date());
-    
-    // 投稿が存在することを設定
-    postRepository.findById = spy(async (id: string) => {
-      if (id === "post1") {
-        return scheduledPost;
-      }
-      return null;
-    });
-    
-    // 公開された投稿を作成
-    const publishedPost = createMockPostAggregate("post1", "user1", "content1", "test-post", "published");
-    
-    // 投稿の公開メソッドをモック
-    const publishSpy = spy(() => publishedPost);
-    scheduledPost.publish = publishSpy;
-    
-    // 保存が成功することを設定
-    postRepository.save = spy(async (postAggregate: PostAggregate) => postAggregate);
-    
-    // テスト対象のサービスを作成
-    const service = new DefaultPublishingSchedulingService(postRepository);
-    
-    // テスト実行
-    const result = await service.publishScheduledPost("post1");
-    
-    // 検証
-    assertEquals(result.isOk(), true);
-    assertEquals(postRepository.findById.calls.length, 1);
-    assertEquals(publishSpy.calls.length, 1);
-    assertEquals(postRepository.save.calls.length, 1);
-    if (result.isOk()) {
-      const post = result.value;
-      assertEquals(post.getPost().id, "post1");
-      assertEquals(post.getPost().publishStatus.type, "published");
-    }
-  });
-  
-  await t.step("publishScheduledPost - 異常系: 投稿が存在しない場合はエラーを返す", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 投稿が存在しないことを設定
-    postRepository.findById = spy(async (id: string) => null);
-    
-    // テスト対象のサービスを作成
-    const service = new DefaultPublishingSchedulingService(postRepository);
-    
-    // テスト実行
-    const result = await service.publishScheduledPost("non-existent");
-    
-    // 検証
-    assertEquals(result.isErr(), true);
-    assertEquals(postRepository.findById.calls.length, 1);
-    if (result.isErr()) {
-      assertEquals(result.error.message, "投稿が見つかりません: non-existent");
-    }
-  });
-  
-  await t.step("publishScheduledPost - 異常系: 投稿が公開予定状態でない場合はエラーを返す", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 下書き状態の投稿を作成
-    const draftPost = createMockPostAggregate("post1", "user1", "content1", "test-post", "draft");
-    
-    // 投稿が存在することを設定
-    postRepository.findById = spy(async (id: string) => {
-      if (id === "post1") {
-        return draftPost;
-      }
-      return null;
-    });
-    
-    // テスト対象のサービスを作成
-    const service = new DefaultPublishingSchedulingService(postRepository);
-    
-    // テスト実行
-    const result = await service.publishScheduledPost("post1");
-    
-    // 検証
-    assertEquals(result.isErr(), true);
-    assertEquals(postRepository.findById.calls.length, 1);
-    if (result.isErr()) {
-      assertEquals(result.error.message, "投稿は公開予定状態ではありません: post1");
-    }
-  });
-  
-  await t.step("publishScheduledPostsByDate - 正常系: 指定された日付の公開予定投稿を一括で公開する", async () => {
-    // モックの準備
-    const postRepository = new MockPostRepository();
-    
-    // 今日の日付
-    const today = new Date();
-    
-    // 公開予定の投稿を作成
-    const post1 = createMockPostAggregate("post1", "user1", "content1", "test-post-1", "scheduled", new Date(today.getTime() - 1000 * 60 * 60)); // 1時間前
-    const post2 = createMockPostAggregate("post2", "user1", "content2", "test-post-2", "scheduled", new Date(today.getTime() + 1000 * 60 * 60)); // 1時間後
-    
-    // 投稿が存在することを設定
-    postRepository.findByUserId = spy(async (userId: string, options?: { limit?: number; offset?: number; status?: string; }) => {
-      if (options?.status === "scheduled") {
-        return [post1, post2];
-      }
-      return [];
-    });
-    
-    // 投稿が存在することを設定
-    postRepository.findById = spy(async (id: string) => {
-      if (id === "post1") {
-        return post1;
-      } else if (id === "post2") {
-        return post2;
-      }
-      return null;
-    });
-    
-    // 公開された投稿を作成
-    const publishedPost1 = createMockPostAggregate("post1", "user1", "content1", "test-post-1", "published");
-    
-    // 投稿の公開メソッドをモック
-    const publishSpy1 = spy(() => publishedPost1);
-    const publishSpy2 = spy(() => post2);
-    post1.publish = publishSpy1;
-    post2.publish = publishSpy2; // post2は公開されない
-    
-    // 保存が成功することを設定
-    postRepository.save = spy(async (postAggregate: PostAggregate) => postAggregate);
-    
-    // テスト対象のサービスを作成
-    const service = new DefaultPublishingSchedulingService(postRepository);
-    
-    // テスト実行
-    const result = await service.publishScheduledPostsByDate(today);
-    
-    // 検証
-    assertEquals(result.isOk(), true);
-    assertEquals(postRepository.findByUserId.calls.length, 1);
-    assertEquals(publishSpy1.calls.length, 1); // post1は公開される
-    assertEquals(publishSpy2.calls.length, 0); // post2は公開されない
-    assertEquals(postRepository.save.calls.length, 1);
-    if (result.isOk()) {
-      const posts = result.value;
-      assertEquals(posts.length, 1);
-      assertEquals(posts[0].getPost().id, "post1");
-      assertEquals(posts[0].getPost().publishStatus.type, "published");
-    }
+
+  it("should return an error if the repository fails", async () => {
+    mockPostRepository.setError(new Error("Repository error"));
+
+    const result = await service.publishScheduledPostsByDate(new Date());
+
+    expect(result.isErr()).toBe(true);
   });
 }); 

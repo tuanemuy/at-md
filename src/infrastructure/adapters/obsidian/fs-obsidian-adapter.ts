@@ -1,5 +1,11 @@
 import { Result, ok, err } from "npm:neverthrow";
-import { ObsidianAdapter, ObsidianError, ObsidianNote, ObsidianFolder, ObsidianVault } from "./obsidian-adapter.ts";
+import { 
+  ObsidianAdapter, 
+  ObsidianAdapterError, 
+  ObsidianNote, 
+  ObsidianFolder, 
+  ObsidianVault 
+} from "../../../core/content/mod.ts";
 
 /**
  * ファイルシステムを使用したObsidianアダプターの実装
@@ -14,12 +20,12 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path ボールトのパス
    * @returns ボールト情報のResult
    */
-  async openVault(path: string): Promise<Result<ObsidianVault, ObsidianError>> {
+  async openVault(path: string): Promise<Result<ObsidianVault, ObsidianAdapterError>> {
     try {
       // ディレクトリが存在するか確認
       const stat = await Deno.stat(path);
       if (!stat.isDirectory) {
-        return err(new ObsidianError(`指定されたパスはディレクトリではありません: ${path}`));
+        return err(new ObsidianAdapterError(`指定されたパスはディレクトリではありません: ${path}`));
       }
 
       this.vaultPath = path;
@@ -47,7 +53,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(vault);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`ボールトを開けませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`ボールトを開けませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -57,9 +63,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path ノートのパス
    * @returns ノート情報のResult
    */
-  async getNote(path: string): Promise<Result<ObsidianNote, ObsidianError>> {
+  async getNote(path: string): Promise<Result<ObsidianNote, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -69,11 +75,11 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       try {
         const stat = await Deno.stat(fullPath);
         if (!stat.isFile) {
-          return err(new ObsidianError(`指定されたパスはファイルではありません: ${path}`));
+          return err(new ObsidianAdapterError(`指定されたパスはファイルではありません: ${path}`));
         }
       } catch (error) {
         if (error instanceof Deno.errors.NotFound) {
-          return err(new ObsidianError(`ノートが見つかりませんでした: ${path}`));
+          return err(new ObsidianAdapterError(`ノートが見つかりませんでした: ${path}`));
         }
         throw error;
       }
@@ -107,7 +113,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
     } catch (error) {
       console.error("ノート取得エラー:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`ノートを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`ノートを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -123,9 +129,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
     path: string, 
     content: string, 
     frontMatter?: Record<string, unknown>
-  ): Promise<Result<ObsidianNote, ObsidianError>> {
+  ): Promise<Result<ObsidianNote, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -168,7 +174,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return noteResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`ノートを保存できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`ノートを保存できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -178,9 +184,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path ノートのパス
    * @returns 削除結果のResult
    */
-  async deleteNote(path: string): Promise<Result<void, ObsidianError>> {
+  async deleteNote(path: string): Promise<Result<void, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -189,7 +195,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(undefined);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`ノートを削除できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`ノートを削除できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -199,9 +205,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path フォルダのパス
    * @returns フォルダ情報のResult
    */
-  async getFolder(path: string): Promise<Result<ObsidianFolder, ObsidianError>> {
+  async getFolder(path: string): Promise<Result<ObsidianFolder, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -209,7 +215,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       const stat = await Deno.stat(fullPath);
       
       if (!stat.isDirectory) {
-        return err(new ObsidianError(`指定されたパスはディレクトリではありません: ${path}`));
+        return err(new ObsidianAdapterError(`指定されたパスはディレクトリではありません: ${path}`));
       }
       
       const name = this.getNameFromPath(path);
@@ -234,7 +240,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(folder);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`フォルダを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`フォルダを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -244,9 +250,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path フォルダのパス
    * @returns 作成されたフォルダ情報のResult
    */
-  async createFolder(path: string): Promise<Result<ObsidianFolder, ObsidianError>> {
+  async createFolder(path: string): Promise<Result<ObsidianFolder, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -256,7 +262,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return this.getFolder(path);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`フォルダを作成できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`フォルダを作成できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -267,9 +273,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param recursive 再帰的に削除するかどうか（デフォルト: false）
    * @returns 削除結果のResult
    */
-  async deleteFolder(path: string, recursive = false): Promise<Result<void, ObsidianError>> {
+  async deleteFolder(path: string, recursive = false): Promise<Result<void, ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -278,7 +284,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(undefined);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`フォルダを削除できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`フォルダを削除できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -288,9 +294,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param path ノートのパス
    * @returns バックリンクのパスの配列のResult
    */
-  async getBacklinks(path: string): Promise<Result<string[], ObsidianError>> {
+  async getBacklinks(path: string): Promise<Result<string[], ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -320,7 +326,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(backlinks);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`バックリンクを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`バックリンクを取得できませんでした: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -330,9 +336,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param tag タグ
    * @returns ノートのパスの配列のResult
    */
-  async searchByTag(tag: string): Promise<Result<string[], ObsidianError>> {
+  async searchByTag(tag: string): Promise<Result<string[], ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -362,7 +368,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(matchingNotes);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`タグ検索に失敗しました: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`タグ検索に失敗しました: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 
@@ -372,9 +378,9 @@ export class FsObsidianAdapter implements ObsidianAdapter {
    * @param query 検索クエリ
    * @returns ノートのパスの配列のResult
    */
-  async searchByText(query: string): Promise<Result<string[], ObsidianError>> {
+  async searchByText(query: string): Promise<Result<string[], ObsidianAdapterError>> {
     if (!this.vaultPath) {
-      return err(new ObsidianError("ボールトが開かれていません"));
+      return err(new ObsidianAdapterError("ボールトが開かれていません"));
     }
 
     try {
@@ -395,7 +401,7 @@ export class FsObsidianAdapter implements ObsidianAdapter {
       return ok(matchingNotes);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      return err(new ObsidianError(`テキスト検索に失敗しました: ${errorMessage}`, error instanceof Error ? error : undefined));
+      return err(new ObsidianAdapterError(`テキスト検索に失敗しました: ${errorMessage}`, error instanceof Error ? error : undefined));
     }
   }
 

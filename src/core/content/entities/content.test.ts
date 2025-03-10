@@ -1,10 +1,11 @@
+import { assertEquals, assertThrows } from "https://deno.land/std@0.220.1/assert/mod.ts";
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
 import { Content, ContentParams, createContent, ContentCreationError } from "./content.ts";
-import { ContentMetadata } from "../value-objects/content-metadata.ts";
+import { ContentMetadata, createContentMetadata } from "../value-objects/content-metadata.ts";
 import { Version, createVersion } from "../value-objects/version.ts";
 import { Result } from "../deps.ts";
-import { DomainError } from "../../errors/base.ts";
+import { DomainError } from "../../errors/mod.ts";
 import { contentVisibilitySchema } from "../schemas/content-schemas.ts";
 import { 
   titleSchema, 
@@ -16,7 +17,7 @@ import {
   tagsSchema,
   categoriesSchema,
   languageSchema
-} from "../../common/schemas/base-schemas.ts";
+} from "../../common/schemas/mod.ts";
 
 // テスト用のヘルパー関数
 function createValidContentParams(): ContentParams {
@@ -167,9 +168,9 @@ describe("Contentエンティティ", () => {
     
     const content = contentResult.value;
     
-    // 操作: 型チェックを回避するためにanyを使用
-    const updatedContentResult = content.changeVisibility("invalid" as any);
-
+    // 無効な可視性を指定した場合はエラーになる
+    const updatedContentResult = content.changeVisibility("invalid" as unknown as "public" | "private" | "unlisted");
+    
     // アサーション
     expect(updatedContentResult.isErr()).toBe(true);
     if (updatedContentResult.isErr()) {

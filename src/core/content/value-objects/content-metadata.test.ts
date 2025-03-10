@@ -1,7 +1,8 @@
+import { assertEquals, assertThrows } from "https://deno.land/std@0.220.1/assert/mod.ts";
 import { expect } from "@std/expect";
 import { describe, it } from "@std/testing/bdd";
 import { ContentMetadata, createContentMetadata, MetadataCreationError } from "./content-metadata.ts";
-import { tagsSchema, categoriesSchema, languageSchema } from "../../common/schemas/base-schemas.ts";
+import { tagsSchema, categoriesSchema, languageSchema } from "../../common/schemas/mod.ts";
 
 describe("ContentMetadata値オブジェクト", () => {
   it("すべてのプロパティを指定して作成できること", () => {
@@ -105,17 +106,32 @@ describe("ContentMetadata値オブジェクト", () => {
   });
 
   it("言語が空文字列の場合はエラーになること", () => {
-    // 操作
+    // 空の言語
     const result = createContentMetadata({
-      tags: tagsSchema.parse(["markdown"]),
-      categories: categoriesSchema.parse(["blog"]),
-      language: "" as any, // 型チェックをバイパスするためにanyを使用
+      tags: ["markdown"],
+      categories: ["blog"],
+      // 型チェックをバイパスするために型アサーションを使用
+      language: "" as unknown as string,
     });
 
     // アサーション
-    expect(result.isOk()).toBe(false);
+    expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      expect(result.error).toBeInstanceOf(MetadataCreationError);
+      // エラーメッセージに「言語」という文字列が含まれていることを確認
+      expect(result.error.message.includes("language")).toBe(true);
     }
+  });
+
+  it("無効な言語の場合はエラーをスローする", () => {
+    // 無効な言語
+    const result = createContentMetadata({
+      tags: ["test"],
+      categories: ["test"],
+      // 型チェックをバイパスするために型アサーションを使用
+      language: "invalid-language" as unknown as string,
+    });
+
+    // アサーション
+    expect(result.isErr()).toBe(true);
   });
 }); 

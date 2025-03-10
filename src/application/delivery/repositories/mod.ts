@@ -1,7 +1,11 @@
 /**
  * 配信リポジトリモジュール
- * 配信の永続化を担当するリポジトリのインターフェースを提供します。
+ * 
+ * 配信関連のリポジトリインターフェースをエクスポートします。
  */
 
-export * from "./post-repository.ts";
-export * from "./feed-repository.ts"; 
+// フィードリポジトリ
+export * from "./feed-repository.ts";
+
+// 投稿リポジトリ
+export * from "./post-repository.ts"; 

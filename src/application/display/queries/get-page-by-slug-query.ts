@@ -1,7 +1,7 @@
-import { Result, err, ok } from "npm:neverthrow";
-import { EntityNotFoundError } from "../../../core/errors/application.ts";
-import { ApplicationError } from "../../../core/errors/base.ts";
-import { PageAggregate } from "../../../core/display/aggregates/page-aggregate.ts";
+import { Query } from "../../common/mod.ts";
+import { Result, ok, err } from "../deps.ts";
+import { ApplicationError, EntityNotFoundError } from "../deps.ts";
+import { PageAggregate } from "../deps.ts";
 import { PageRepository } from "../repositories/page-repository.ts";
 
 /**

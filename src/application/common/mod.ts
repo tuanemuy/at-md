@@ -1,6 +1,11 @@
 /**
- * アプリケーションレイヤーの共通モジュール
+ * アプリケーション共通モジュール
+ * 
+ * アプリケーション層で共通して使用するインターフェースや型をエクスポートします。
  */
 
-export * from "./command.ts";
-export * from "./query.ts"; 
+// クエリ関連
+export * from "./query.ts";
+
+// コマンド関連
+export * from "./command.ts"; 

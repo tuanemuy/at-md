@@ -4,12 +4,12 @@
  * アカウントドメインで使用するZodスキーマを定義します。
  */
 
-import { z } from "../../../deps.ts";
+import { z } from "../deps.ts";
 import {
   idSchema,
   userIdSchema,
   dateSchema,
-} from "../../common/schemas/base-schemas.ts";
+} from "../../common/schemas/mod.ts";
 
 /**
  * メールアドレス用のスキーマ

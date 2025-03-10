@@ -1,8 +1,8 @@
-import { Result, err, ok } from "npm:neverthrow";
-import { ApplicationError } from "../../../core/errors/base.ts";
-import { RenderingOptions } from "../../../core/display/value-objects/rendering-options.ts";
-import { RenderingService } from "../../../core/display/services/rendering-service.ts";
-import { PageAggregate } from "../../../core/display/aggregates/page-aggregate.ts";
+import { Result, err, ok } from "../deps.ts";
+import { ApplicationError } from "../deps.ts";
+import { RenderingOptions } from "../deps.ts";
+import { RenderingService } from "../deps.ts";
+import { PageAggregate } from "../deps.ts";
 
 /**
  * マークダウンレンダリングサービスのエラー型

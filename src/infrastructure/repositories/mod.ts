@@ -1,9 +1,16 @@
 /**
- * リポジトリの実装
+ * インフラストラクチャ層のリポジトリモジュール
+ * リポジトリの実装をエクスポートします。
  */
 
-export * from "./drizzle-content-repository.ts";
-export * from "./drizzle-repository-repository.ts";
-export * from "./drizzle-user-repository.ts";
+// アカウント
+export * from "./account/mod.ts";
+
+// コンテンツ
+export * from "./content/mod.ts";
+
+// 配信
 export * from "./delivery/mod.ts";
+
+// 表示
 export * from "./display/mod.ts"; 

@@ -1,37 +1,199 @@
-import { assertEquals, assertInstanceOf } from "https://deno.land/std@0.220.1/assert/mod.ts";
-import { spy } from "https://deno.land/std@0.220.1/testing/mock.ts";
-import { ok, err } from "npm:neverthrow";
+import {
+  Result,
+  ok,
+  err,
+  expect,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  DomainError,
+  ApplicationError,
+  InfrastructureError,
+  FeedAggregate
+} from "../../deps.ts";
+
+import type {
+  Feed,
+  FeedRepository,
+  TransactionContext,
+  FeedMetadata
+} from "../../deps.ts";
+
 import { CreateFeedCommand, CreateFeedCommandHandler } from "../create-feed-command.ts";
-import { FeedRepository } from "../../repositories/feed-repository.ts";
-import { FeedAggregate, createNewFeedAggregate } from "../../../../core/delivery/aggregates/feed-aggregate.ts";
-import { Feed } from "../../../../core/delivery/entities/feed.ts";
-import { FeedMetadata, FeedMetadataProps } from "../../../../core/delivery/value-objects/feed-metadata.ts";
 
-// モックの作成
-class MockFeedRepository implements FeedRepository {
-  findById = spy(async (_id: string): Promise<FeedAggregate | null> => null);
-  findByUserId = spy(async (_userId: string, _options?: { limit?: number; offset?: number; }): Promise<FeedAggregate[]> => []);
-  findByName = spy(async (_userId: string, _name: string): Promise<FeedAggregate | null> => null);
-  save = spy(async (feedAggregate: FeedAggregate): Promise<FeedAggregate> => feedAggregate);
-  delete = spy(async (_id: string): Promise<boolean> => true);
-}
+describe("CreateFeedCommandHandler", () => {
+  class MockFeedRepository implements FeedRepository {
+    private feeds: Map<string, FeedAggregate> = new Map();
+    private shouldError = false;
+    private error: Error | null = null;
 
-// モックのフィード集約を作成する関数
-function createMockFeedAggregate(id: string, userId: string, name: string): FeedAggregate {
-  const metadataProps: FeedMetadataProps = {
-    type: "personal",
-    description: "Test Feed Description",
-    language: "ja"
-  };
+    constructor(feeds: FeedAggregate[] = []) {
+      feeds.forEach(feed => {
+        this.feeds.set(feed.getFeed().id, feed);
+      });
+    }
 
-  // 実際のcreateNewFeedAggregateを使用せず、モックを作成
+    findById(id: string): Promise<FeedAggregate | null> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(this.feeds.get(id) || null);
+    }
+
+    findByUserId(userId: string, options?: { limit?: number; offset?: number; }): Promise<FeedAggregate[]> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(Array.from(this.feeds.values()).filter(feed => feed.getFeed().userId === userId));
+    }
+
+    findByName(userId: string, name: string): Promise<FeedAggregate | null> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(Array.from(this.feeds.values()).find(feed => 
+        feed.getFeed().userId === userId && feed.getFeed().name === name
+      ) || null);
+    }
+
+    save(feedAggregate: FeedAggregate): Promise<FeedAggregate> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      this.feeds.set(feedAggregate.getFeed().id, feedAggregate);
+      return Promise.resolve(feedAggregate);
+    }
+
+    saveWithTransaction(
+      feedAggregate: FeedAggregate, 
+      _context: TransactionContext
+    ): Promise<Result<FeedAggregate, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+
+      this.feeds.set(feedAggregate.getFeed().id, feedAggregate);
+      return Promise.resolve(ok(feedAggregate));
+    }
+
+    delete(id: string): Promise<boolean> {
+      if (this.shouldError && this.error) {
+        throw this.error;
+      }
+
+      return Promise.resolve(this.feeds.delete(id));
+    }
+
+    deleteWithTransaction(
+      id: string, 
+      _context: TransactionContext
+    ): Promise<Result<boolean, DomainError>> {
+      if (this.shouldError && this.error) {
+        return Promise.resolve(err(this.error as DomainError));
+      }
+
+      const result = this.feeds.delete(id);
+      return Promise.resolve(ok(result));
+    }
+
+    setError(error: Error) {
+      this.shouldError = true;
+      this.error = error;
+    }
+
+    clearError() {
+      this.shouldError = false;
+      this.error = null;
+    }
+  }
+
+  let mockFeedRepository: MockFeedRepository;
+  let handler: CreateFeedCommandHandler;
+
+  beforeEach(() => {
+    mockFeedRepository = new MockFeedRepository();
+    handler = new CreateFeedCommandHandler(mockFeedRepository);
+  });
+
+  it("should create a new feed", async () => {
+    const command: CreateFeedCommand = {
+      name: "CreateFeed",
+      userId: "user-1",
+      feedName: "Test Feed",
+      description: "This is a test feed",
+      tags: ["test"],
+      isPublic: true
+    };
+
+    const result = await handler.execute(command);
+
+    expect(result.isOk()).toBe(true);
+    if (result.isOk()) {
+      const feed = result.value.getFeed();
+      expect(feed.userId).toBe("user-1");
+      expect(feed.name).toBe("Test Feed");
+      expect(feed.metadata.description).toBe("This is a test feed");
+    }
+  });
+
+  it("should return an error if a feed with the same name already exists", async () => {
+    // 既存のフィードを作成
+    const existingFeed = createTestFeed("feed-1", "user-1", "Test Feed");
+    mockFeedRepository = new MockFeedRepository([existingFeed]);
+    handler = new CreateFeedCommandHandler(mockFeedRepository);
+
+    const command: CreateFeedCommand = {
+      name: "CreateFeed",
+      userId: "user-1",
+      feedName: "Test Feed",
+      description: "This is a test feed",
+      tags: ["test"],
+      isPublic: true
+    };
+
+    const result = await handler.execute(command);
+
+    expect(result.isErr()).toBe(true);
+    if (result.isErr()) {
+      expect(result.error.message).toContain("同じ名前のフィードが既に存在します");
+    }
+  });
+
+  it("should return an error if the repository fails", async () => {
+    mockFeedRepository.setError(new Error("Repository error"));
+
+    const command: CreateFeedCommand = {
+      name: "CreateFeed",
+      userId: "user-1",
+      feedName: "Test Feed",
+      description: "This is a test feed",
+      tags: ["test"],
+      isPublic: true
+    };
+
+    const result = await handler.execute(command);
+
+    expect(result.isErr()).toBe(true);
+  });
+});
+
+// モックのフィード集約を作成
+function createTestFeed(id: string, userId: string, name: string): FeedAggregate {
+  // フィードエンティティを作成
   const feed: Feed = {
     id,
     userId,
     name,
     metadata: {
-      ...metadataProps,
-    } as FeedMetadata,
+      type: "personal",
+      description: "This is a test feed",
+      language: "ja"
+    },
     postIds: [],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -42,86 +204,18 @@ function createMockFeedAggregate(id: string, userId: string, name: string): Feed
     reorderPosts: function() { return this; }
   };
 
-  return {
+  // フィード集約を作成
+  const feedAggregate: FeedAggregate = {
     feed,
-    updateMetadata: () => ({ feed } as FeedAggregate),
-    updateName: () => ({ feed } as FeedAggregate),
-    addPost: () => ({ feed } as FeedAggregate),
-    removePost: () => ({ feed } as FeedAggregate),
-    reorderPosts: () => ({ feed } as FeedAggregate),
-    addPosts: () => ({ feed } as FeedAggregate),
-    removePosts: () => ({ feed } as FeedAggregate),
+    updateName: () => feedAggregate,
+    updateMetadata: () => feedAggregate,
+    addPost: () => feedAggregate,
+    removePost: () => feedAggregate,
+    reorderPosts: () => feedAggregate,
+    addPosts: () => feedAggregate,
+    removePosts: () => feedAggregate,
     getFeed: () => feed
   };
-}
 
-Deno.test("CreateFeedCommandHandler", async (t) => {
-  await t.step("execute - 正常系: フィードを作成して返す", async () => {
-    // モックの準備
-    const feedRepository = new MockFeedRepository();
-    
-    // 既存のフィードが存在しないことを設定
-    feedRepository.findByName = spy(async (userId: string, name: string) => null);
-    
-    // 保存が成功することを設定
-    feedRepository.save = spy(async (feedAggregate) => feedAggregate);
-    
-    // テスト対象のハンドラーを作成
-    const handler = new CreateFeedCommandHandler(feedRepository);
-    
-    // コマンドを作成
-    const command: CreateFeedCommand = {
-      name: "CreateFeed",
-      userId: "user1",
-      feedName: "Test Feed",
-      description: "Test Feed Description",
-      tags: ["test"],
-      isPublic: true
-    };
-    
-    // テスト実行
-    const result = await handler.execute(command);
-    
-    // 検証
-    assertEquals(result.isOk(), true);
-    if (result.isOk()) {
-      const feed = result.value.getFeed();
-      assertInstanceOf(feed, Object); // Feedのインスタンスであることを確認
-      assertEquals(feed.userId, "user1");
-      assertEquals(feed.name, "Test Feed");
-      assertEquals(feed.metadata.description, "Test Feed Description");
-      assertEquals(feed.metadata.type, "personal");
-    }
-  });
-  
-  await t.step("execute - 異常系: 既に同じ名前のフィードが存在する場合はエラーを返す", async () => {
-    // モックの準備
-    const feedRepository = new MockFeedRepository();
-    
-    // 既存のフィードが存在することを設定
-    const existingFeed = createMockFeedAggregate("feed1", "user1", "Test Feed");
-    feedRepository.findByName = spy(async (userId: string, name: string) => existingFeed);
-    
-    // テスト対象のハンドラーを作成
-    const handler = new CreateFeedCommandHandler(feedRepository);
-    
-    // コマンドを作成
-    const command: CreateFeedCommand = {
-      name: "CreateFeed",
-      userId: "user1",
-      feedName: "Test Feed",
-      description: "Test Feed Description",
-      tags: ["test"],
-      isPublic: true
-    };
-    
-    // テスト実行
-    const result = await handler.execute(command);
-    
-    // 検証
-    assertEquals(result.isErr(), true);
-    if (result.isErr()) {
-      assertEquals(result.error.message, "同じ名前のフィードが既に存在します");
-    }
-  });
-}); 
+  return feedAggregate;
+} 

@@ -5,7 +5,7 @@
  * これらのイベントは、コンテンツの作成、更新、削除などの重要な操作を通知するために使用されます。
  */
 
-import { DomainEvent } from "../../common/events/domain-event.ts";
+import { DomainEvent } from "../../common/events/mod.ts";
 import { Content } from "../entities/content.ts";
 
 /**

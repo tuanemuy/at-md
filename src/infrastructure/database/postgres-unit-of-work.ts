@@ -2,10 +2,11 @@
  * PostgreSQLを使用したユニットオブワークの実装
  */
 
-import { Result, ok, err, pg } from "../../deps.ts";
-import { InfrastructureError } from "../../core/errors/base.ts";
-import { UnitOfWork, TransactionContext, TransactionError } from "./unit-of-work.ts";
-import { logger } from "../../core/logging/logger.ts";
+import * as pg from "npm:pg";
+import { Result, ok, err, InfrastructureError, logger } from "./deps.ts";
+import { db } from "./db.ts";
+import { UnitOfWork, TransactionError } from "./unit-of-work.ts";
+import type { TransactionContext } from "./deps.ts";
 
 /**
  * PostgreSQLトランザクションコンテキスト
