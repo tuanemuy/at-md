@@ -60,9 +60,17 @@ export function updateGitHubRepo(
   gitHubRepo: GitHubRepo,
   updates: Partial<Pick<GitHubRepo, "installationId" | "webhookSecret">>
 ): GitHubRepo {
+  // 更新可能なフィールドのみを抽出
+  const { installationId, webhookSecret } = updates;
+  
+  // 更新オブジェクトを作成（undefined値は含めない）
+  const validUpdates: Partial<Pick<GitHubRepo, "installationId" | "webhookSecret">> = {};
+  if (installationId !== undefined) validUpdates.installationId = installationId;
+  if (webhookSecret !== undefined) validUpdates.webhookSecret = webhookSecret;
+  
   return {
     ...gitHubRepo,
-    ...updates,
+    ...validUpdates,
     updatedAt: new Date()
   };
 } 

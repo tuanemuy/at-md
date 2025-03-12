@@ -41,6 +41,13 @@ export interface TagRepository {
    * @returns 保存されたタグ
    */
   save(tag: Tag): Promise<Result<Tag, RepositoryError>>;
+
+  /**
+   * タグの削除
+   * @param id タグID
+   * @returns void
+   */
+  delete(id: ID): Promise<Result<void, RepositoryError>>;
 }
 
 /**
