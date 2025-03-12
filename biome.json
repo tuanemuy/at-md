@@ -8,7 +8,7 @@
   "files": {
     "include": ["src/**/*", "./*.json", "./*ts", "./*js"],
     "ignoreUnknown": false,
-    "ignore": []
+    "ignore": ["./drizzle/*"]
   },
   "formatter": {
     "enabled": true,

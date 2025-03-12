@@ -3,6 +3,9 @@ import { Pool } from "pg";
 import { logger } from "@/lib/logger";
 import * as schema from "./schema";
 
+// Drizzleクライアントの型をエクスポート
+export type PgDatabase = ReturnType<typeof createDrizzleClient>;
+
 /**
  * データベース接続プールを作成する
  * @returns PostgreSQL接続プール
@@ -60,7 +63,7 @@ export function resetPool(): void {
  * Drizzle ORMクライアントを取得する
  * @returns Drizzle ORMクライアント
  */
-export function getDrizzleClient() {
+export function getDrizzleClient(): PgDatabase {
   const pool = getPool();
   return createDrizzleClient(pool);
 }
