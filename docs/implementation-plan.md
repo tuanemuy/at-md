@@ -86,11 +86,11 @@
 
 ### ステップ3.4 GitHubリポジトリリポジトリの実装
 
-- [ ] GitHubリポジトリリポジトリ（`src/infrastructure/db/repositories/document/githubRepo.ts`）
+- [x] GitHubリポジトリリポジトリ（`src/infrastructure/db/repositories/document/githubRepo.ts`）
 
 ### ステップ3.5 タグリポジトリの実装
 
-- [ ] タグリポジトリ（`src/infrastructure/db/repositories/document/tag.ts`）
+- [x] タグリポジトリ（`src/infrastructure/db/repositories/document/tag.ts`）
 
 ### ステップ3.6 投稿リポジトリの実装
 
@@ -242,3 +242,9 @@
    - テスト用データベース環境の構築
    - 各リポジトリの統合テスト
    - リポジトリ間の連携テスト
+
+## リポジトリの実装
+
+- [x] DocumentRepository
+- [x] GitHubRepoRepository
+- [x] TagRepository

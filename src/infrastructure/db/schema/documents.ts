@@ -28,6 +28,8 @@ export const githubRepos = pgTable("github_repos", {
   fullName: varchar("full_name", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }).notNull(),
   owner: varchar("owner", { length: 255 }).notNull(),
+  installationId: varchar("installation_id", { length: 255 }).notNull(),
+  webhookSecret: varchar("webhook_secret", { length: 255 }),
   description: text("description"),
   defaultBranch: varchar("default_branch", { length: 100 }).notNull(),
   private: boolean("private").notNull(),
@@ -61,8 +63,6 @@ export const tags = pgTable("tags", {
     .notNull()
     .references(() => users.id, foreignKeyOptions),
   name: varchar("name", { length: 100 }).notNull(),
-  slug: varchar("slug", { length: 100 }).notNull(),
-  color: varchar("color", { length: 50 }),
 });
 
 /**

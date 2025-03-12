@@ -8,6 +8,20 @@
       "when": 1741785987629,
       "tag": "0000_skinny_shard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1741789780056,
+      "tag": "0001_lethal_the_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1741790112234,
+      "tag": "0002_cold_chameleon",
+      "breakpoints": true
     }
   ]
 }
