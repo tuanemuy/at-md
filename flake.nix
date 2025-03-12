@@ -17,10 +17,11 @@
     {
       devShells = forEachSupportedSystem (pkgs: {
         default = pkgs.mkShell {
-          buildInputs = [
-            pkgs.deno
-            pkgs.vtsls
-            pkgs.biome
+          buildInputs = with pkgs; [
+            nodejs_22
+            pnpm
+            vtsls
+            biome
           ];
         };
       });

@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    command: postgres -c listen_addresses='*'
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+    ports:
+      - 55432:5432
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: atmd
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"

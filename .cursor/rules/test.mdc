@@ -1,0 +1,64 @@
+---
+description: テストの実践方法
+globs: *.test.ts, *.test.tsx, *.spec.ts, *.spec.tsx
+alwaysApply: true
+---
+
+# テストの実践方法
+
+## 基本方針
+
+- テストコードによって実装の仕様を表現する
+- テスト名は「状況 → 操作 → 結果」の形式で記述する
+  - 例: 「有効なトークンの場合にユーザー情報を取得すると成功すること」
+- 外部依存は簡潔なモックで表現する
+
+## テストの書き方
+
+Vitestを使う。特に理由がない限り、 `describe` による入れ子はしない。
+
+また、テスト名は「状況 → 操作 → 結果」の形式で記述する。
+
+```typescript
+import { expect, test } from "vitest"
+import { getUser } from "./user"
+
+test("無効なトークンの場合にユーザー情報を取得するとエラーになること", async () => {
+  const invalidToken = "invalid-token";
+  const expectedError: ApiError = {
+    name: "unauthorized",
+    message: "Invalid token",
+    cause: undefined
+  };
+
+  const result = await getUser(invalidToken, "1");
+
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.name).toEqual(expectedError.name);
+  });
+});
+```
+
+```typescriptreact
+import { expect, test } from "vitest"
+import { render } from "vitest-browser-react"
+import HelloWorld from "./HelloWorld"
+
+test("カウントが1の時にボタンをクリックするとカウントが2になること", async () => {
+  const currentText = "Hello Vitest x1!";
+  const expectedText = "Hello Vitest x2!";
+
+  const { getByText, getByRole } = render(<HelloWorld name="Vitest" />)
+  await expect.element(getByText(currentText)).toBeInTheDocument()
+  await getByRole("button", { name: "Increment" }).click()
+
+  await expect.element(getByText(expectedText)).toBeInTheDocument()
+})
+```
+
+## テストの実行方法
+
+```
+pnpm test
+```
