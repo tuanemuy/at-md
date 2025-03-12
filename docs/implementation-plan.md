@@ -94,7 +94,7 @@
 
 ### ステップ3.6 投稿リポジトリの実装
 
-- [ ] 投稿リポジトリ（`src/infrastructure/db/repositories/post/post.ts`）
+- [x] 投稿リポジトリ（`src/infrastructure/db/repositories/post/post.ts`）
 
 ### ステップ3.7 リポジトリの統合テスト
 
@@ -234,10 +234,10 @@
 6. ~~マイグレーションファイル生成と実行~~ ✓
 7. リポジトリの実装
    - ~~ユーザーリポジトリ~~ ✓
-   - 文書リポジトリ
-   - GitHubリポジトリリポジトリ
-   - タグリポジトリ
-   - 投稿リポジトリ
+   - ~~文書リポジトリ~~ ✓
+   - ~~GitHubリポジトリリポジトリ~~ ✓
+   - ~~タグリポジトリ~~ ✓
+   - ~~投稿リポジトリ~~ ✓
 8. リポジトリの統合テスト
    - テスト用データベース環境の構築
    - 各リポジトリの統合テスト
@@ -248,3 +248,4 @@
 - [x] DocumentRepository
 - [x] GitHubRepoRepository
 - [x] TagRepository
+- [x] PostRepository
