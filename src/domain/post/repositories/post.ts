@@ -19,7 +19,9 @@ export interface PostRepository {
    * @param documentId 文書ID
    * @returns 投稿またはnull
    */
-  findByDocumentId(documentId: ID): Promise<Result<Post | null, RepositoryError>>;
+  findByDocumentId(
+    documentId: ID,
+  ): Promise<Result<Post | null, RepositoryError>>;
 
   /**
    * ユーザーIDによる投稿検索
@@ -42,7 +44,11 @@ export interface PostRepository {
    * @param error エラーメッセージ（オプション）
    * @returns 更新された投稿
    */
-  updateStatus(id: ID, status: PostStatus, error?: string): Promise<Result<Post, RepositoryError>>;
+  updateStatus(
+    id: ID,
+    status: PostStatus,
+    error?: string,
+  ): Promise<Result<Post, RepositoryError>>;
 
   /**
    * 投稿の削除
@@ -50,4 +56,4 @@ export interface PostRepository {
    * @returns void
    */
   delete(id: ID): Promise<Result<void, RepositoryError>>;
-} 
+}

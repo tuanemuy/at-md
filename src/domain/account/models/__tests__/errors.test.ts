@@ -47,4 +47,4 @@ test("共有カーネルのcreateRepositoryError関数が正しく動作する�
   expect(error.type).toBe(type);
   expect(error.message).toBe(message);
   expect(error.cause).toBe(cause);
-}); 
+});

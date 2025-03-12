@@ -27,7 +27,7 @@ export const userSchema = z.object({
   did: z.string().nonempty(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  gitHubConnections: z.array(gitHubConnectionSchema).default([])
+  gitHubConnections: z.array(gitHubConnectionSchema).default([]),
 });
 
 /**
@@ -48,7 +48,7 @@ export function createUser(name: string, did: string): Omit<User, "id"> {
     did,
     createdAt: now,
     updatedAt: now,
-    gitHubConnections: []
+    gitHubConnections: [],
   };
 }
 
@@ -62,7 +62,7 @@ export function createUser(name: string, did: string): Omit<User, "id"> {
 export function createGitHubConnection(
   userId: ID,
   installationId: string,
-  accessToken: string | null = null
+  accessToken: string | null = null,
 ): Omit<GitHubConnection, "id"> {
   const now = new Date();
   return {
@@ -70,6 +70,6 @@ export function createGitHubConnection(
     installationId,
     accessToken,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
-} 
+}

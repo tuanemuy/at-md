@@ -9,7 +9,7 @@ export const tagSchema = z.object({
   name: z.string().nonempty(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  userId: idSchema
+  userId: idSchema,
 });
 
 /**
@@ -24,7 +24,7 @@ export const documentTagSchema = z.object({
   id: idSchema,
   documentId: idSchema,
   tagId: idSchema,
-  createdAt: z.date()
+  createdAt: z.date(),
 });
 
 /**
@@ -38,16 +38,13 @@ export type DocumentTag = z.infer<typeof documentTagSchema>;
  * @param userId ユーザーID
  * @returns 新しいタグオブジェクト
  */
-export function createTag(
-  name: string,
-  userId: ID
-): Omit<Tag, "id"> {
+export function createTag(name: string, userId: ID): Omit<Tag, "id"> {
   const now = new Date();
   return {
     name,
     createdAt: now,
     updatedAt: now,
-    userId
+    userId,
   };
 }
 
@@ -57,14 +54,11 @@ export function createTag(
  * @param name 新しいタグ名
  * @returns 更新されたタグ
  */
-export function updateTag(
-  tag: Tag,
-  name: string
-): Tag {
+export function updateTag(tag: Tag, name: string): Tag {
   return {
     ...tag,
     name,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 }
 
@@ -76,11 +70,11 @@ export function updateTag(
  */
 export function createDocumentTag(
   documentId: ID,
-  tagId: ID
+  tagId: ID,
 ): Omit<DocumentTag, "id"> {
   return {
     documentId,
     tagId,
-    createdAt: new Date()
+    createdAt: new Date(),
   };
-} 
+}

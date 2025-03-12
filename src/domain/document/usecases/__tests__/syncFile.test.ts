@@ -11,7 +11,7 @@ const mockSyncService: SyncService = {
   fetchFile: vi.fn(),
   fetchFiles: vi.fn(),
   syncFile: vi.fn(),
-  syncAllFiles: vi.fn()
+  syncAllFiles: vi.fn(),
 };
 
 // テスト用のGitHubリポジトリデータ
@@ -23,7 +23,7 @@ const mockGitHubRepo: GitHubRepo = {
   installationId: "inst-123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // 別のユーザーのGitHubリポジトリデータ
@@ -33,7 +33,7 @@ const otherUserGitHubRepo: GitHubRepo = {
   owner: "otheruser",
   name: "other-repo",
   fullName: "otheruser/other-repo",
-  userId: "user-456"
+  userId: "user-456",
 };
 
 // テスト用のドキュメントデータ
@@ -46,7 +46,7 @@ const mockDocument: Document = {
   scope: "private",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: mockGitHubRepo.userId
+  userId: mockGitHubRepo.userId,
 };
 
 // テスト前にモックをリセット
@@ -56,7 +56,9 @@ beforeEach(() => {
 
 test("有効なパラメータを指定するとファイルが同期されて文書が返されること", async () => {
   // Arrange
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockDocument));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockDocument),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
   const path = "docs/readme.md";
   const userId = "user-123";
@@ -84,7 +86,9 @@ test("同期サービスでエラーが発生した場合はエラーが返さ�
     "FILE_NOT_FOUND",
     "ファイルが見つかりません",
   );
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(err(syncError));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(syncError),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -107,10 +111,12 @@ test("非常に長いパスを指定しても正しく処理されること", as
   // Arrange
   const longPath = `${"docs/".repeat(100)}readme.md`; // 非常に長いパス
   const userId = "user-123";
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockDocument,
-    path: longPath
-  }));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockDocument,
+      path: longPath,
+    }),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -133,10 +139,12 @@ test("非常に大きなドキュメント内容を持つファイルを同期�
   const path = "docs/large-file.md";
   const userId = "user-123";
   const largeContent = `${"# ".repeat(10000)}Large Document`; // 非常に大きなドキュメント内容
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockDocument,
-    document: largeContent
-  }));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockDocument,
+      document: largeContent,
+    }),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -154,11 +162,10 @@ test("空のパスを指定した場合も正しく処理されること", async
   // Arrange
   const emptyPath = "";
   const userId = "user-123";
-  const syncError = createSyncError(
-    "FILE_NOT_FOUND",
-    "ファイルパスが空です",
+  const syncError = createSyncError("FILE_NOT_FOUND", "ファイルパスが空です");
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(syncError),
   );
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(err(syncError));
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -177,10 +184,12 @@ test("特殊文字を含むパスを指定した場合も正しく処理され�
   // Arrange
   const specialPath = "docs/special-chars-!@#$%^&*().md";
   const userId = "user-123";
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockDocument,
-    path: specialPath
-  }));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockDocument,
+      path: specialPath,
+    }),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -207,11 +216,17 @@ test("無効なファイル拡張子を持つパスを指定した場合も正�
     "PARSE_ERROR",
     "サポートされていないファイル形式です",
   );
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(err(syncError));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(syncError),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
-  const result = await useCase.execute(mockGitHubRepo, invalidExtensionPath, userId);
+  const result = await useCase.execute(
+    mockGitHubRepo,
+    invalidExtensionPath,
+    userId,
+  );
 
   // Assert
   expect(result.isErr()).toBe(true);
@@ -225,7 +240,7 @@ test("異なるユーザーのGitHubリポジトリを指定した場合、ユ�
   // Arrange
   const path = "docs/readme.md";
   const currentUserId = "user-123"; // 現在のユーザーID
-  
+
   // 同期サービスのモックを設定
   // 同期時に指定されたユーザーIDを使用するように設定
   (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockImplementation(
@@ -233,15 +248,19 @@ test("異なるユーザーのGitHubリポジトリを指定した場合、ユ�
       return ok({
         ...mockDocument,
         gitHubRepoId: repo.id,
-        userId: userId // 同期時に指定されたユーザーIDを使用
+        userId: userId, // 同期時に指定されたユーザーIDを使用
       });
-    }
+    },
   );
-  
+
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
-  const result = await useCase.execute(otherUserGitHubRepo, path, currentUserId);
+  const result = await useCase.execute(
+    otherUserGitHubRepo,
+    path,
+    currentUserId,
+  );
 
   // Assert
   expect(result.isOk()).toBe(true);
@@ -263,7 +282,9 @@ test("パストラバーサルを含むパスを指定した場合でも安全�
     "FILE_NOT_FOUND",
     "ファイルが見つかりません",
   );
-  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(err(syncError));
+  (mockSyncService.syncFile as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(syncError),
+  );
   const useCase = new SyncFileUseCase(mockSyncService);
 
   // Act
@@ -278,4 +299,3 @@ test("パストラバーサルを含むパスを指定した場合でも安全�
   );
   // 実際のアプリケーションでは、パスの検証とサニタイズが必要です
 });
-

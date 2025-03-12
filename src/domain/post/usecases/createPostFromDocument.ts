@@ -17,7 +17,7 @@ export class CreatePostFromDocumentUseCase {
   constructor(
     private readonly postRepository: PostRepository,
     private readonly documentRepository: DocumentRepository,
-    private readonly postService: PostService
+    private readonly postService: PostService,
   ) {}
 
   /**
@@ -30,7 +30,7 @@ export class CreatePostFromDocumentUseCase {
   async execute(
     documentId: ID,
     platform: PostPlatform,
-    userId: ID
+    userId: ID,
   ): Promise<Result<Post, PostError | RepositoryError>> {
     // 文書を取得
     const documentResult = await this.documentRepository.findById(documentId);
@@ -39,15 +39,18 @@ export class CreatePostFromDocumentUseCase {
         createPostError(
           "API_ERROR",
           `文書の取得に失敗しました: ${documentId}`,
-          new Error(documentResult.error.message)
-        )
+          new Error(documentResult.error.message),
+        ),
       );
     }
 
     const document = documentResult.value;
     if (!document) {
       return err(
-        createPostError("CONTENT_NOT_FOUND", `文書が見つかりません: ${documentId}`)
+        createPostError(
+          "CONTENT_NOT_FOUND",
+          `文書が見つかりません: ${documentId}`,
+        ),
       );
     }
 
@@ -59,7 +62,7 @@ export class CreatePostFromDocumentUseCase {
 
     // 投稿データを作成
     const postData = createPost(documentId, platform, userId);
-    
+
     // 投稿を保存
     const saveResult = await this.postRepository.save(postData as Post);
     if (saveResult.isErr()) {
@@ -68,4 +71,4 @@ export class CreatePostFromDocumentUseCase {
 
     return ok(saveResult.value);
   }
-} 
+}

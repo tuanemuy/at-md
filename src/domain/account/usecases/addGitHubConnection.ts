@@ -16,7 +16,10 @@ export class AddGitHubConnectionUseCase {
    * @param connection GitHub連携情報
    * @returns 保存されたGitHub連携情報
    */
-  async execute(userId: ID, connection: GitHubConnection): Promise<Result<GitHubConnection, RepositoryError>> {
+  async execute(
+    userId: ID,
+    connection: GitHubConnection,
+  ): Promise<Result<GitHubConnection, RepositoryError>> {
     return await this.userRepository.addGitHubConnection(userId, connection);
   }
-} 
+}

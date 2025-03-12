@@ -18,4 +18,4 @@ export class AuthenticateWithBlueskyUseCase {
   async execute(did: string, jwt: string): Promise<Result<User, AuthError>> {
     return await this.authService.authenticateWithBluesky(did, jwt);
   }
-} 
+}

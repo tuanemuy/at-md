@@ -10,7 +10,7 @@ const mockGitHubRepoRepository: GitHubRepoRepository = {
   findById: vi.fn(),
   findByFullName: vi.fn(),
   findByUserId: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 // テスト用のGitHubリポジトリデータ
@@ -22,7 +22,7 @@ const mockGitHubRepo: GitHubRepo = {
   installationId: "inst-123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // テスト前にモックをリセット
@@ -32,10 +32,12 @@ beforeEach(() => {
 
 test("有効なGitHubリポジトリを指定すると保存されて返されること", async () => {
   // Arrange
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockGitHubRepo,
-    updatedAt: new Date() // 更新日時が変わることを想定
-  }));
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockGitHubRepo,
+      updatedAt: new Date(), // 更新日時が変わることを想定
+    }),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -58,7 +60,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -77,16 +81,18 @@ test("IDがないGitHubリポジトリを保存すると新しいIDが割り当�
   // Arrange
   const repoWithoutId = {
     ...mockGitHubRepo,
-    id: "" as string // 空のID
+    id: "" as string, // 空のID
   };
-  
+
   const savedRepo = {
     ...mockGitHubRepo,
     id: "new-repo-id", // 新しいID
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedRepo));
+
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedRepo),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -105,10 +111,12 @@ test("非常に長い名前を持つGitHubリポジトリを保存できるこ�
   const longNameRepo = {
     ...mockGitHubRepo,
     name: "a".repeat(1000), // 非常に長い名前
-    fullName: `${mockGitHubRepo.owner}/${"a".repeat(1000)}`
+    fullName: `${mockGitHubRepo.owner}/${"a".repeat(1000)}`,
   };
-  
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(longNameRepo));
+
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(longNameRepo),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -126,19 +134,21 @@ test("更新日時が過去のGitHubリポジトリを保存すると現在の�
   // Arrange
   const pastDate = new Date();
   pastDate.setFullYear(pastDate.getFullYear() - 1); // 1年前
-  
+
   const repoWithPastDate = {
     ...mockGitHubRepo,
-    updatedAt: pastDate
+    updatedAt: pastDate,
   };
-  
+
   const now = new Date();
   const savedRepo = {
     ...repoWithPastDate,
-    updatedAt: now // 現在の日時
+    updatedAt: now, // 現在の日時
   };
-  
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedRepo));
+
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedRepo),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -158,15 +168,17 @@ test("必須フィールドが欠けているGitHubリポジトリを保存す�
   const invalidRepo = {
     ...mockGitHubRepo,
     owner: "", // 空のオーナー名
-    name: ""   // 空のリポジトリ名
+    name: "", // 空のリポジトリ名
   };
-  
+
   const validationError = createRepositoryError(
     "VALIDATION_ERROR",
     "オーナー名とリポジトリ名は必須です",
   );
-  
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(validationError));
+
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(validationError),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -185,11 +197,13 @@ test("異なるユーザーのGitHubリポジトリを保存しようとした�
   const currentUserId = "user-123"; // 現在のユーザーID
   const otherUserRepo = {
     ...mockGitHubRepo,
-    userId: "user-456" // 異なるユーザーID
+    userId: "user-456", // 異なるユーザーID
   };
-  
+
   // 保存は成功するが、実際のアプリケーションでは権限チェックが必要
-  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserRepo));
+  (mockGitHubRepoRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(otherUserRepo),
+  );
   const useCase = new SaveGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -198,11 +212,11 @@ test("異なるユーザーのGitHubリポジトリを保存しようとした�
   // Assert
   expect(result.isOk()).toBe(true);
   const repo = result._unsafeUnwrap();
-  
+
   // リポジトリは保存できるが、ユーザーIDが現在のユーザーと異なることを確認
   expect(repo.userId).not.toBe(currentUserId);
   expect(repo.userId).toBe("user-456");
-  
+
   // 実際のアプリケーションでは、保存前にユーザーIDの検証を行い、
   // 権限がない場合は操作を拒否する必要があります
-}); 
+});

@@ -9,12 +9,12 @@ import {
   createMockPostRepository,
   createMockPostService,
   createMockContainer,
-  createMockContainerWithOverrides
+  createMockContainerWithOverrides,
 } from "../mockContainer";
 
 test("createMockUserRepositoryが正しいモックを作成すること", () => {
   const mockRepo = createMockUserRepository();
-  
+
   expect(mockRepo.findById).toBeDefined();
   expect(mockRepo.findByDid).toBeDefined();
   expect(mockRepo.save).toBeDefined();
@@ -23,14 +23,14 @@ test("createMockUserRepositoryが正しいモックを作成すること", () =>
 
 test("createMockAuthServiceが正しいモックを作成すること", () => {
   const mockService = createMockAuthService();
-  
+
   expect(mockService.authenticateWithBluesky).toBeDefined();
   expect(mockService.connectGitHub).toBeDefined();
 });
 
 test("createMockDocumentRepositoryが正しいモックを作成すること", () => {
   const mockRepo = createMockDocumentRepository();
-  
+
   expect(mockRepo.findById).toBeDefined();
   expect(mockRepo.findByGitHubRepoAndPath).toBeDefined();
   expect(mockRepo.findByGitHubRepo).toBeDefined();
@@ -39,7 +39,7 @@ test("createMockDocumentRepositoryが正しいモックを作成すること", (
 
 test("createMockGitHubRepoRepositoryが正しいモックを作成すること", () => {
   const mockRepo = createMockGitHubRepoRepository();
-  
+
   expect(mockRepo.findById).toBeDefined();
   expect(mockRepo.findByFullName).toBeDefined();
   expect(mockRepo.findByUserId).toBeDefined();
@@ -48,7 +48,7 @@ test("createMockGitHubRepoRepositoryが正しいモックを作成すること",
 
 test("createMockTagRepositoryが正しいモックを作成すること", () => {
   const mockRepo = createMockTagRepository();
-  
+
   expect(mockRepo.findById).toBeDefined();
   expect(mockRepo.findBySlug).toBeDefined();
   expect(mockRepo.findByUserId).toBeDefined();
@@ -59,7 +59,7 @@ test("createMockTagRepositoryが正しいモックを作成すること", () => 
 
 test("createMockSyncServiceが正しいモックを作成すること", () => {
   const mockService = createMockSyncService();
-  
+
   expect(mockService.fetchFile).toBeDefined();
   expect(mockService.fetchFiles).toBeDefined();
   expect(mockService.syncFile).toBeDefined();
@@ -68,7 +68,7 @@ test("createMockSyncServiceが正しいモックを作成すること", () => {
 
 test("createMockPostRepositoryが正しいモックを作成すること", () => {
   const mockRepo = createMockPostRepository();
-  
+
   expect(mockRepo.findById).toBeDefined();
   expect(mockRepo.findByDocumentId).toBeDefined();
   expect(mockRepo.findByUserId).toBeDefined();
@@ -79,14 +79,14 @@ test("createMockPostRepositoryが正しいモックを作成すること", () =>
 
 test("createMockPostServiceが正しいモックを作成すること", () => {
   const mockService = createMockPostService();
-  
+
   expect(mockService.createPost).toBeDefined();
   expect(mockService.getPostStatus).toBeDefined();
 });
 
 test("createMockContainerが正しいモックコンテナを作成すること", () => {
   const container = createMockContainer();
-  
+
   expect(container.userRepository).toBeDefined();
   expect(container.authService).toBeDefined();
   expect(container.documentRepository).toBeDefined();
@@ -100,14 +100,14 @@ test("createMockContainerが正しいモックコンテナを作成すること"
 test("createMockContainerWithOverridesが正しくオーバーライドされたコンテナを作成すること", () => {
   const customUserRepo = createMockUserRepository();
   customUserRepo.findById = vi.fn().mockReturnValue("カスタム値");
-  
+
   const container = createMockContainerWithOverrides({
-    userRepository: customUserRepo
+    userRepository: customUserRepo,
   });
-  
+
   expect(container.userRepository).toBe(customUserRepo);
   expect(container.userRepository.findById("dummy-id")).toBe("カスタム値");
-  
+
   // 他のリポジトリとサービスはデフォルトのままであることを確認
   expect(container.authService).toBeDefined();
   expect(container.documentRepository).toBeDefined();
@@ -116,4 +116,4 @@ test("createMockContainerWithOverridesが正しくオーバーライドされた
   expect(container.syncService).toBeDefined();
   expect(container.postRepository).toBeDefined();
   expect(container.postService).toBeDefined();
-}); 
+});

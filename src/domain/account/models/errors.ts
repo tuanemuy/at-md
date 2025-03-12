@@ -1,5 +1,9 @@
 import { z } from "zod";
-import type { AnyError, RepositoryError, RepositoryErrorCode } from "@/domain/shared/models/common";
+import type {
+  AnyError,
+  RepositoryError,
+  RepositoryErrorCode,
+} from "@/domain/shared/models/common";
 
 /**
  * 認証エラーコードのスキーマ
@@ -7,7 +11,7 @@ import type { AnyError, RepositoryError, RepositoryErrorCode } from "@/domain/sh
 export const authErrorCodeSchema = z.enum([
   "INVALID_CREDENTIALS",
   "UNAUTHORIZED",
-  "CONNECTION_FAILED"
+  "CONNECTION_FAILED",
 ]);
 
 /**
@@ -35,15 +39,15 @@ export interface AuthError extends AnyError {
 export function createAuthError(
   type: AuthErrorCode,
   message: string,
-  cause?: Error
+  cause?: Error,
 ): AuthError {
   return {
     name: "AuthError",
     type,
     message,
-    cause
+    cause,
   };
 }
 
 // 共有カーネルのRepositoryErrorを再エクスポート
-export type { RepositoryError, RepositoryErrorCode }; 
+export type { RepositoryError, RepositoryErrorCode };

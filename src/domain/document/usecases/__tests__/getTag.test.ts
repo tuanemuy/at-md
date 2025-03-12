@@ -12,7 +12,7 @@ const mockTagRepository: TagRepository = {
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
   save: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 // テスト用のタグデータ
@@ -21,7 +21,7 @@ const mockTag: Tag = {
   name: "JavaScript",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // テスト前にモックをリセット
@@ -31,7 +31,9 @@ beforeEach(() => {
 
 test("存在するタグIDを指定するとタグが返されること", async () => {
   // Arrange
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockTag));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockTag),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -48,7 +50,9 @@ test("存在するタグIDを指定するとタグが返されること", async 
 test("存在しないタグIDを指定するとnullが返されること", async () => {
   // Arrange
   const tagId = "non-existent-id";
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -69,7 +73,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -87,7 +93,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
 test("非常に長いIDを指定しても正しく処理されること", async () => {
   // Arrange
   const longId = "a".repeat(1000); // 非常に長いID
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -102,7 +110,9 @@ test("非常に長いIDを指定しても正しく処理されること", async 
 test("空のIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyId = "";
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -117,7 +127,9 @@ test("空のIDを指定した場合も正しく処理されること", async () 
 test("無効なフォーマットのIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidId = "invalid-id-format";
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
 
   // Act
@@ -134,9 +146,11 @@ test("異なるユーザーのタグを取得した場合、ユーザーIDの検
   const otherUserTag: Tag = {
     ...mockTag,
     id: "tag-456",
-    userId: "user-456"
+    userId: "user-456",
   };
-  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserTag));
+  (mockTagRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(otherUserTag),
+  );
   const useCase = new GetTagUseCase(mockTagRepository);
   const currentUserId = "user-123"; // 現在のユーザーID
 
@@ -154,4 +168,4 @@ test("異なるユーザーのタグを取得した場合、ユーザーIDの検
 
   // 実際のアプリケーションでは、ここでユーザーIDの検証を行い、
   // 権限がない場合はアクセスを拒否する必要があります
-}); 
+});

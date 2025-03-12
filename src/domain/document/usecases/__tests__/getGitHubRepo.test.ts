@@ -10,7 +10,7 @@ const mockGitHubRepoRepository: GitHubRepoRepository = {
   findById: vi.fn(),
   findByFullName: vi.fn(),
   findByUserId: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 // テスト用のGitHubリポジトリデータ
@@ -22,7 +22,7 @@ const mockGitHubRepo: GitHubRepo = {
   installationId: "inst-123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // テスト前にモックをリセット
@@ -32,7 +32,9 @@ beforeEach(() => {
 
 test("存在するリポジトリIDを指定するとリポジトリが返されること", async () => {
   // Arrange
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockGitHubRepo));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockGitHubRepo));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -43,13 +45,17 @@ test("存在するリポジトリIDを指定するとリポジトリが返され
   result.map((data) => {
     expect(data).toEqual(mockGitHubRepo);
   });
-  expect(mockGitHubRepoRepository.findById).toHaveBeenCalledWith(mockGitHubRepo.id);
+  expect(mockGitHubRepoRepository.findById).toHaveBeenCalledWith(
+    mockGitHubRepo.id,
+  );
 });
 
 test("存在しないリポジトリIDを指定するとnullが返されること", async () => {
   // Arrange
   const repoId = "non-existent-id";
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -70,7 +76,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -88,7 +96,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
 test("非常に長いIDを指定しても正しく処理されること", async () => {
   // Arrange
   const longId = "a".repeat(1000); // 非常に長いID
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -103,7 +113,9 @@ test("非常に長いIDを指定しても正しく処理されること", async 
 test("空のIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyId = "";
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -118,7 +130,9 @@ test("空のIDを指定した場合も正しく処理されること", async () 
 test("無効なフォーマットのIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidId = "invalid-id-format";
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
 
   // Act
@@ -135,9 +149,11 @@ test("異なるユーザーのリポジトリを取得した場合、ユーザ�
   const otherUserRepo: GitHubRepo = {
     ...mockGitHubRepo,
     id: "repo-456",
-    userId: "user-456"
+    userId: "user-456",
   };
-  (mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserRepo));
+  (
+    mockGitHubRepoRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(otherUserRepo));
   const useCase = new GetGitHubRepoUseCase(mockGitHubRepoRepository);
   const currentUserId = "user-123"; // 現在のユーザーID
 
@@ -155,4 +171,4 @@ test("異なるユーザーのリポジトリを取得した場合、ユーザ�
 
   // 実際のアプリケーションでは、ここでユーザーIDの検証を行い、
   // 権限がない場合はアクセスを拒否する必要があります
-}); 
+});

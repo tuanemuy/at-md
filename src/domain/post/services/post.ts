@@ -20,4 +20,4 @@ export interface PostService {
    * @returns 投稿ステータス
    */
   getPostStatus(postId: ID): Promise<Result<PostStatus, PostError>>;
-} 
+}

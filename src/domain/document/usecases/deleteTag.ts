@@ -17,4 +17,4 @@ export class DeleteTagUseCase {
   async execute(id: ID): Promise<Result<void, RepositoryError>> {
     return await this.tagRepository.delete(id);
   }
-} 
+}

@@ -18,7 +18,7 @@ export function createMockUserRepository(): UserRepository {
     findById: vi.fn(),
     findByDid: vi.fn(),
     save: vi.fn(),
-    addGitHubConnection: vi.fn()
+    addGitHubConnection: vi.fn(),
   };
 }
 
@@ -29,7 +29,7 @@ export function createMockUserRepository(): UserRepository {
 export function createMockAuthService(): AuthService {
   return {
     authenticateWithBluesky: vi.fn(),
-    connectGitHub: vi.fn()
+    connectGitHub: vi.fn(),
   };
 }
 
@@ -42,7 +42,7 @@ export function createMockDocumentRepository(): DocumentRepository {
     findById: vi.fn(),
     findByGitHubRepoAndPath: vi.fn(),
     findByGitHubRepo: vi.fn(),
-    save: vi.fn()
+    save: vi.fn(),
   };
 }
 
@@ -55,7 +55,7 @@ export function createMockGitHubRepoRepository(): GitHubRepoRepository {
     findById: vi.fn(),
     findByFullName: vi.fn(),
     findByUserId: vi.fn(),
-    save: vi.fn()
+    save: vi.fn(),
   };
 }
 
@@ -70,7 +70,7 @@ export function createMockTagRepository(): TagRepository {
     findByUserId: vi.fn(),
     findByDocumentId: vi.fn(),
     save: vi.fn(),
-    delete: vi.fn()
+    delete: vi.fn(),
   };
 }
 
@@ -83,7 +83,7 @@ export function createMockSyncService(): SyncService {
     fetchFile: vi.fn(),
     fetchFiles: vi.fn(),
     syncFile: vi.fn(),
-    syncAllFiles: vi.fn()
+    syncAllFiles: vi.fn(),
   };
 }
 
@@ -98,7 +98,7 @@ export function createMockPostRepository(): PostRepository {
     findByUserId: vi.fn(),
     save: vi.fn(),
     updateStatus: vi.fn(),
-    delete: vi.fn()
+    delete: vi.fn(),
   };
 }
 
@@ -109,7 +109,7 @@ export function createMockPostRepository(): PostRepository {
 export function createMockPostService(): PostService {
   return {
     createPost: vi.fn(),
-    getPostStatus: vi.fn()
+    getPostStatus: vi.fn(),
   };
 }
 
@@ -126,7 +126,7 @@ export function createMockContainer(): Container {
     tagRepository: createMockTagRepository(),
     syncService: createMockSyncService(),
     postRepository: createMockPostRepository(),
-    postService: createMockPostService()
+    postService: createMockPostService(),
   });
 }
 
@@ -135,10 +135,12 @@ export function createMockContainer(): Container {
  * @param overrides 上書きするモック
  * @returns カスタマイズされたモックコンテナ
  */
-export function createMockContainerWithOverrides(overrides: Partial<Container>): Container {
+export function createMockContainerWithOverrides(
+  overrides: Partial<Container>,
+): Container {
   const defaultContainer = createMockContainer();
   return {
     ...defaultContainer,
-    ...overrides
+    ...overrides,
   };
-} 
+}

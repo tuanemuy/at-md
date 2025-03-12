@@ -18,4 +18,4 @@ export class GetPostsByUserUseCase {
   async execute(userId: ID): Promise<Result<Post[], RepositoryError>> {
     return await this.postRepository.findByUserId(userId);
   }
-} 
+}

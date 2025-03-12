@@ -24,7 +24,7 @@ export interface PostContext {
   createPostFromDocument(
     documentId: ID,
     platform: PostPlatform,
-    userId: ID
+    userId: ID,
   ): Promise<Result<Post, PostError>>;
 
   /**
@@ -33,4 +33,4 @@ export interface PostContext {
    * @returns 公開された投稿
    */
   publishPost(postId: ID): Promise<Result<Post, PostError>>;
-} 
+}

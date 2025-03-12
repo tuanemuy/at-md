@@ -59,7 +59,9 @@ export interface DocumentTagRepository {
    * @param documentId 文書ID
    * @returns 文書タグの配列
    */
-  findByDocumentId(documentId: ID): Promise<Result<DocumentTag[], RepositoryError>>;
+  findByDocumentId(
+    documentId: ID,
+  ): Promise<Result<DocumentTag[], RepositoryError>>;
 
   /**
    * タグIDによる文書タグ検索
@@ -88,5 +90,8 @@ export interface DocumentTagRepository {
    * @param tagId タグID
    * @returns void
    */
-  deleteByDocumentIdAndTagId(documentId: ID, tagId: ID): Promise<Result<void, RepositoryError>>;
-} 
+  deleteByDocumentIdAndTagId(
+    documentId: ID,
+    tagId: ID,
+  ): Promise<Result<void, RepositoryError>>;
+}

@@ -12,7 +12,7 @@ const mockTagRepository: TagRepository = {
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
   save: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 // テスト用のタグデータ
@@ -22,15 +22,15 @@ const mockTags: Tag[] = [
     name: "JavaScript",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
+    userId: "user-123",
   },
   {
     id: "tag-456",
     name: "TypeScript",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
-  }
+    userId: "user-123",
+  },
 ];
 
 // テスト前にモックをリセット
@@ -41,7 +41,9 @@ beforeEach(() => {
 test("有効なドキュメントIDを指定するとタグの配列が返されること", async () => {
   // Arrange
   const documentId = "doc-123";
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockTags));
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockTags));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -59,7 +61,9 @@ test("有効なドキュメントIDを指定するとタグの配列が返され
 test("存在しないドキュメントIDを指定すると空の配列が返されること", async () => {
   // Arrange
   const documentId = "non-existent-id";
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -81,7 +85,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -102,10 +108,12 @@ test("非常に多くのタグを持つドキュメントの場合も正しく�
   const manyTags = Array.from({ length: 100 }, (_, i) => ({
     ...mockTags[0],
     id: `tag-${i}`,
-    name: `Tag ${i}`
+    name: `Tag ${i}`,
   }));
-  
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(manyTags));
+
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(manyTags));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -122,7 +130,9 @@ test("非常に多くのタグを持つドキュメントの場合も正しく�
 test("空のドキュメントIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyDocumentId = "";
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -130,14 +140,18 @@ test("空のドキュメントIDを指定した場合も正しく処理される
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockTagRepository.findByDocumentId).toHaveBeenCalledWith(emptyDocumentId);
+  expect(mockTagRepository.findByDocumentId).toHaveBeenCalledWith(
+    emptyDocumentId,
+  );
 });
 
 // 無効な入力のテスト
 test("無効なフォーマットのドキュメントIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidDocumentId = "invalid-document-id-format";
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -145,7 +159,9 @@ test("無効なフォーマットのドキュメントIDを指定した場合も
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockTagRepository.findByDocumentId).toHaveBeenCalledWith(invalidDocumentId);
+  expect(mockTagRepository.findByDocumentId).toHaveBeenCalledWith(
+    invalidDocumentId,
+  );
 });
 
 // セキュリティ関連のテスト
@@ -153,14 +169,16 @@ test("異なるユーザーのドキュメントのタグを取得しようと�
   // Arrange
   const documentId = "doc-456"; // 異なるユーザーのドキュメントID
   const currentUserId = "user-123"; // 現在のユーザーID
-  
+
   // 異なるユーザーのタグを返すようにモックを設定
-  const otherUserTags = mockTags.map(tag => ({
+  const otherUserTags = mockTags.map((tag) => ({
     ...tag,
-    userId: "user-456" // 異なるユーザーID
+    userId: "user-456", // 異なるユーザーID
   }));
-  
-  (mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserTags));
+
+  (
+    mockTagRepository.findByDocumentId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(otherUserTags));
   const useCase = new GetTagsByDocumentUseCase(mockTagRepository);
 
   // Act
@@ -169,14 +187,14 @@ test("異なるユーザーのドキュメントのタグを取得しようと�
   // Assert
   expect(result.isOk()).toBe(true);
   const tags = result._unsafeUnwrap();
-  
+
   // タグは取得できるが、ユーザーIDが現在のユーザーと異なることを確認
   expect(tags.length).toBeGreaterThan(0);
   for (const tag of tags) {
     expect(tag.userId).toBe("user-456");
     expect(tag.userId).not.toBe(currentUserId);
   }
-  
+
   // 実際のアプリケーションでは、ここでユーザーIDの検証を行い、
   // 権限がない場合はアクセスを拒否する必要があります
-}); 
+});

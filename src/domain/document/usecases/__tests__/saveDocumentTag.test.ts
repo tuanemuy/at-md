@@ -11,7 +11,7 @@ const mockDocumentTagRepository: DocumentTagRepository = {
   findByTagId: vi.fn(),
   save: vi.fn(),
   delete: vi.fn(),
-  deleteByDocumentIdAndTagId: vi.fn()
+  deleteByDocumentIdAndTagId: vi.fn(),
 };
 
 // テスト用のドキュメントタグデータ
@@ -19,7 +19,7 @@ const mockDocumentTag: DocumentTag = {
   id: "doctag-123",
   documentId: "doc-123",
   tagId: "tag-123",
-  createdAt: new Date()
+  createdAt: new Date(),
 };
 
 // テスト前にモックをリセット
@@ -29,9 +29,13 @@ beforeEach(() => {
 
 test("有効なドキュメントタグを指定すると保存されて返されること", async () => {
   // Arrange
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockDocumentTag
-  }));
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(
+    ok({
+      ...mockDocumentTag,
+    }),
+  );
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -53,7 +57,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -72,16 +78,18 @@ test("IDがないドキュメントタグを保存すると新しいIDが割り�
   // Arrange
   const documentTagWithoutId = {
     ...mockDocumentTag,
-    id: "" as string // 空のID
+    id: "" as string, // 空のID
   };
-  
+
   const savedDocumentTag = {
     ...mockDocumentTag,
     id: "new-doctag-id", // 新しいID
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedDocumentTag));
+
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(savedDocumentTag));
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -100,17 +108,19 @@ test("古い作成日時を持つドキュメントタグを保存しても日�
   // Arrange
   const pastDate = new Date();
   pastDate.setFullYear(pastDate.getFullYear() - 1); // 1年前
-  
+
   const documentTagWithPastDate = {
     ...mockDocumentTag,
-    createdAt: pastDate
+    createdAt: pastDate,
   };
-  
+
   const savedDocumentTag = {
-    ...documentTagWithPastDate
+    ...documentTagWithPastDate,
   };
-  
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedDocumentTag));
+
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(savedDocumentTag));
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -129,15 +139,17 @@ test("必須フィールドが欠けているドキュメントタグを保存�
   const invalidDocumentTag = {
     ...mockDocumentTag,
     documentId: "", // 空のドキュメントID
-    tagId: ""       // 空のタグID
+    tagId: "", // 空のタグID
   };
-  
+
   const validationError = createRepositoryError(
     "VALIDATION_ERROR",
     "ドキュメントIDとタグIDは必須です",
   );
-  
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(validationError));
+
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(validationError));
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -155,14 +167,16 @@ test("異なるユーザーのドキュメントとタグの関連付けを保�
   // Arrange
   // 実際のアプリケーションでは、ドキュメントとタグの所有者を確認する必要があります
   // このテストでは、リポジトリレベルでの検証は行わず、ユースケースの動作のみを確認します
-  
+
   const documentTagForOtherUser = {
     ...mockDocumentTag,
     documentId: "doc-456", // 異なるユーザーのドキュメントID
-    tagId: "tag-456"       // 異なるユーザーのタグID
+    tagId: "tag-456", // 異なるユーザーのタグID
   };
-  
-  (mockDocumentTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(documentTagForOtherUser));
+
+  (
+    mockDocumentTagRepository.save as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(documentTagForOtherUser));
   const useCase = new SaveDocumentTagUseCase(mockDocumentTagRepository);
 
   // Act
@@ -170,7 +184,7 @@ test("異なるユーザーのドキュメントとタグの関連付けを保�
 
   // Assert
   expect(result.isOk()).toBe(true);
-  
+
   // 実際のアプリケーションでは、保存前にドキュメントとタグの所有者を検証し、
   // 権限がない場合は操作を拒否する必要があります
-}); 
+});

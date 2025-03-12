@@ -19,7 +19,9 @@ export interface GitHubRepoRepository {
    * @param fullName リポジトリのフルネーム（owner/name）
    * @returns GitHubリポジトリまたはnull
    */
-  findByFullName(fullName: string): Promise<Result<GitHubRepo | null, RepositoryError>>;
+  findByFullName(
+    fullName: string,
+  ): Promise<Result<GitHubRepo | null, RepositoryError>>;
 
   /**
    * ユーザーIDによるGitHubリポジトリ検索
@@ -34,4 +36,4 @@ export interface GitHubRepoRepository {
    * @returns 保存されたGitHubリポジトリ
    */
   save(gitHubRepo: GitHubRepo): Promise<Result<GitHubRepo, RepositoryError>>;
-} 
+}

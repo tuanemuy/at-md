@@ -14,9 +14,7 @@ export class FetchFilesUseCase {
    * @param gitHubRepo GitHubリポジトリ
    * @returns ファイルパスの配列
    */
-  async execute(
-    gitHubRepo: GitHubRepo,
-  ): Promise<Result<string[], SyncError>> {
+  async execute(gitHubRepo: GitHubRepo): Promise<Result<string[], SyncError>> {
     return await this.syncService.fetchFiles(gitHubRepo);
   }
-} 
+}

@@ -1,5 +1,9 @@
 import { z } from "zod";
-import type { AnyError, RepositoryError, RepositoryErrorCode } from "@/domain/shared/models/common";
+import type {
+  AnyError,
+  RepositoryError,
+  RepositoryErrorCode,
+} from "@/domain/shared/models/common";
 
 /**
  * 投稿エラーコードのスキーマ
@@ -7,7 +11,7 @@ import type { AnyError, RepositoryError, RepositoryErrorCode } from "@/domain/sh
 export const postErrorCodeSchema = z.enum([
   "CONTENT_NOT_FOUND",
   "API_ERROR",
-  "RATE_LIMIT"
+  "RATE_LIMIT",
 ]);
 
 /**
@@ -35,15 +39,15 @@ export interface PostError extends AnyError {
 export function createPostError(
   type: PostErrorCode,
   message: string,
-  cause?: Error
+  cause?: Error,
 ): PostError {
   return {
     name: "PostError",
     type,
     message,
-    cause
+    cause,
   };
 }
 
 // 共有カーネルのRepositoryErrorを再エクスポート
-export type { RepositoryError, RepositoryErrorCode }; 
+export type { RepositoryError, RepositoryErrorCode };

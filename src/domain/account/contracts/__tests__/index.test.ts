@@ -30,4 +30,4 @@ test("createUserServiceError関数がcauseなしでも正しく動作するこ�
   expect(error.type).toBe(type);
   expect(error.message).toBe(message);
   expect(error.cause).toBeUndefined();
-}); 
+});

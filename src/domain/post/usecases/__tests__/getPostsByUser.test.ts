@@ -11,7 +11,7 @@ const mockPostRepository: PostRepository = {
   findByUserId: vi.fn(),
   save: vi.fn(),
   updateStatus: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 // テスト用の投稿データ
@@ -25,7 +25,7 @@ const mockPosts: Post[] = [
     publishedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
+    userId: "user-123",
   },
   {
     id: "post-456",
@@ -36,8 +36,8 @@ const mockPosts: Post[] = [
     publishedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
-  }
+    userId: "user-123",
+  },
 ];
 
 // テスト前にモックをリセット
@@ -48,11 +48,13 @@ beforeEach(() => {
 test("ユーザーIDに関連する投稿が存在する場合、それらの投稿が取得できること", async () => {
   // Arrange
   const useCase = new GetPostsByUserUseCase(mockPostRepository);
-  (mockPostRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockPosts));
-  
+  (
+    mockPostRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockPosts));
+
   // Act
   const result = await useCase.execute("user-123");
-  
+
   // Assert
   expect(result.isOk()).toBe(true);
   const posts = result._unsafeUnwrap();
@@ -61,7 +63,7 @@ test("ユーザーIDに関連する投稿が存在する場合、それらの投
   expect(posts[1].id).toBe("post-456");
   expect(posts[0].userId).toBe("user-123");
   expect(posts[1].userId).toBe("user-123");
-  
+
   // リポジトリのfindByUserIdメソッドが正しく呼び出されたことを確認
   expect(mockPostRepository.findByUserId).toHaveBeenCalledWith("user-123");
   expect(mockPostRepository.findByUserId).toHaveBeenCalledTimes(1);
@@ -70,17 +72,19 @@ test("ユーザーIDに関連する投稿が存在する場合、それらの投
 test("ユーザーIDに関連する投稿が存在しない場合、空の配列が返されること", async () => {
   // Arrange
   const useCase = new GetPostsByUserUseCase(mockPostRepository);
-  (mockPostRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
-  
+  (
+    mockPostRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
+
   // Act
   const result = await useCase.execute("user-456");
-  
+
   // Assert
   expect(result.isOk()).toBe(true);
   const posts = result._unsafeUnwrap();
   expect(posts).toHaveLength(0);
   expect(posts).toEqual([]);
-  
+
   // リポジトリのfindByUserIdメソッドが正しく呼び出されたことを確認
   expect(mockPostRepository.findByUserId).toHaveBeenCalledWith("user-456");
 });
@@ -91,13 +95,15 @@ test("リポジトリでエラーが発生した場合はそのエラーがそ�
   const repositoryError = {
     name: "RepositoryError",
     type: "DATABASE_ERROR",
-    message: "Failed to connect to database"
+    message: "Failed to connect to database",
   };
-  (mockPostRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
-  
+  (
+    mockPostRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
+
   // Act
   const result = await useCase.execute("user-123");
-  
+
   // Assert
   expect(result.isErr()).toBe(true);
   const error = result._unsafeUnwrapErr();
@@ -110,17 +116,19 @@ test("リポジトリでエラーが発生した場合はそのエラーがそ�
 test("無効なユーザーIDフォーマットを指定した場合もリポジトリに渡されること", async () => {
   // Arrange
   const useCase = new GetPostsByUserUseCase(mockPostRepository);
-  (mockPostRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockPostRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const invalidUserId = "invalid-user-id"; // UUIDフォーマットではない
-  
+
   // Act
   const result = await useCase.execute(invalidUserId);
-  
+
   // Assert
   expect(result.isOk()).toBe(true);
   const posts = result._unsafeUnwrap();
   expect(posts).toHaveLength(0);
-  
+
   // リポジトリのfindByUserIdメソッドが正しく呼び出されたことを確認
   expect(mockPostRepository.findByUserId).toHaveBeenCalledWith(invalidUserId);
   expect(mockPostRepository.findByUserId).toHaveBeenCalledTimes(1);
@@ -129,18 +137,20 @@ test("無効なユーザーIDフォーマットを指定した場合もリポジ
 test("空文字列のユーザーIDを指定した場合もリポジトリに渡されること", async () => {
   // Arrange
   const useCase = new GetPostsByUserUseCase(mockPostRepository);
-  (mockPostRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockPostRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const emptyUserId = "";
-  
+
   // Act
   const result = await useCase.execute(emptyUserId);
-  
+
   // Assert
   expect(result.isOk()).toBe(true);
   const posts = result._unsafeUnwrap();
   expect(posts).toHaveLength(0);
-  
+
   // リポジトリのfindByUserIdメソッドが正しく呼び出されたことを確認
   expect(mockPostRepository.findByUserId).toHaveBeenCalledWith(emptyUserId);
   expect(mockPostRepository.findByUserId).toHaveBeenCalledTimes(1);
-}); 
+});

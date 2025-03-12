@@ -20,14 +20,19 @@ export interface DocumentRepository {
    * @param path ファイルパス
    * @returns 文書またはnull
    */
-  findByGitHubRepoAndPath(gitHubRepoId: ID, path: string): Promise<Result<Document | null, RepositoryError>>;
+  findByGitHubRepoAndPath(
+    gitHubRepoId: ID,
+    path: string,
+  ): Promise<Result<Document | null, RepositoryError>>;
 
   /**
    * GitHubリポジトリによる文書検索
    * @param gitHubRepoId GitHubリポジトリID
    * @returns 文書の配列
    */
-  findByGitHubRepo(gitHubRepoId: ID): Promise<Result<Document[], RepositoryError>>;
+  findByGitHubRepo(
+    gitHubRepoId: ID,
+  ): Promise<Result<Document[], RepositoryError>>;
 
   /**
    * 文書の保存
@@ -35,4 +40,4 @@ export interface DocumentRepository {
    * @returns 保存された文書
    */
   save(document: Document): Promise<Result<Document, RepositoryError>>;
-} 
+}

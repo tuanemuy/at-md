@@ -17,4 +17,4 @@ export class DeletePostUseCase {
   async execute(id: ID): Promise<Result<void, RepositoryError>> {
     return await this.postRepository.delete(id);
   }
-} 
+}

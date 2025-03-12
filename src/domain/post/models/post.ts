@@ -4,9 +4,7 @@ import { idSchema, type ID } from "@/domain/shared/models/id";
 /**
  * 投稿プラットフォームのスキーマ
  */
-export const postPlatformSchema = z.enum([
-  "bluesky"
-]);
+export const postPlatformSchema = z.enum(["bluesky"]);
 
 /**
  * 投稿プラットフォームの型
@@ -16,11 +14,7 @@ export type PostPlatform = z.infer<typeof postPlatformSchema>;
 /**
  * 投稿ステータスのスキーマ
  */
-export const postStatusSchema = z.enum([
-  "pending",
-  "published",
-  "failed"
-]);
+export const postStatusSchema = z.enum(["pending", "published", "failed"]);
 
 /**
  * 投稿ステータスの型
@@ -40,7 +34,7 @@ export const postSchema = z.object({
   error: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  userId: idSchema
+  userId: idSchema,
 });
 
 /**
@@ -60,7 +54,7 @@ export function createPost(
   documentId: ID,
   platform: PostPlatform,
   userId: ID,
-  status: PostStatus = "pending"
+  status: PostStatus = "pending",
 ): Omit<Post, "id"> {
   const now = new Date();
   return {
@@ -71,7 +65,7 @@ export function createPost(
     publishedAt: null,
     createdAt: now,
     updatedAt: now,
-    userId
+    userId,
   };
 }
 
@@ -83,12 +77,12 @@ export function createPost(
  */
 export function updatePost(
   post: Post,
-  updates: Partial<Pick<Post, "uri" | "status" | "publishedAt" | "error">>
+  updates: Partial<Pick<Post, "uri" | "status" | "publishedAt" | "error">>,
 ): Post {
   return {
     ...post,
     ...updates,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
 }
 
@@ -105,7 +99,7 @@ export function publishPost(post: Post, uri: string): Post {
     status: "published",
     uri,
     publishedAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 }
 
@@ -120,6 +114,6 @@ export function failPost(post: Post, errorMessage: string): Post {
     ...post,
     status: "failed",
     error: errorMessage,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-} 
+}

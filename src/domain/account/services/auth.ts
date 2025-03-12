@@ -13,7 +13,10 @@ export interface AuthService {
    * @param jwt JWT (JSON Web Token)
    * @returns 認証されたユーザー
    */
-  authenticateWithBluesky(did: string, jwt: string): Promise<Result<User, AuthError>>;
+  authenticateWithBluesky(
+    did: string,
+    jwt: string,
+  ): Promise<Result<User, AuthError>>;
 
   /**
    * GitHubとの連携
@@ -21,5 +24,8 @@ export interface AuthService {
    * @param installationId GitHubインストールID
    * @returns GitHub連携情報
    */
-  connectGitHub(userId: ID, installationId: number): Promise<Result<GitHubConnection, AuthError>>;
-} 
+  connectGitHub(
+    userId: ID,
+    installationId: number,
+  ): Promise<Result<GitHubConnection, AuthError>>;
+}

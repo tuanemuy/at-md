@@ -34,5 +34,8 @@ export interface UserRepository {
    * @param connection GitHub連携情報
    * @returns 保存されたGitHub連携情報
    */
-  addGitHubConnection(userId: ID, connection: GitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
-} 
+  addGitHubConnection(
+    userId: ID,
+    connection: GitHubConnection,
+  ): Promise<Result<GitHubConnection, RepositoryError>>;
+}

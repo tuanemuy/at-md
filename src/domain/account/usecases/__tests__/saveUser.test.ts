@@ -10,7 +10,7 @@ const mockUserRepository: UserRepository = {
   findById: vi.fn(),
   findByDid: vi.fn(),
   save: vi.fn(),
-  addGitHubConnection: vi.fn()
+  addGitHubConnection: vi.fn(),
 };
 
 // テスト用のユーザーデータ
@@ -20,7 +20,7 @@ const mockUser: User = {
   did: "did:example:123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  gitHubConnections: []
+  gitHubConnections: [],
 };
 
 // テスト前にモックをリセット
@@ -30,10 +30,12 @@ beforeEach(() => {
 
 test("有効なユーザーを指定すると保存されて返されること", async () => {
   // Arrange
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockUser,
-    updatedAt: new Date() // 更新日時が変わることを想定
-  }));
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockUser,
+      updatedAt: new Date(), // 更新日時が変わることを想定
+    }),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -55,7 +57,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -74,16 +78,18 @@ test("IDがないユーザーを保存すると新しいIDが割り当てられ�
   // Arrange
   const userWithoutId = {
     ...mockUser,
-    id: "" as string // 空のID
+    id: "" as string, // 空のID
   };
-  
+
   const savedUser = {
     ...mockUser,
     id: "new-user-id", // 新しいID
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedUser));
+
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedUser),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -101,10 +107,12 @@ test("非常に長い名前を持つユーザーを保存できること", async
   // Arrange
   const longNameUser = {
     ...mockUser,
-    name: "A".repeat(1000) // 非常に長い名前
+    name: "A".repeat(1000), // 非常に長い名前
   };
-  
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(longNameUser));
+
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(longNameUser),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -122,19 +130,21 @@ test("更新日時が過去のユーザーを保存すると現在の日時に�
   // Arrange
   const pastDate = new Date();
   pastDate.setFullYear(pastDate.getFullYear() - 1); // 1年前
-  
+
   const userWithPastDate = {
     ...mockUser,
-    updatedAt: pastDate
+    updatedAt: pastDate,
   };
-  
+
   const now = new Date();
   const savedUser = {
     ...userWithPastDate,
-    updatedAt: now // 現在の日時
+    updatedAt: now, // 現在の日時
   };
-  
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedUser));
+
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedUser),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -154,15 +164,17 @@ test("必須フィールドが欠けているユーザーを保存するとエ�
   const invalidUser = {
     ...mockUser,
     name: "", // 空の名前
-    did: ""   // 空のDID
+    did: "", // 空のDID
   };
-  
+
   const validationError = createRepositoryError(
     "VALIDATION_ERROR",
     "名前とDIDは必須です",
   );
-  
-  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(validationError));
+
+  (mockUserRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(validationError),
+  );
   const useCase = new SaveUserUseCase(mockUserRepository);
 
   // Act
@@ -173,4 +185,4 @@ test("必須フィールドが欠けているユーザーを保存するとエ�
   result.mapErr((error) => {
     expect(error.type).toBe("VALIDATION_ERROR");
   });
-}); 
+});

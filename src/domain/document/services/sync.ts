@@ -16,7 +16,7 @@ export interface SyncService {
    */
   fetchFile(
     gitHubRepo: GitHubRepo,
-    path: string
+    path: string,
   ): Promise<Result<string, SyncError>>;
 
   /**
@@ -36,7 +36,7 @@ export interface SyncService {
   syncFile(
     gitHubRepo: GitHubRepo,
     path: string,
-    userId: ID
+    userId: ID,
   ): Promise<Result<Document, SyncError>>;
 
   /**
@@ -47,6 +47,6 @@ export interface SyncService {
    */
   syncAllFiles(
     gitHubRepo: GitHubRepo,
-    userId: ID
+    userId: ID,
   ): Promise<Result<Document[], SyncError>>;
-} 
+}

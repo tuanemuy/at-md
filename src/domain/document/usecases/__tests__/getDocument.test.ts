@@ -10,7 +10,7 @@ const mockDocumentRepository: DocumentRepository = {
   findById: vi.fn(),
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 // テスト用のドキュメントデータ
@@ -23,14 +23,14 @@ const mockDocument: Document = {
   scope: "private",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // 別のユーザーのドキュメントデータ
 const otherUserDocument: Document = {
   ...mockDocument,
   id: "doc-456",
-  userId: "user-456"
+  userId: "user-456",
 };
 
 // テスト前にモックをリセット
@@ -40,7 +40,9 @@ beforeEach(() => {
 
 test("存在する文書IDを指定すると文書が返されること", async () => {
   // Arrange
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockDocument));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockDocument));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -57,7 +59,9 @@ test("存在する文書IDを指定すると文書が返されること", async 
 test("存在しない文書IDを指定するとnullが返されること", async () => {
   // Arrange
   const documentId = "non-existent-id";
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -78,7 +82,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -96,7 +102,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
 test("非常に長いIDを指定しても正しく処理されること", async () => {
   // Arrange
   const longId = "a".repeat(1000); // 非常に長いID
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -111,9 +119,11 @@ test("非常に大きなドキュメント内容を持つ文書を取得でき�
   // Arrange
   const largeDocument: Document = {
     ...mockDocument,
-    document: `${"# ".repeat(10000)}Large Document` // 非常に大きなドキュメント内容
+    document: `${"# ".repeat(10000)}Large Document`, // 非常に大きなドキュメント内容
   };
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(largeDocument));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(largeDocument));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -131,7 +141,9 @@ test("非常に大きなドキュメント内容を持つ文書を取得でき�
 test("空のIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyId = "";
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -146,7 +158,9 @@ test("空のIDを指定した場合も正しく処理されること", async () 
 test("無効なフォーマットのIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidId = "invalid-id-format";
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(null));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -160,7 +174,9 @@ test("無効なフォーマットのIDを指定した場合も正しく処理さ
 // セキュリティ関連のテスト
 test("異なるユーザーの文書を取得した場合、ユーザーIDの検証が必要であること", async () => {
   // Arrange
-  (mockDocumentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserDocument));
+  (
+    mockDocumentRepository.findById as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(otherUserDocument));
   const useCase = new GetDocumentUseCase(mockDocumentRepository);
   const currentUserId = "user-123"; // 現在のユーザーID
 

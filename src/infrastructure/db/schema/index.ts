@@ -8,4 +8,4 @@ export * from "./documents";
 export * from "./posts";
 
 // 共通
-export * from "./common"; 
+export * from "./common";

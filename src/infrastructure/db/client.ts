@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { logger } from "@/lib/logger";
+import * as schema from "./schema";
 
 /**
  * データベース接続プールを作成する
@@ -8,12 +9,12 @@ import { logger } from "@/lib/logger";
  */
 export function createPool(): Pool {
   const connectionString = process.env.DATABASE_URL;
-  
+
   if (!connectionString) {
     logger.error("DATABASE_URL environment variable is not set");
     throw new Error("DATABASE_URL environment variable is not set");
   }
-  
+
   return new Pool({
     connectionString,
     max: 10, // 最大接続数
@@ -28,7 +29,7 @@ export function createPool(): Pool {
  * @returns Drizzle ORMクライアント
  */
 export function createDrizzleClient(pool: Pool) {
-  return drizzle(pool);
+  return drizzle({ client: pool, schema });
 }
 
 // シングルトンインスタンス
@@ -62,4 +63,4 @@ export function resetPool(): void {
 export function getDrizzleClient() {
   const pool = getPool();
   return createDrizzleClient(pool);
-} 
+}

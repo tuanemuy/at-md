@@ -21,8 +21,8 @@ export class GetPostsByDocumentUseCase {
     if (result.isErr()) {
       return err(result.error);
     }
-    
+
     const post = result.value;
     return ok(post ? [post] : []);
   }
-} 
+}

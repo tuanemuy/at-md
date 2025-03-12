@@ -26,7 +26,11 @@ test("createGitHubConnection関数が正しいGitHub連携情報オブジェク�
   const accessToken = "github_token_123";
 
   // 実行
-  const connection = createGitHubConnection(userId, installationId, accessToken);
+  const connection = createGitHubConnection(
+    userId,
+    installationId,
+    accessToken,
+  );
 
   // 検証
   expect(connection.userId).toBe(userId);
@@ -51,4 +55,4 @@ test("createGitHubConnection関数がaccessTokenがnullの場合も正しく動�
   expect(connection.accessToken).toBeNull();
   expect(connection.createdAt).toBeInstanceOf(Date);
   expect(connection.updatedAt).toBeInstanceOf(Date);
-}); 
+});

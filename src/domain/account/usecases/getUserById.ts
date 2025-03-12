@@ -18,4 +18,4 @@ export class GetUserByIdUseCase {
   async execute(id: ID): Promise<Result<User | null, RepositoryError>> {
     return await this.userRepository.findById(id);
   }
-} 
+}

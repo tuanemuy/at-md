@@ -22,7 +22,9 @@ export interface UserService {
    * @param userId ユーザーID
    * @returns ユーザー参照情報
    */
-  getUserReference(userId: ID): Promise<Result<UserReference, UserServiceError>>;
+  getUserReference(
+    userId: ID,
+  ): Promise<Result<UserReference, UserServiceError>>;
 }
 
 /**
@@ -50,12 +52,12 @@ export interface UserServiceError extends AnyError {
 export function createUserServiceError(
   type: UserServiceErrorCode,
   message: string,
-  cause?: Error
+  cause?: Error,
 ): UserServiceError {
   return {
     name: "UserServiceError",
     type,
     message,
-    cause
+    cause,
   };
-} 
+}

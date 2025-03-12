@@ -4,11 +4,7 @@ import { idSchema, type ID } from "@/domain/shared/models/id";
 /**
  * 文書公開範囲のスキーマ
  */
-export const documentScopeSchema = z.enum([
-  "private",
-  "public",
-  "limited"
-]);
+export const documentScopeSchema = z.enum(["private", "public", "limited"]);
 
 /**
  * 文書公開範囲の型
@@ -28,7 +24,7 @@ export const documentSchema = z.object({
   scope: documentScopeSchema,
   createdAt: z.date(),
   updatedAt: z.date(),
-  userId: idSchema
+  userId: idSchema,
 });
 
 /**
@@ -54,7 +50,7 @@ export function createDocument(
   document: string,
   userId: ID,
   description?: string,
-  scope: DocumentScope = "private"
+  scope: DocumentScope = "private",
 ): Omit<Document, "id"> {
   const now = new Date();
   return {
@@ -66,7 +62,7 @@ export function createDocument(
     scope,
     createdAt: now,
     updatedAt: now,
-    userId
+    userId,
   };
 }
 
@@ -78,11 +74,13 @@ export function createDocument(
  */
 export function updateDocument(
   document: Document,
-  updates: Partial<Pick<Document, "title" | "description" | "document" | "scope">>
+  updates: Partial<
+    Pick<Document, "title" | "description" | "document" | "scope">
+  >,
 ): Document {
   return {
     ...document,
     ...updates,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-} 
+}

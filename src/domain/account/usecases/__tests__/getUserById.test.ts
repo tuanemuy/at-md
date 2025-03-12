@@ -10,7 +10,7 @@ const mockUserRepository: UserRepository = {
   findById: vi.fn(),
   findByDid: vi.fn(),
   save: vi.fn(),
-  addGitHubConnection: vi.fn()
+  addGitHubConnection: vi.fn(),
 };
 
 // テスト用のユーザーデータ
@@ -20,7 +20,7 @@ const mockUser: User = {
   did: "did:example:123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  gitHubConnections: []
+  gitHubConnections: [],
 };
 
 // テスト前にモックをリセット
@@ -30,7 +30,9 @@ beforeEach(() => {
 
 test("存在するユーザーIDを指定するとユーザーが返されること", async () => {
   // Arrange
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockUser));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockUser),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -47,7 +49,9 @@ test("存在するユーザーIDを指定するとユーザーが返されるこ
 test("存在しないユーザーIDを指定するとnullが返されること", async () => {
   // Arrange
   const userId = "non-existent-id";
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -68,7 +72,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -86,7 +92,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
 test("非常に長いIDを指定しても正しく処理されること", async () => {
   // Arrange
   const longId = "a".repeat(1000); // 非常に長いID
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -101,7 +109,9 @@ test("非常に長いIDを指定しても正しく処理されること", async 
 test("空のIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyId = "";
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -116,7 +126,9 @@ test("空のIDを指定した場合も正しく処理されること", async () 
 test("無効なフォーマットのIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidId = "invalid-id-format";
-  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(ok(null));
+  (mockUserRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(null),
+  );
   const useCase = new GetUserByIdUseCase(mockUserRepository);
 
   // Act
@@ -125,4 +137,4 @@ test("無効なフォーマットのIDを指定した場合も正しく処理さ
   // Assert
   expect(result.isOk()).toBe(true);
   expect(mockUserRepository.findById).toHaveBeenCalledWith(invalidId);
-}); 
+});

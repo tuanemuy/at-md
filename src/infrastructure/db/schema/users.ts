@@ -15,11 +15,13 @@ export const users = pgTable("users", {
  */
 export const githubConnections = pgTable("github_connections", {
   ...commonColumns,
-  userId: uuid("user_id").notNull().references(() => users.id, foreignKeyOptions),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, foreignKeyOptions),
   installationId: varchar("installation_id", { length: 255 }).notNull(),
   accessToken: text("access_token").notNull(),
   tokenType: varchar("token_type", { length: 50 }).notNull(),
   expiresAt: varchar("expires_at", { length: 50 }).notNull(),
   refreshToken: text("refresh_token"),
   refreshTokenExpiresAt: varchar("refresh_token_expires_at", { length: 50 }),
-}); 
+});

@@ -17,4 +17,4 @@ export class SaveUserUseCase {
   async execute(user: User): Promise<Result<User, RepositoryError>> {
     return await this.userRepository.save(user);
   }
-} 
+}

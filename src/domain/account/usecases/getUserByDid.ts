@@ -17,4 +17,4 @@ export class GetUserByDidUseCase {
   async execute(did: string): Promise<Result<User | null, RepositoryError>> {
     return await this.userRepository.findByDid(did);
   }
-} 
+}

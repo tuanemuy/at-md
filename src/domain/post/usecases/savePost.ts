@@ -17,4 +17,4 @@ export class SavePostUseCase {
   async execute(post: Post): Promise<Result<Post, RepositoryError>> {
     return await this.postRepository.save(post);
   }
-} 
+}

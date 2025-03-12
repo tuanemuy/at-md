@@ -10,7 +10,7 @@ const mockDocumentRepository: DocumentRepository = {
   findById: vi.fn(),
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 // テスト用のドキュメントデータ
@@ -51,7 +51,7 @@ const otherUserDocuments: Document[] = [
     createdAt: new Date(),
     updatedAt: new Date(),
     userId: "user-456",
-  }
+  },
 ];
 
 // テスト前にモックをリセット
@@ -62,7 +62,9 @@ beforeEach(() => {
 test("存在するGitHubリポジトリIDを指定すると関連する文書の配列が返されること", async () => {
   // Arrange
   const gitHubRepoId = "repo-123";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockDocuments));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockDocuments));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -82,7 +84,9 @@ test("存在するGitHubリポジトリIDを指定すると関連する文書の
 test("文書が存在しないGitHubリポジトリIDを指定すると空の配列が返されること", async () => {
   // Arrange
   const gitHubRepoId = "repo-without-docs";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -106,7 +110,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -126,7 +132,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
 test("非常に長いGitHubリポジトリIDを指定しても正しく処理されること", async () => {
   // Arrange
   const longId = "a".repeat(1000); // 非常に長いID
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -140,19 +148,23 @@ test("非常に長いGitHubリポジトリIDを指定しても正しく処理さ
 test("非常に多くのドキュメントが返されても正しく処理されること", async () => {
   // Arrange
   const gitHubRepoId = "repo-123";
-  const manyDocuments: Document[] = Array(100).fill(null).map((_, index) => ({
-    id: `doc-${index}`,
-    gitHubRepoId,
-    path: `docs/file-${index}.md`,
-    title: `Document ${index}`,
-    document: `# Document ${index}`,
-    scope: "private",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    userId: "user-123"
-  }));
-  
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok(manyDocuments));
+  const manyDocuments: Document[] = Array(100)
+    .fill(null)
+    .map((_, index) => ({
+      id: `doc-${index}`,
+      gitHubRepoId,
+      path: `docs/file-${index}.md`,
+      title: `Document ${index}`,
+      document: `# Document ${index}`,
+      scope: "private",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: "user-123",
+    }));
+
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(manyDocuments));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -171,7 +183,9 @@ test("非常に多くのドキュメントが返されても正しく処理さ�
 test("空のGitHubリポジトリIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyId = "";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -195,7 +209,7 @@ test("異なるスコープを持つドキュメントが混在していても�
       scope: "private",
       createdAt: new Date(),
       updatedAt: new Date(),
-      userId: "user-123"
+      userId: "user-123",
     },
     {
       id: "doc-2",
@@ -206,7 +220,7 @@ test("異なるスコープを持つドキュメントが混在していても�
       scope: "public",
       createdAt: new Date(),
       updatedAt: new Date(),
-      userId: "user-123"
+      userId: "user-123",
     },
     {
       id: "doc-3",
@@ -217,11 +231,13 @@ test("異なるスコープを持つドキュメントが混在していても�
       scope: "limited",
       createdAt: new Date(),
       updatedAt: new Date(),
-      userId: "user-123"
-    }
+      userId: "user-123",
+    },
   ];
-  
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mixedScopeDocuments));
+
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mixedScopeDocuments));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -241,7 +257,9 @@ test("異なるスコープを持つドキュメントが混在していても�
 test("無効なフォーマットのGitHubリポジトリIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidId = "invalid-repo-id-format";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -249,14 +267,18 @@ test("無効なフォーマットのGitHubリポジトリIDを指定した場合
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockDocumentRepository.findByGitHubRepo).toHaveBeenCalledWith(invalidId);
+  expect(mockDocumentRepository.findByGitHubRepo).toHaveBeenCalledWith(
+    invalidId,
+  );
 });
 
 // セキュリティ関連のテスト
 test("異なるユーザーのGitHubリポジトリを指定した場合、ユーザーIDの検証が必要であること", async () => {
   // Arrange
   const otherUserRepoId = "repo-456";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserDocuments));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(otherUserDocuments));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
   const currentUserId = "user-123"; // 現在のユーザーID
 
@@ -280,7 +302,9 @@ test("異なるユーザーのGitHubリポジトリを指定した場合、ユ�
 test("SQLインジェクションを試みるGitHubリポジトリIDを指定した場合でも安全に処理されること", async () => {
   // Arrange
   const maliciousId = "1'; DROP TABLE documents; --";
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act
@@ -288,7 +312,9 @@ test("SQLインジェクションを試みるGitHubリポジトリIDを指定し
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockDocumentRepository.findByGitHubRepo).toHaveBeenCalledWith(maliciousId);
+  expect(mockDocumentRepository.findByGitHubRepo).toHaveBeenCalledWith(
+    maliciousId,
+  );
   // 実際のアプリケーションでは、パラメータ化クエリやORMを使用してSQLインジェクションを防ぐ必要があります
 });
 
@@ -305,11 +331,13 @@ test("XSSインジェクションを含むドキュメントが安全に処理�
       scope: "private",
       createdAt: new Date(),
       updatedAt: new Date(),
-      userId: "user-123"
-    }
+      userId: "user-123",
+    },
   ];
-  
-  (mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>).mockResolvedValue(ok(documentsWithXSS));
+
+  (
+    mockDocumentRepository.findByGitHubRepo as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(documentsWithXSS));
   const useCase = new GetDocumentsByGitHubRepoUseCase(mockDocumentRepository);
 
   // Act

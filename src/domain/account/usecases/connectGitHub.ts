@@ -16,7 +16,10 @@ export class ConnectGitHubUseCase {
    * @param installationId GitHubインストールID
    * @returns GitHub連携情報
    */
-  async execute(userId: ID, installationId: number): Promise<Result<GitHubConnection, AuthError>> {
+  async execute(
+    userId: ID,
+    installationId: number,
+  ): Promise<Result<GitHubConnection, AuthError>> {
     return await this.authService.connectGitHub(userId, installationId);
   }
-} 
+}

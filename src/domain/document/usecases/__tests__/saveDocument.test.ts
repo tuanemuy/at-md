@@ -10,7 +10,7 @@ const mockDocumentRepository: DocumentRepository = {
   findById: vi.fn(),
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 // テスト用のドキュメントデータ
@@ -23,7 +23,7 @@ const mockDocument: Document = {
   scope: "private",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // テスト前にモックをリセット
@@ -33,10 +33,12 @@ beforeEach(() => {
 
 test("有効なドキュメントを指定すると保存されて返されること", async () => {
   // Arrange
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockDocument,
-    updatedAt: new Date() // 更新日時が変わることを想定
-  }));
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockDocument,
+      updatedAt: new Date(), // 更新日時が変わることを想定
+    }),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -60,7 +62,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -79,16 +83,18 @@ test("IDがないドキュメントを保存すると新しいIDが割り当て�
   // Arrange
   const docWithoutId = {
     ...mockDocument,
-    id: "" as string // 空のID
+    id: "" as string, // 空のID
   };
-  
+
   const savedDoc = {
     ...mockDocument,
     id: "new-doc-id", // 新しいID
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedDoc));
+
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedDoc),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -106,10 +112,12 @@ test("非常に長いタイトルを持つドキュメントを保存できる�
   // Arrange
   const longTitleDoc = {
     ...mockDocument,
-    title: "A".repeat(1000) // 非常に長いタイトル
+    title: "A".repeat(1000), // 非常に長いタイトル
   };
-  
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(longTitleDoc));
+
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(longTitleDoc),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -126,10 +134,12 @@ test("非常に長い文書内容を持つドキュメントを保存できる�
   // Arrange
   const longContentDoc = {
     ...mockDocument,
-    document: `${"# ".repeat(10000)}Hello World` // 非常に長い文書内容
+    document: `${"# ".repeat(10000)}Hello World`, // 非常に長い文書内容
   };
-  
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(longContentDoc));
+
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(longContentDoc),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -147,19 +157,21 @@ test("更新日時が過去のドキュメントを保存すると現在の日�
   // Arrange
   const pastDate = new Date();
   pastDate.setFullYear(pastDate.getFullYear() - 1); // 1年前
-  
+
   const docWithPastDate = {
     ...mockDocument,
-    updatedAt: pastDate
+    updatedAt: pastDate,
   };
-  
+
   const now = new Date();
   const savedDoc = {
     ...docWithPastDate,
-    updatedAt: now // 現在の日時
+    updatedAt: now, // 現在の日時
   };
-  
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedDoc));
+
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedDoc),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -179,15 +191,17 @@ test("必須フィールドが欠けているドキュメントを保存する�
   const invalidDoc = {
     ...mockDocument,
     title: "", // 空のタイトル
-    document: "" // 空の文書内容
+    document: "", // 空の文書内容
   };
-  
+
   const validationError = createRepositoryError(
     "VALIDATION_ERROR",
     "タイトルと文書内容は必須です",
   );
-  
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(validationError));
+
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(validationError),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -206,11 +220,13 @@ test("異なるユーザーのドキュメントを保存しようとした場�
   const currentUserId = "user-123"; // 現在のユーザーID
   const otherUserDoc = {
     ...mockDocument,
-    userId: "user-456" // 異なるユーザーID
+    userId: "user-456", // 異なるユーザーID
   };
-  
+
   // 保存は成功するが、実際のアプリケーションでは権限チェックが必要
-  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserDoc));
+  (mockDocumentRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(otherUserDoc),
+  );
   const useCase = new SaveDocumentUseCase(mockDocumentRepository);
 
   // Act
@@ -219,11 +235,11 @@ test("異なるユーザーのドキュメントを保存しようとした場�
   // Assert
   expect(result.isOk()).toBe(true);
   const doc = result._unsafeUnwrap();
-  
+
   // ドキュメントは保存できるが、ユーザーIDが現在のユーザーと異なることを確認
   expect(doc.userId).not.toBe(currentUserId);
   expect(doc.userId).toBe("user-456");
-  
+
   // 実際のアプリケーションでは、保存前にユーザーIDの検証を行い、
   // 権限がない場合は操作を拒否する必要があります
-}); 
+});

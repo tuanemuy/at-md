@@ -11,7 +11,7 @@ const mockSyncService: SyncService = {
   fetchFile: vi.fn(),
   fetchFiles: vi.fn(),
   syncFile: vi.fn(),
-  syncAllFiles: vi.fn()
+  syncAllFiles: vi.fn(),
 };
 
 // テスト用のGitHubリポジトリデータ
@@ -23,7 +23,7 @@ const mockGitHubRepo: GitHubRepo = {
   installationId: "inst-123",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // 別のユーザーのGitHubリポジトリデータ
@@ -33,7 +33,7 @@ const otherUserGitHubRepo: GitHubRepo = {
   owner: "otheruser",
   name: "other-repo",
   fullName: "otheruser/other-repo",
-  userId: "user-456"
+  userId: "user-456",
 };
 
 // テスト用のドキュメントデータ
@@ -47,7 +47,7 @@ const mockDocuments: Document[] = [
     scope: "private",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: mockGitHubRepo.userId
+    userId: mockGitHubRepo.userId,
   },
   {
     id: "doc-456",
@@ -58,8 +58,8 @@ const mockDocuments: Document[] = [
     scope: "private",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: mockGitHubRepo.userId
-  }
+    userId: mockGitHubRepo.userId,
+  },
 ];
 
 // テスト前にモックをリセット
@@ -69,7 +69,9 @@ beforeEach(() => {
 
 test("有効なパラメータを指定するとすべてのファイルが同期されて文書の配列が返されること", async () => {
   // Arrange
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockDocuments));
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockDocuments),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
   const userId = "user-123";
 
@@ -95,7 +97,9 @@ test("同期サービスでエラーが発生した場合はエラーが返さ�
     "GITHUREPO_NOT_FOUND",
     "リポジトリが見つかりません",
   );
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(err(syncError));
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(syncError),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -120,10 +124,12 @@ test("非常に多くのファイルを同期できること", async () => {
     ...mockDocuments[0],
     id: `doc-${i}`,
     path: `docs/file-${i}.md`,
-    title: `File ${i}`
+    title: `File ${i}`,
   }));
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(manyDocuments));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(manyDocuments),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -146,17 +152,19 @@ test("非常に大きなドキュメント内容を持つファイルを同期�
       ...mockDocuments[0],
       id: "doc-1",
       path: "docs/large-file-1.md",
-      document: largeContent
+      document: largeContent,
     },
     {
       ...mockDocuments[1],
       id: "doc-2",
       path: "docs/large-file-2.md",
-      document: largeContent
-    }
+      document: largeContent,
+    },
   ];
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(documentsWithLargeContent));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(documentsWithLargeContent),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -176,8 +184,10 @@ test("空のドキュメント配列が返された場合も正しく処理さ�
   // Arrange
   const userId = "user-123";
   const emptyDocuments: Document[] = [];
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(emptyDocuments));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(emptyDocuments),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -197,22 +207,24 @@ test("様々なスコープを持つドキュメントを同期できること",
   const mixedScopeDocuments = [
     {
       ...mockDocuments[0],
-      scope: "private"
+      scope: "private",
     },
     {
       ...mockDocuments[1],
-      scope: "public"
+      scope: "public",
     },
     {
       ...mockDocuments[0],
       id: "doc-789",
       path: "docs/internal.md",
       title: "Internal",
-      scope: "internal"
-    }
+      scope: "internal",
+    },
   ];
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mixedScopeDocuments));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mixedScopeDocuments),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -232,7 +244,7 @@ test("様々なスコープを持つドキュメントを同期できること",
 test("異なるユーザーのGitHubリポジトリを指定した場合、ユーザーIDの検証が必要であること", async () => {
   // Arrange
   const currentUserId = "user-123"; // 現在のユーザーID
-  
+
   // 同期サービスのモックを設定
   // 同期時に指定されたユーザーIDを使用するように設定
   (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockImplementation(
@@ -243,19 +255,19 @@ test("異なるユーザーのGitHubリポジトリを指定した場合、ユ�
           id: "doc-1",
           gitHubRepoId: repo.id,
           path: "file1.md",
-          userId: userId // 同期時に指定されたユーザーIDを使用
+          userId: userId, // 同期時に指定されたユーザーIDを使用
         },
         {
           ...mockDocuments[1],
           id: "doc-2",
           gitHubRepoId: repo.id,
           path: "file2.md",
-          userId: userId // 同期時に指定されたユーザーIDを使用
-        }
+          userId: userId, // 同期時に指定されたユーザーIDを使用
+        },
       ]);
-    }
+    },
   );
-  
+
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -283,11 +295,13 @@ test("XSSインジェクションを含むファイル内容を同期できる�
   const documentsWithXss = [
     {
       ...mockDocuments[0],
-      document: xssContent
-    }
+      document: xssContent,
+    },
   ];
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(documentsWithXss));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(documentsWithXss),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -308,11 +322,13 @@ test("SQLインジェクションを含むファイル内容を同期できる�
   const documentsWithSqlInjection = [
     {
       ...mockDocuments[0],
-      document: sqlInjectionContent
-    }
+      document: sqlInjectionContent,
+    },
   ];
-  
-  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(ok(documentsWithSqlInjection));
+
+  (mockSyncService.syncAllFiles as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(documentsWithSqlInjection),
+  );
   const useCase = new SyncAllFilesUseCase(mockSyncService);
 
   // Act
@@ -325,4 +341,4 @@ test("SQLインジェクションを含むファイル内容を同期できる�
   });
   // 実際のアプリケーションでは、データベースアクセス時にパラメータ化クエリを使用するなど
   // 適切な対策が必要です
-}); 
+});

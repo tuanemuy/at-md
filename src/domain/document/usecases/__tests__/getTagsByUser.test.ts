@@ -12,7 +12,7 @@ const mockTagRepository: TagRepository = {
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
   save: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 // テスト用のタグデータ
@@ -22,15 +22,15 @@ const mockTags: Tag[] = [
     name: "JavaScript",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
+    userId: "user-123",
   },
   {
     id: "tag-456",
     name: "TypeScript",
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: "user-123"
-  }
+    userId: "user-123",
+  },
 ];
 
 // テスト前にモックをリセット
@@ -41,7 +41,9 @@ beforeEach(() => {
 test("有効なユーザーIDを指定するとタグの配列が返されること", async () => {
   // Arrange
   const userId = "user-123";
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockTags));
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(mockTags));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -59,7 +61,9 @@ test("有効なユーザーIDを指定するとタグの配列が返されるこ
 test("存在しないユーザーIDを指定すると空の配列が返されること", async () => {
   // Arrange
   const userId = "non-existent-id";
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -81,7 +85,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(err(repositoryError));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -102,10 +108,12 @@ test("非常に多くのタグを持つユーザーの場合も正しく処理�
   const manyTags = Array.from({ length: 100 }, (_, i) => ({
     ...mockTags[0],
     id: `tag-${i}`,
-    name: `Tag ${i}`
+    name: `Tag ${i}`,
   }));
-  
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(manyTags));
+
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(manyTags));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -122,7 +130,9 @@ test("非常に多くのタグを持つユーザーの場合も正しく処理�
 test("空のユーザーIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const emptyUserId = "";
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -137,7 +147,9 @@ test("空のユーザーIDを指定した場合も正しく処理されること
 test("無効なフォーマットのユーザーIDを指定した場合も正しく処理されること", async () => {
   // Arrange
   const invalidUserId = "invalid-user-id-format";
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok([]));
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok([]));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -152,15 +164,17 @@ test("無効なフォーマットのユーザーIDを指定した場合も正し
 test("異なるユーザーのタグを取得しようとした場合の検証", async () => {
   // Arrange
   const requestedUserId = "user-456"; // リクエストされたユーザーID
-  const currentUserId = "user-123";   // 現在のユーザーID
-  
+  const currentUserId = "user-123"; // 現在のユーザーID
+
   // 異なるユーザーのタグを返すようにモックを設定
-  const otherUserTags = mockTags.map(tag => ({
+  const otherUserTags = mockTags.map((tag) => ({
     ...tag,
-    userId: requestedUserId
+    userId: requestedUserId,
   }));
-  
-  (mockTagRepository.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserTags));
+
+  (
+    mockTagRepository.findByUserId as ReturnType<typeof vi.fn>
+  ).mockResolvedValue(ok(otherUserTags));
   const useCase = new GetTagsByUserUseCase(mockTagRepository);
 
   // Act
@@ -169,14 +183,14 @@ test("異なるユーザーのタグを取得しようとした場合の検証",
   // Assert
   expect(result.isOk()).toBe(true);
   const tags = result._unsafeUnwrap();
-  
+
   // タグは取得できるが、ユーザーIDが現在のユーザーと異なることを確認
   expect(tags.length).toBeGreaterThan(0);
   for (const tag of tags) {
     expect(tag.userId).toBe(requestedUserId);
     expect(tag.userId).not.toBe(currentUserId);
   }
-  
+
   // 実際のアプリケーションでは、ここでユーザーIDの検証を行い、
   // 権限がない場合はアクセスを拒否する必要があります
-}); 
+});

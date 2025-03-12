@@ -21,4 +21,4 @@ export class FetchFileUseCase {
   ): Promise<Result<string, SyncError>> {
     return await this.syncService.fetchFile(gitHubRepo, path);
   }
-} 
+}

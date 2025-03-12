@@ -1,5 +1,11 @@
 import { expect, test, beforeEach, afterEach } from "vitest";
-import { type Container, ContainerImpl, initializeContainer, getContainer, resetContainer } from "../container";
+import {
+  type Container,
+  ContainerImpl,
+  initializeContainer,
+  getContainer,
+  resetContainer,
+} from "../container";
 import { vi } from "vitest";
 
 // モックリポジトリとサービスを作成
@@ -7,26 +13,26 @@ const mockUserRepository = {
   findById: vi.fn(),
   findByDid: vi.fn(),
   save: vi.fn(),
-  addGitHubConnection: vi.fn()
+  addGitHubConnection: vi.fn(),
 };
 
 const mockAuthService = {
   authenticateWithBluesky: vi.fn(),
-  connectGitHub: vi.fn()
+  connectGitHub: vi.fn(),
 };
 
 const mockDocumentRepository = {
   findById: vi.fn(),
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 const mockGitHubRepoRepository = {
   findById: vi.fn(),
   findByFullName: vi.fn(),
   findByUserId: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
 };
 
 const mockTagRepository = {
@@ -35,14 +41,14 @@ const mockTagRepository = {
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
   save: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 const mockSyncService = {
   fetchFile: vi.fn(),
   fetchFiles: vi.fn(),
   syncFile: vi.fn(),
-  syncAllFiles: vi.fn()
+  syncAllFiles: vi.fn(),
 };
 
 const mockPostRepository = {
@@ -51,12 +57,12 @@ const mockPostRepository = {
   findByUserId: vi.fn(),
   save: vi.fn(),
   updateStatus: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 const mockPostService = {
   createPost: vi.fn(),
-  getPostStatus: vi.fn()
+  getPostStatus: vi.fn(),
 };
 
 // テスト用のコンテナを作成
@@ -69,7 +75,7 @@ const createTestContainer = (): Container => {
     tagRepository: mockTagRepository,
     syncService: mockSyncService,
     postRepository: mockPostRepository,
-    postService: mockPostService
+    postService: mockPostService,
   });
 };
 
@@ -86,17 +92,19 @@ afterEach(() => {
 test("コンテナが正しく初期化されること", () => {
   // Arrange
   const container = createTestContainer();
-  
+
   // Act
   initializeContainer(container);
   const retrievedContainer = getContainer();
-  
+
   // Assert
   expect(retrievedContainer).toBe(container);
   expect(retrievedContainer.userRepository).toBe(mockUserRepository);
   expect(retrievedContainer.authService).toBe(mockAuthService);
   expect(retrievedContainer.documentRepository).toBe(mockDocumentRepository);
-  expect(retrievedContainer.githubRepoRepository).toBe(mockGitHubRepoRepository);
+  expect(retrievedContainer.githubRepoRepository).toBe(
+    mockGitHubRepoRepository,
+  );
   expect(retrievedContainer.tagRepository).toBe(mockTagRepository);
   expect(retrievedContainer.syncService).toBe(mockSyncService);
   expect(retrievedContainer.postRepository).toBe(mockPostRepository);
@@ -112,18 +120,18 @@ test("コンテナがリセットされた後に再初期化できること", ()
   // Arrange
   const container1 = createTestContainer();
   initializeContainer(container1);
-  
+
   // Act
   resetContainer();
-  
+
   // Assert
   expect(() => getContainer()).toThrow("Container is not initialized");
-  
+
   // 再初期化
   const container2 = createTestContainer();
   initializeContainer(container2);
   const retrievedContainer = getContainer();
-  
+
   // 再初期化後の検証
   expect(retrievedContainer).toBe(container2);
   expect(retrievedContainer).not.toBe(container1);
@@ -139,9 +147,9 @@ test("ContainerImplが正しく依存関係を保持すること", () => {
     tagRepository: mockTagRepository,
     syncService: mockSyncService,
     postRepository: mockPostRepository,
-    postService: mockPostService
+    postService: mockPostService,
   });
-  
+
   // Assert
   expect(container.userRepository).toBe(mockUserRepository);
   expect(container.authService).toBe(mockAuthService);
@@ -151,4 +159,4 @@ test("ContainerImplが正しく依存関係を保持すること", () => {
   expect(container.syncService).toBe(mockSyncService);
   expect(container.postRepository).toBe(mockPostRepository);
   expect(container.postService).toBe(mockPostService);
-}); 
+});

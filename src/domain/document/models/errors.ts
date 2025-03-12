@@ -1,5 +1,9 @@
 import { z } from "zod";
-import type { AnyError, RepositoryError, RepositoryErrorCode } from "@/domain/shared/models/common";
+import type {
+  AnyError,
+  RepositoryError,
+  RepositoryErrorCode,
+} from "@/domain/shared/models/common";
 
 /**
  * 同期エラーコードのスキーマ
@@ -8,7 +12,7 @@ export const syncErrorCodeSchema = z.enum([
   "GITHUREPO_NOT_FOUND",
   "FILE_NOT_FOUND",
   "PARSE_ERROR",
-  "API_ERROR"
+  "API_ERROR",
 ]);
 
 /**
@@ -36,15 +40,15 @@ export interface SyncError extends AnyError {
 export function createSyncError(
   type: SyncErrorCode,
   message: string,
-  cause?: Error
+  cause?: Error,
 ): SyncError {
   return {
     name: "SyncError",
     type,
     message,
-    cause
+    cause,
   };
 }
 
 // 共有カーネルのRepositoryErrorを再エクスポート
-export type { RepositoryError, RepositoryErrorCode }; 
+export type { RepositoryError, RepositoryErrorCode };

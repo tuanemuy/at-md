@@ -8,7 +8,7 @@ import { ConnectGitHubUseCase } from "../connectGitHub";
 // モックの認証サービスを作成
 const mockAuthService: AuthService = {
   authenticateWithBluesky: vi.fn(),
-  connectGitHub: vi.fn()
+  connectGitHub: vi.fn(),
 };
 
 // テスト用のGitHub連携情報データ
@@ -18,7 +18,7 @@ const mockGitHubConnection: GitHubConnection = {
   installationId: "12345",
   accessToken: "github_token_123",
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 };
 
 // テスト前にモックをリセット
@@ -30,7 +30,9 @@ test("有効なユーザーIDとインストールIDを指定するとGitHub連�
   // Arrange
   const userId = "user-123";
   const installationId = 12345;
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockGitHubConnection));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockGitHubConnection),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -41,7 +43,10 @@ test("有効なユーザーIDとインストールIDを指定するとGitHub連�
   result.map((data) => {
     expect(data).toEqual(mockGitHubConnection);
   });
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(userId, installationId);
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    userId,
+    installationId,
+  );
 });
 
 test("無効なユーザーIDやインストールIDを指定するとエラーが返されること", async () => {
@@ -52,7 +57,9 @@ test("無効なユーザーIDやインストールIDを指定するとエラー�
     "INVALID_CREDENTIALS",
     "ユーザーIDまたはインストールIDが無効です",
   );
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(err(authError));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(authError),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -63,7 +70,10 @@ test("無効なユーザーIDやインストールIDを指定するとエラー�
   result.mapErr((error) => {
     expect(error).toEqual(authError);
   });
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(userId, installationId);
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    userId,
+    installationId,
+  );
 });
 
 test("認証サービスでエラーが発生した場合はエラーが返されること", async () => {
@@ -73,9 +83,11 @@ test("認証サービスでエラーが発生した場合はエラーが返さ�
   const authError = createAuthError(
     "CONNECTION_FAILED",
     "GitHubとの連携に失敗しました",
-    new Error("接続エラー")
+    new Error("接続エラー"),
   );
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(err(authError));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(authError),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -87,7 +99,10 @@ test("認証サービスでエラーが発生した場合はエラーが返さ�
     expect(error).toEqual(authError);
     expect(error.cause).toBeDefined();
   });
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(userId, installationId);
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    userId,
+    installationId,
+  );
 });
 
 // エッジケースのテスト
@@ -95,7 +110,9 @@ test("非常に大きなインストールIDを指定しても正しく処理さ
   // Arrange
   const userId = "user-123";
   const largeInstallationId = Number.MAX_SAFE_INTEGER;
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockGitHubConnection));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockGitHubConnection),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -103,7 +120,10 @@ test("非常に大きなインストールIDを指定しても正しく処理さ
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(userId, largeInstallationId);
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    userId,
+    largeInstallationId,
+  );
 });
 
 // 境界条件のテスト
@@ -111,7 +131,9 @@ test("インストールIDが0の場合も正しく処理されること", async
   // Arrange
   const userId = "user-123";
   const zeroInstallationId = 0;
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(ok(mockGitHubConnection));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(mockGitHubConnection),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -119,7 +141,10 @@ test("インストールIDが0の場合も正しく処理されること", async
 
   // Assert
   expect(result.isOk()).toBe(true);
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(userId, zeroInstallationId);
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    userId,
+    zeroInstallationId,
+  );
 });
 
 // 無効な入力のテスト
@@ -131,7 +156,9 @@ test("空のユーザーIDを指定した場合はエラーが返されること
     "INVALID_CREDENTIALS",
     "ユーザーIDは必須です",
   );
-  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(err(authError));
+  (mockAuthService.connectGitHub as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(authError),
+  );
   const useCase = new ConnectGitHubUseCase(mockAuthService);
 
   // Act
@@ -142,5 +169,8 @@ test("空のユーザーIDを指定した場合はエラーが返されること
   result.mapErr((error) => {
     expect(error.type).toBe("INVALID_CREDENTIALS");
   });
-  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(emptyUserId, installationId);
-}); 
+  expect(mockAuthService.connectGitHub).toHaveBeenCalledWith(
+    emptyUserId,
+    installationId,
+  );
+});

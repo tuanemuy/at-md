@@ -14,7 +14,7 @@ import { publishPost } from "../models/post";
 export class PublishPostUseCase {
   constructor(
     private readonly postRepository: PostRepository,
-    private readonly postService: PostService
+    private readonly postService: PostService,
   ) {}
 
   /**
@@ -31,9 +31,7 @@ export class PublishPostUseCase {
 
     const post = postResult.value;
     if (!post) {
-      return err(
-        createPostError("API_ERROR", `投稿が見つかりません: ${id}`)
-      );
+      return err(createPostError("API_ERROR", `投稿が見つかりません: ${id}`));
     }
 
     // すでに公開済みの場合は再公開しない
@@ -48,38 +46,36 @@ export class PublishPostUseCase {
     }
 
     const status = statusResult.value;
-    
+
     // 投稿が公開されている場合はURIを取得して更新
     if (status === "published") {
       // 実際のURIはBlueskyから取得する必要があります
       // ここでは仮のURIを設定
       const uri = `at://${post.userId}/app.bsky.feed.post/${id}`;
-      
+
       // 投稿を公開済みに更新
       const updatedPost = publishPost(post, uri);
-      
+
       // 更新された投稿を保存
       const updateResult = await this.postRepository.updateStatus(
         id,
         "published",
-        undefined
+        undefined,
       );
-      
+
       if (updateResult.isErr()) {
         return err(updateResult.error);
       }
-      
+
       return ok(updateResult.value);
     }
-    
+
     if (status === "failed") {
       // 失敗した場合はエラーを返す
-      return err(
-        createPostError("API_ERROR", "Blueskyへの投稿に失敗しました")
-      );
+      return err(createPostError("API_ERROR", "Blueskyへの投稿に失敗しました"));
     }
-    
+
     // まだ処理中の場合
     return ok(post);
   }
-} 
+}

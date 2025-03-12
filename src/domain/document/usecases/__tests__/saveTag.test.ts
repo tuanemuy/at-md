@@ -12,7 +12,7 @@ const mockTagRepository: TagRepository = {
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
   save: vi.fn(),
-  delete: vi.fn()
+  delete: vi.fn(),
 };
 
 // テスト用のタグデータ
@@ -21,7 +21,7 @@ const mockTag: Tag = {
   name: "JavaScript",
   createdAt: new Date(),
   updatedAt: new Date(),
-  userId: "user-123"
+  userId: "user-123",
 };
 
 // テスト前にモックをリセット
@@ -31,10 +31,12 @@ beforeEach(() => {
 
 test("有効なタグを指定すると保存されて返されること", async () => {
   // Arrange
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok({
-    ...mockTag,
-    updatedAt: new Date() // 更新日時が変わることを想定
-  }));
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok({
+      ...mockTag,
+      updatedAt: new Date(), // 更新日時が変わることを想定
+    }),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -56,7 +58,9 @@ test("リポジトリでエラーが発生した場合はエラーが返され�
     "DATABASE_ERROR",
     "データベースエラーが発生しました",
   );
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(repositoryError));
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(repositoryError),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -75,16 +79,18 @@ test("IDがないタグを保存すると新しいIDが割り当てられるこ�
   // Arrange
   const tagWithoutId = {
     ...mockTag,
-    id: "" as string // 空のID
+    id: "" as string, // 空のID
   };
-  
+
   const savedTag = {
     ...mockTag,
     id: "new-tag-id", // 新しいID
-    updatedAt: new Date()
+    updatedAt: new Date(),
   };
-  
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedTag));
+
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedTag),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -102,10 +108,12 @@ test("非常に長い名前を持つタグを保存できること", async () =>
   // Arrange
   const longNameTag = {
     ...mockTag,
-    name: "A".repeat(1000) // 非常に長い名前
+    name: "A".repeat(1000), // 非常に長い名前
   };
-  
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(longNameTag));
+
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(longNameTag),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -123,19 +131,21 @@ test("更新日時が過去のタグを保存すると現在の日時に更新�
   // Arrange
   const pastDate = new Date();
   pastDate.setFullYear(pastDate.getFullYear() - 1); // 1年前
-  
+
   const tagWithPastDate = {
     ...mockTag,
-    updatedAt: pastDate
+    updatedAt: pastDate,
   };
-  
+
   const now = new Date();
   const savedTag = {
     ...tagWithPastDate,
-    updatedAt: now // 現在の日時
+    updatedAt: now, // 現在の日時
   };
-  
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(savedTag));
+
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(savedTag),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -154,15 +164,17 @@ test("必須フィールドが欠けているタグを保存するとエラー�
   // Arrange
   const invalidTag = {
     ...mockTag,
-    name: "" // 空の名前
+    name: "", // 空の名前
   };
-  
+
   const validationError = createRepositoryError(
     "VALIDATION_ERROR",
     "タグ名は必須です",
   );
-  
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(err(validationError));
+
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    err(validationError),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -181,11 +193,13 @@ test("異なるユーザーのタグを保存しようとした場合の検証",
   const currentUserId = "user-123"; // 現在のユーザーID
   const otherUserTag = {
     ...mockTag,
-    userId: "user-456" // 異なるユーザーID
+    userId: "user-456", // 異なるユーザーID
   };
-  
+
   // 保存は成功するが、実際のアプリケーションでは権限チェックが必要
-  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(ok(otherUserTag));
+  (mockTagRepository.save as ReturnType<typeof vi.fn>).mockResolvedValue(
+    ok(otherUserTag),
+  );
   const useCase = new SaveTagUseCase(mockTagRepository);
 
   // Act
@@ -194,11 +208,11 @@ test("異なるユーザーのタグを保存しようとした場合の検証",
   // Assert
   expect(result.isOk()).toBe(true);
   const tag = result._unsafeUnwrap();
-  
+
   // タグは保存できるが、ユーザーIDが現在のユーザーと異なることを確認
   expect(tag.userId).not.toBe(currentUserId);
   expect(tag.userId).toBe("user-456");
-  
+
   // 実際のアプリケーションでは、保存前にユーザーIDの検証を行い、
   // 権限がない場合は操作を拒否する必要があります
-}); 
+});

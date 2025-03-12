@@ -104,4 +104,4 @@ export function getContainer(): Container {
  */
 export function resetContainer(): void {
   container = null;
-} 
+}
