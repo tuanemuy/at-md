@@ -11,7 +11,8 @@ const mockTagRepository: TagRepository = {
   findBySlug: vi.fn(),
   findByUserId: vi.fn(),
   findByDocumentId: vi.fn(),
-  save: vi.fn()
+  save: vi.fn(),
+  delete: vi.fn()
 };
 
 // テスト用のタグデータ
