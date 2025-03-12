@@ -82,7 +82,7 @@
 
 ### ステップ3.3 文書リポジトリの実装
 
-- [ ] 文書リポジトリ（`src/infrastructure/db/repositories/document/document.ts`）
+- [x] 文書リポジトリ（`src/infrastructure/db/repositories/document/document.ts`）
 
 ### ステップ3.4 GitHubリポジトリリポジトリの実装
 
