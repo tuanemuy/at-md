@@ -212,4 +212,48 @@ describe("DrizzleDocumentRepository (Integration)", () => {
       expect(foundDocument?.path).toBe("update-test.md");
     }
   });
+
+  it("ドキュメントを削除できること", async () => {
+    // テスト用ドキュメントの作成と保存
+    const documentId = generateId();
+    const documentData = createDocument(
+      repoId,
+      "delete-test.md",
+      "Delete Test Document",
+      "# Delete Test Document\n\nContent",
+      userId,
+      "This is a document to test deletion",
+      "public"
+    );
+    const document = { id: documentId, ...documentData };
+    await documentRepository.save(document);
+
+    // ドキュメントが保存されていることを確認
+    const findBeforeDeleteResult = await documentRepository.findById(documentId);
+    expect(findBeforeDeleteResult.isOk()).toBe(true);
+    if (findBeforeDeleteResult.isOk()) {
+      expect(findBeforeDeleteResult.value).not.toBeNull();
+    }
+
+    // ドキュメントを削除
+    const deleteResult = await documentRepository.delete(documentId);
+    expect(deleteResult.isOk()).toBe(true);
+
+    // 削除後にドキュメントが存在しないことを確認
+    const findAfterDeleteResult = await documentRepository.findById(documentId);
+    expect(findAfterDeleteResult.isOk()).toBe(true);
+    if (findAfterDeleteResult.isOk()) {
+      expect(findAfterDeleteResult.value).toBeNull();
+    }
+  });
+
+  it("存在しないドキュメントを削除しても成功すること", async () => {
+    const nonExistentId = generateId();
+    
+    // 存在しないドキュメントを削除
+    const deleteResult = await documentRepository.delete(nonExistentId);
+    
+    // 削除操作自体は成功する
+    expect(deleteResult.isOk()).toBe(true);
+  });
 });

@@ -40,4 +40,11 @@ export interface DocumentRepository {
    * @returns 保存された文書
    */
   save(document: Document): Promise<Result<Document, RepositoryError>>;
+
+  /**
+   * 文書の削除
+   * @param id 文書ID
+   * @returns void
+   */
+  delete(id: ID): Promise<Result<void, RepositoryError>>;
 }

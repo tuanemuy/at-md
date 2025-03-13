@@ -262,4 +262,32 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
       userId: data.userId,
     };
   }
+
+  /**
+   * GitHubリポジトリの削除
+   * @param id GitHubリポジトリID
+   * @returns void
+   */
+  async delete(id: ID): Promise<Result<void, RepositoryError>> {
+    try {
+      logger.debug(`GitHubRepoRepository.delete: ${id}`);
+      // GitHubリポジトリを削除
+      await this.db.delete(githubRepos).where(eq(githubRepos.id, id));
+
+      logger.debug(`GitHubRepoRepository.delete: リポジトリを削除しました ID=${id}`);
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.delete: エラーが発生しました ID=${id}`,
+        error,
+      );
+      return err(
+        createRepositoryError(
+          "DATABASE_ERROR",
+          `Failed to delete GitHub repository: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
+  }
 }

@@ -314,6 +314,16 @@ describe("DrizzlePostRepository (Integration)", () => {
     }
   });
 
+  it("存在しない投稿を削除しても成功すること", async () => {
+    const nonExistentId = generateId();
+    
+    // 存在しない投稿を削除
+    const deleteResult = await postRepository.delete(nonExistentId);
+    
+    // 削除操作自体は成功する
+    expect(deleteResult.isOk()).toBe(true);
+  });
+
   it("存在しないIDの投稿ステータスを更新するとエラーを返すこと", async () => {
     const nonExistentId = generateId();
     const updateResult = await postRepository.updateStatus(nonExistentId, "published");

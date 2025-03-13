@@ -192,4 +192,45 @@ describe("DrizzleGitHubRepoRepository (Integration)", () => {
       expect(foundRepo?.name).toBe("updaterepo");
     }
   });
+
+  it("GitHubリポジトリを削除できること", async () => {
+    // テスト用GitHubリポジトリの作成と保存
+    const repoId = generateId();
+    const repoData = createGitHubRepo(
+      "deleteowner",
+      "deleterepo",
+      "delete-installation-id",
+      userId,
+    );
+    const repo = { id: repoId, ...repoData };
+    await githubRepoRepository.save(repo);
+
+    // リポジトリが保存されていることを確認
+    const findBeforeDeleteResult = await githubRepoRepository.findById(repoId);
+    expect(findBeforeDeleteResult.isOk()).toBe(true);
+    if (findBeforeDeleteResult.isOk()) {
+      expect(findBeforeDeleteResult.value).not.toBeNull();
+    }
+
+    // リポジトリを削除
+    const deleteResult = await githubRepoRepository.delete(repoId);
+    expect(deleteResult.isOk()).toBe(true);
+
+    // 削除後にリポジトリが存在しないことを確認
+    const findAfterDeleteResult = await githubRepoRepository.findById(repoId);
+    expect(findAfterDeleteResult.isOk()).toBe(true);
+    if (findAfterDeleteResult.isOk()) {
+      expect(findAfterDeleteResult.value).toBeNull();
+    }
+  });
+
+  it("存在しないGitHubリポジトリを削除しても成功すること", async () => {
+    const nonExistentId = generateId();
+    
+    // 存在しないリポジトリを削除
+    const deleteResult = await githubRepoRepository.delete(nonExistentId);
+    
+    // 削除操作自体は成功する
+    expect(deleteResult.isOk()).toBe(true);
+  });
 });

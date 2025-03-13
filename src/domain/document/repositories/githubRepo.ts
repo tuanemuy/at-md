@@ -36,4 +36,11 @@ export interface GitHubRepoRepository {
    * @returns 保存されたGitHubリポジトリ
    */
   save(gitHubRepo: GitHubRepo): Promise<Result<GitHubRepo, RepositoryError>>;
+
+  /**
+   * GitHubリポジトリの削除
+   * @param id GitHubリポジトリID
+   * @returns void
+   */
+  delete(id: ID): Promise<Result<void, RepositoryError>>;
 }

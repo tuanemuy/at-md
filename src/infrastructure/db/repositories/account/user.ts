@@ -341,4 +341,32 @@ export class DrizzleUserRepository implements UserRepository {
       updatedAt: data.updatedAt,
     };
   }
+
+  /**
+   * ユーザーの削除
+   * @param id ユーザーID
+   * @returns void
+   */
+  async delete(id: ID): Promise<Result<void, RepositoryError>> {
+    try {
+      logger.debug(`UserRepository.delete: ${id}`);
+      // ユーザーを削除
+      await this.db.delete(users).where(eq(users.id, id));
+
+      logger.debug(`UserRepository.delete: ユーザーを削除しました ID=${id}`);
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        `UserRepository.delete: エラーが発生しました ID=${id}`,
+        error,
+      );
+      return err(
+        createRepositoryError(
+          "DATABASE_ERROR",
+          `Failed to delete user: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
+  }
 }

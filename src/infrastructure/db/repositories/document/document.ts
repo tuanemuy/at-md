@@ -223,6 +223,34 @@ export class DrizzleDocumentRepository implements DocumentRepository {
   }
 
   /**
+   * 文書の削除
+   * @param id 文書ID
+   * @returns void
+   */
+  async delete(id: ID): Promise<Result<void, RepositoryError>> {
+    try {
+      logger.debug(`DocumentRepository.delete: ${id}`);
+      // 文書を削除
+      await this.db.delete(documents).where(eq(documents.id, id));
+
+      logger.debug(`DocumentRepository.delete: 文書を削除しました ID=${id}`);
+      return ok(undefined);
+    } catch (error) {
+      logger.error(
+        `DocumentRepository.delete: エラーが発生しました ID=${id}`,
+        error,
+      );
+      return err(
+        createRepositoryError(
+          "DATABASE_ERROR",
+          `Failed to delete document: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
+  }
+
+  /**
    * データベースの文書データをドメインモデルに変換
    * @param data データベースの文書データ
    * @returns 文書ドメインモデル

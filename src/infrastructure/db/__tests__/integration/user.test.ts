@@ -179,4 +179,41 @@ describe("DrizzleUserRepository (Integration)", () => {
       expect(foundUser3?.did).toBe("did:example:user3");
     }
   });
+
+  it("ユーザーを削除できること", async () => {
+    // テスト用ユーザーの作成と保存
+    const userId = generateId();
+    const userData = createUser("Delete Test User", "did:example:delete");
+    const user = { id: userId, ...userData };
+
+    await repository.save(user);
+
+    // ユーザーが保存されていることを確認
+    const findBeforeDeleteResult = await repository.findById(userId);
+    expect(findBeforeDeleteResult.isOk()).toBe(true);
+    if (findBeforeDeleteResult.isOk()) {
+      expect(findBeforeDeleteResult.value).not.toBeNull();
+    }
+
+    // ユーザーを削除
+    const deleteResult = await repository.delete(userId);
+    expect(deleteResult.isOk()).toBe(true);
+
+    // 削除後にユーザーが存在しないことを確認
+    const findAfterDeleteResult = await repository.findById(userId);
+    expect(findAfterDeleteResult.isOk()).toBe(true);
+    if (findAfterDeleteResult.isOk()) {
+      expect(findAfterDeleteResult.value).toBeNull();
+    }
+  });
+
+  it("存在しないユーザーを削除しても成功すること", async () => {
+    const nonExistentId = generateId();
+    
+    // 存在しないユーザーを削除
+    const deleteResult = await repository.delete(nonExistentId);
+    
+    // 削除操作自体は成功する
+    expect(deleteResult.isOk()).toBe(true);
+  });
 });

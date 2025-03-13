@@ -38,4 +38,11 @@ export interface UserRepository {
     userId: ID,
     connection: GitHubConnection,
   ): Promise<Result<GitHubConnection, RepositoryError>>;
+
+  /**
+   * ユーザーの削除
+   * @param id ユーザーID
+   * @returns void
+   */
+  delete(id: ID): Promise<Result<void, RepositoryError>>;
 }

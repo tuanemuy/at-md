@@ -29,25 +29,12 @@ import {
 import * as loggerModule from "@/lib/logger";
 import type { RepositoryError } from "@/domain/shared/models/common";
 
-// テスト用に拡張したインターフェース
-interface TestUserRepository extends DrizzleUserRepository {
-  delete: (id: string) => Promise<Result<void, RepositoryError>>;
-}
-
-interface TestGitHubRepoRepository extends DrizzleGitHubRepoRepository {
-  delete: (id: string) => Promise<Result<void, RepositoryError>>;
-}
-
-interface TestDocumentRepository extends DrizzleDocumentRepository {
-  delete: (id: string) => Promise<Result<void, RepositoryError>>;
-}
-
 describe("リポジトリ間の関連性テスト (Integration)", () => {
   const client = new PGlite();
   const db = getTestDatabase(client);
-  const userRepository = new DrizzleUserRepository(db) as TestUserRepository;
-  const githubRepoRepository = new DrizzleGitHubRepoRepository(db) as TestGitHubRepoRepository;
-  const documentRepository = new DrizzleDocumentRepository(db) as TestDocumentRepository;
+  const userRepository = new DrizzleUserRepository(db);
+  const githubRepoRepository = new DrizzleGitHubRepoRepository(db);
+  const documentRepository = new DrizzleDocumentRepository(db);
   const postRepository = new DrizzlePostRepository(db);
   const tagRepository = new DrizzleTagRepository(db);
   const documentTagRepository = new DrizzleDocumentTagRepository(db);
@@ -73,7 +60,7 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     await closeTestDatabase(client);
   });
 
-  it("ユーザーを削除すると、関連するドキュメント、投稿が削除されること", async () => {
+  it("ユーザーを削除すると、関連するドキュメント、投稿、GitHubリポジトリが削除されること", async () => {
     // テスト用ユーザーの作成
     const userId = generateId();
     const userData = createUser("Test User", "did:example:123");
@@ -117,28 +104,11 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     const post = { id: postId, ...postData };
     await postRepository.save(post);
 
-    // ユーザーを削除するためのモックを作成
-    // 実際のリポジトリにはdeleteメソッドが実装されていないため、モックを使用
-    const mockDelete = vi.fn().mockResolvedValue(ok(undefined));
-    userRepository.delete = mockDelete;
-
-    // ドキュメントを削除するためのモックを作成
-    const mockFindDocumentById = vi.fn().mockResolvedValue(ok(null));
-    const originalFindDocumentById = documentRepository.findById;
-    documentRepository.findById = mockFindDocumentById;
-
-    // 投稿を削除するためのモックを作成
-    const mockFindPostById = vi.fn().mockResolvedValue(ok(null));
-    const originalFindPostById = postRepository.findById;
-    postRepository.findById = mockFindPostById;
-
     // ユーザーを削除
     await userRepository.delete(userId);
-    expect(mockDelete).toHaveBeenCalledWith(userId);
 
     // 関連するドキュメントが削除されていることを確認
     const findDocumentResult = await documentRepository.findById(documentId);
-    expect(mockFindDocumentById).toHaveBeenCalledWith(documentId);
     
     // ドキュメントの検索に成功したことを確認
     expect(findDocumentResult.isOk()).toBe(true);
@@ -148,7 +118,6 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
 
     // 関連する投稿が削除されていることを確認
     const findPostResult = await postRepository.findById(postId);
-    expect(mockFindPostById).toHaveBeenCalledWith(postId);
     
     // 投稿の検索に成功したことを確認
     expect(findPostResult.isOk()).toBe(true);
@@ -156,18 +125,14 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
       expect(findPostResult.value).toBeNull();
     }
 
-    // GitHubリポジトリは削除されないことを確認（他のユーザーも使用する可能性があるため）
+    // 関連するGitHubリポジトリも削除されていることを確認
     const findRepoResult = await githubRepoRepository.findById(repoId);
     
     // GitHubリポジトリの検索に成功したことを確認
     expect(findRepoResult.isOk()).toBe(true);
     if (findRepoResult.isOk()) {
-      expect(findRepoResult.value).not.toBeNull();
+      expect(findRepoResult.value).toBeNull();
     }
-
-    // 元のメソッドを復元
-    documentRepository.findById = originalFindDocumentById;
-    postRepository.findById = originalFindPostById;
   });
 
   it("GitHubリポジトリを削除すると、関連するドキュメントが削除されること", async () => {
@@ -203,23 +168,11 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     const document = { id: documentId, ...documentData };
     await documentRepository.save(document);
 
-    // GitHubリポジトリを削除するためのモックを作成
-    // 実際のリポジトリにはdeleteメソッドが実装されていないため、モックを使用
-    const mockDelete = vi.fn().mockResolvedValue(ok(undefined));
-    githubRepoRepository.delete = mockDelete;
-
-    // ドキュメントを削除するためのモックを作成
-    const mockFindDocumentById = vi.fn().mockResolvedValue(ok(null));
-    const originalFindDocumentById = documentRepository.findById;
-    documentRepository.findById = mockFindDocumentById;
-
     // GitHubリポジトリを削除
     await githubRepoRepository.delete(repoId);
-    expect(mockDelete).toHaveBeenCalledWith(repoId);
 
     // 関連するドキュメントが削除されていることを確認
     const findDocumentResult = await documentRepository.findById(documentId);
-    expect(mockFindDocumentById).toHaveBeenCalledWith(documentId);
     
     // ドキュメントの検索に成功したことを確認
     expect(findDocumentResult.isOk()).toBe(true);
@@ -235,9 +188,6 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     if (findUserResult.isOk()) {
       expect(findUserResult.value).not.toBeNull();
     }
-
-    // 元のメソッドを復元
-    documentRepository.findById = originalFindDocumentById;
   });
 
   it("ドキュメントを削除すると、関連する投稿が削除されること", async () => {
@@ -284,23 +234,11 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     const post = { id: postId, ...postData };
     await postRepository.save(post);
 
-    // ドキュメントを削除するためのモックを作成
-    // 実際のリポジトリにはdeleteメソッドが実装されていないため、モックを使用
-    const mockDelete = vi.fn().mockResolvedValue(ok(undefined));
-    documentRepository.delete = mockDelete;
-
-    // 投稿を削除するためのモックを作成
-    const mockFindPostById = vi.fn().mockResolvedValue(ok(null));
-    const originalFindPostById = postRepository.findById;
-    postRepository.findById = mockFindPostById;
-
     // ドキュメントを削除
     await documentRepository.delete(documentId);
-    expect(mockDelete).toHaveBeenCalledWith(documentId);
 
     // 関連する投稿が削除されていることを確認
     const findPostResult = await postRepository.findById(postId);
-    expect(mockFindPostById).toHaveBeenCalledWith(postId);
     
     // 投稿の検索に成功したことを確認
     expect(findPostResult.isOk()).toBe(true);
@@ -324,9 +262,6 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     if (findRepoResult.isOk()) {
       expect(findRepoResult.value).not.toBeNull();
     }
-
-    // 元のメソッドを復元
-    postRepository.findById = originalFindPostById;
   });
 
   it("ドキュメントとタグの関連付けが正しく機能すること", async () => {
@@ -393,14 +328,7 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     await documentTagRepository.save(documentTag2);
 
     // ドキュメントに関連付けられたタグを取得
-    // 注意: 実際の実装では、tagRepository.findByDocumentIdは内部でドキュメントタグを検索してタグを取得する
-    // モックを使用してテストする
-    const mockFindByDocumentId = vi.fn().mockResolvedValue(ok([tag1, tag2]));
-    const originalFindByDocumentId = tagRepository.findByDocumentId;
-    tagRepository.findByDocumentId = mockFindByDocumentId;
-
     const findTagsResult = await tagRepository.findByDocumentId(documentId);
-    expect(mockFindByDocumentId).toHaveBeenCalledWith(documentId);
     
     // タグの検索に成功したことを確認
     expect(findTagsResult.isOk()).toBe(true);
@@ -429,11 +357,7 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     await documentTagRepository.delete(documentTagId1);
 
     // 削除後のタグを確認
-    // モックを更新して1つのタグだけを返すようにする
-    mockFindByDocumentId.mockResolvedValue(ok([tag2]));
-    
     const findTagsAfterRemoveResult = await tagRepository.findByDocumentId(documentId);
-    expect(mockFindByDocumentId).toHaveBeenCalledWith(documentId);
     
     // タグの検索に成功したことを確認
     expect(findTagsAfterRemoveResult.isOk()).toBe(true);
@@ -442,9 +366,6 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
       expect(tags.length).toBe(1);
       expect(tags[0].id).toBe(tagId2);
     }
-
-    // 元のメソッドを復元
-    tagRepository.findByDocumentId = originalFindByDocumentId;
   });
 
   it("タグを削除すると、ドキュメントとの関連付けが削除されること", async () => {
@@ -500,13 +421,7 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
     await tagRepository.delete(tagId);
 
     // ドキュメントに関連付けられたタグを取得
-    // モックを使用してテストする
-    const mockFindByDocumentId = vi.fn().mockResolvedValue(ok([]));
-    const originalFindByDocumentId = tagRepository.findByDocumentId;
-    tagRepository.findByDocumentId = mockFindByDocumentId;
-    
     const findTagsResult = await tagRepository.findByDocumentId(documentId);
-    expect(mockFindByDocumentId).toHaveBeenCalledWith(documentId);
     
     // タグの検索に成功したことを確認
     expect(findTagsResult.isOk()).toBe(true);
@@ -514,9 +429,6 @@ describe("リポジトリ間の関連性テスト (Integration)", () => {
       const tags = findTagsResult.value;
       expect(tags.length).toBe(0);
     }
-
-    // 元のメソッドを復元
-    tagRepository.findByDocumentId = originalFindByDocumentId;
 
     // ドキュメントは削除されないことを確認
     const findDocumentResult = await documentRepository.findById(documentId);
