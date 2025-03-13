@@ -389,4 +389,185 @@ describe("DrizzleTagRepository (Integration)", () => {
       }
     });
   });
+
+  // エラーハンドリングのテスト
+  describe("エラーハンドリング", () => {
+    describe("TagRepository", () => {
+      it("データベース接続エラーを適切にハンドリングすること", async () => {
+        // エラーをシミュレートするためのモックを作成
+        const mockDb = {
+          query: {
+            tags: {
+              findFirst: vi.fn().mockImplementation(() => {
+                throw new Error("Connection refused");
+              }),
+            },
+          },
+        } as unknown as typeof db;
+        
+        // 一時的にモックを使用するリポジトリを作成
+        const tempRepository = new DrizzleTagRepository(mockDb);
+        
+        // テスト実行
+        const result = await tempRepository.findById(generateId());
+        
+        // 検証
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to find tag by ID");
+          expect(result.error.cause).toBeDefined();
+        }
+      });
+
+      it("無効なIDの場合でも適切にハンドリングすること", async () => {
+        // 無効なIDを使用
+        const invalidId = "invalid-id" as unknown as string;
+        
+        // テスト実行
+        const result = await tagRepository.findById(invalidId);
+        
+        // 検証
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to find tag by ID");
+        }
+      });
+
+      it("saveでデータベースエラーが発生した場合、RepositoryErrorを返すこと", async () => {
+        // insertメソッドをモック化してエラーをスローさせる
+        const insertSpy = vi
+          .spyOn(db, "insert")
+          .mockRejectedValueOnce(new Error("Insert error"));
+
+        const tagId = generateId();
+        const tagData = createTag("エラーテスト", userId);
+        const tag = { id: tagId, ...tagData };
+
+        const result = await tagRepository.save(tag);
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to save tag");
+        }
+
+        // モックをリセット
+        insertSpy.mockRestore();
+      });
+
+      it("deleteでデータベースエラーが発生した場合、RepositoryErrorを返すこと", async () => {
+        // deleteメソッドをモック化してエラーをスローさせる
+        const deleteSpy = vi
+          .spyOn(db, "delete")
+          .mockRejectedValueOnce(new Error("Delete error"));
+
+        const tagId = generateId();
+        const result = await tagRepository.delete(tagId);
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to delete tag");
+        }
+
+        // モックをリセット
+        deleteSpy.mockRestore();
+      });
+    });
+
+    describe("DocumentTagRepository", () => {
+      it("データベース接続エラーを適切にハンドリングすること", async () => {
+        // エラーをシミュレートするためのモックを作成
+        const mockDb = {
+          query: {
+            documentTags: {
+              findMany: vi.fn().mockImplementation(() => {
+                throw new Error("Connection refused");
+              }),
+            },
+          },
+        } as unknown as typeof db;
+        
+        // 一時的にモックを使用するリポジトリを作成
+        const tempRepository = new DrizzleDocumentTagRepository(mockDb);
+        
+        // テスト実行
+        const result = await tempRepository.findByDocumentId(generateId());
+        
+        // 検証
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to find document tags by document ID");
+          expect(result.error.cause).toBeDefined();
+        }
+      });
+
+      it("saveでデータベースエラーが発生した場合、RepositoryErrorを返すこと", async () => {
+        // insertメソッドをモック化してエラーをスローさせる
+        const insertSpy = vi
+          .spyOn(db, "insert")
+          .mockRejectedValueOnce(new Error("Insert error"));
+
+        const docTagId = generateId();
+        const tagId = generateId();
+        const tagData = createTag("エラーテスト", userId);
+        const tag = { id: tagId, ...tagData };
+        await tagRepository.save(tag);
+
+        const docTagData = createDocumentTag(documentId, tagId);
+        const docTag = { id: docTagId, ...docTagData };
+
+        const result = await documentTagRepository.save(docTag);
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to save document tag");
+        }
+
+        // モックをリセット
+        insertSpy.mockRestore();
+      });
+
+      it("deleteでデータベースエラーが発生した場合、RepositoryErrorを返すこと", async () => {
+        // deleteメソッドをモック化してエラーをスローさせる
+        const deleteSpy = vi
+          .spyOn(db, "delete")
+          .mockRejectedValueOnce(new Error("Delete error"));
+
+        const docTagId = generateId();
+        const result = await documentTagRepository.delete(docTagId);
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to delete document tag");
+        }
+
+        // モックをリセット
+        deleteSpy.mockRestore();
+      });
+
+      it("deleteByDocumentIdAndTagIdでデータベースエラーが発生した場合、RepositoryErrorを返すこと", async () => {
+        // deleteメソッドをモック化してエラーをスローさせる
+        const deleteSpy = vi
+          .spyOn(db, "delete")
+          .mockRejectedValueOnce(new Error("Delete error"));
+
+        const result = await documentTagRepository.deleteByDocumentIdAndTagId(documentId, generateId());
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error.type).toBe("DATABASE_ERROR");
+          expect(result.error.message).toContain("Failed to delete document tag by document ID and tag ID");
+        }
+
+        // モックをリセット
+        deleteSpy.mockRestore();
+      });
+    });
+  });
 });

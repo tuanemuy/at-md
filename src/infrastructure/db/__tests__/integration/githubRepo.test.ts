@@ -233,4 +233,49 @@ describe("DrizzleGitHubRepoRepository (Integration)", () => {
     // 削除操作自体は成功する
     expect(deleteResult.isOk()).toBe(true);
   });
+
+  // エラーハンドリングのテスト
+  describe("エラーハンドリング", () => {
+    it("データベース接続エラーを適切にハンドリングすること", async () => {
+      // エラーをシミュレートするためのモックを作成
+      const mockDb = {
+        query: {
+          githubRepos: {
+            findFirst: vi.fn().mockImplementation(() => {
+              throw new Error("Connection refused");
+            }),
+          },
+        },
+      } as unknown as typeof db;
+      
+      // 一時的にモックを使用するリポジトリを作成
+      const tempRepository = new DrizzleGitHubRepoRepository(mockDb);
+      
+      // テスト実行
+      const result = await tempRepository.findById(generateId());
+      
+      // 検証
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("DATABASE_ERROR");
+        expect(result.error.message).toContain("Failed to find GitHub repository by ID");
+        expect(result.error.cause).toBeDefined();
+      }
+    });
+
+    it("無効なIDの場合でも適切にハンドリングすること", async () => {
+      // 無効なIDを使用
+      const invalidId = "invalid-id" as unknown as string;
+      
+      // テスト実行
+      const result = await githubRepoRepository.findById(invalidId);
+      
+      // 検証
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.type).toBe("DATABASE_ERROR");
+        expect(result.error.message).toContain("Failed to find GitHub repository by ID");
+      }
+    });
+  });
 });
