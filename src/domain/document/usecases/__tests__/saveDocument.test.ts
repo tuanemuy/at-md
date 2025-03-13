@@ -11,6 +11,7 @@ const mockDocumentRepository: DocumentRepository = {
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
   save: vi.fn(),
+  delete: vi.fn(),
 };
 
 // テスト用のドキュメントデータ

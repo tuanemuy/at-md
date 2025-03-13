@@ -14,6 +14,7 @@ const mockUserRepository = {
   findByDid: vi.fn(),
   save: vi.fn(),
   addGitHubConnection: vi.fn(),
+  delete: vi.fn(),
 };
 
 const mockAuthService = {
@@ -26,6 +27,7 @@ const mockDocumentRepository = {
   findByGitHubRepoAndPath: vi.fn(),
   findByGitHubRepo: vi.fn(),
   save: vi.fn(),
+  delete: vi.fn(),
 };
 
 const mockGitHubRepoRepository = {
@@ -33,6 +35,7 @@ const mockGitHubRepoRepository = {
   findByFullName: vi.fn(),
   findByUserId: vi.fn(),
   save: vi.fn(),
+  delete: vi.fn(),
 };
 
 const mockTagRepository = {

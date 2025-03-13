@@ -19,6 +19,7 @@ export function createMockUserRepository(): UserRepository {
     findByDid: vi.fn(),
     save: vi.fn(),
     addGitHubConnection: vi.fn(),
+    delete: vi.fn(),
   };
 }
 
@@ -43,6 +44,7 @@ export function createMockDocumentRepository(): DocumentRepository {
     findByGitHubRepoAndPath: vi.fn(),
     findByGitHubRepo: vi.fn(),
     save: vi.fn(),
+    delete: vi.fn(),
   };
 }
 
@@ -56,6 +58,7 @@ export function createMockGitHubRepoRepository(): GitHubRepoRepository {
     findByFullName: vi.fn(),
     findByUserId: vi.fn(),
     save: vi.fn(),
+    delete: vi.fn(),
   };
 }
 

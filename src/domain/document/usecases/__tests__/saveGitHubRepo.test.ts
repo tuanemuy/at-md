@@ -11,6 +11,7 @@ const mockGitHubRepoRepository: GitHubRepoRepository = {
   findByFullName: vi.fn(),
   findByUserId: vi.fn(),
   save: vi.fn(),
+  delete: vi.fn(),
 };
 
 // テスト用のGitHubリポジトリデータ

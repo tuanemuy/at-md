@@ -11,6 +11,7 @@ const mockUserRepository: UserRepository = {
   findByDid: vi.fn(),
   save: vi.fn(),
   addGitHubConnection: vi.fn(),
+  delete: vi.fn(),
 };
 
 // テスト用のGitHub連携情報データ

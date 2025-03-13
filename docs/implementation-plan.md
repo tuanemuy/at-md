@@ -80,31 +80,31 @@
 
 - [x] ユーザーリポジトリ（`src/infrastructure/db/repositories/account/user.ts`）
 
-### ステップ3.3 文書リポジトリの実装
+### ステップ3.3 文書リポジトリの実装 ✓
 
 - [x] 文書リポジトリ（`src/infrastructure/db/repositories/document/document.ts`）
 
-### ステップ3.4 GitHubリポジトリリポジトリの実装
+### ステップ3.4 GitHubリポジトリリポジトリの実装 ✓
 
 - [x] GitHubリポジトリリポジトリ（`src/infrastructure/db/repositories/document/githubRepo.ts`）
 
-### ステップ3.5 タグリポジトリの実装
+### ステップ3.5 タグリポジトリの実装 ✓
 
 - [x] タグリポジトリ（`src/infrastructure/db/repositories/document/tag.ts`）
 
-### ステップ3.6 投稿リポジトリの実装
+### ステップ3.6 投稿リポジトリの実装 ✓
 
 - [x] 投稿リポジトリ（`src/infrastructure/db/repositories/post/post.ts`）
 
-### ステップ3.7 リポジトリの統合テスト
+### ステップ3.7 リポジトリの統合テスト ✓
 
-- [ ] テスト用データベース環境の構築（`src/infrastructure/db/__tests__/setup.ts`）
-- [ ] ユーザーリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/user.test.ts`）
-- [ ] 文書リポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/document.test.ts`）
-- [ ] GitHubリポジトリリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/githubRepo.test.ts`）
-- [ ] タグリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/tag.test.ts`）
-- [ ] 投稿リポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/post.test.ts`）
-- [ ] リポジトリ間の連携テスト（`src/infrastructure/db/__tests__/integration/relations.test.ts`）
+- [x] テスト用データベース環境の構築（`src/infrastructure/db/__tests__/setup.ts`）
+- [x] ユーザーリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/user.test.ts`）
+- [x] 文書リポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/document.test.ts`）
+- [x] GitHubリポジトリリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/githubRepo.test.ts`）
+- [x] タグリポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/tag.test.ts`）
+- [x] 投稿リポジトリの統合テスト（`src/infrastructure/db/__tests__/integration/post.test.ts`）
+- [x] リポジトリ間の連携テスト（`src/infrastructure/db/__tests__/integration/relations.test.ts`）
 
 ### ステップ3.8 GitHub APIクライアントの実装
 
@@ -232,20 +232,19 @@
 4. ~~ドメインモデルの実装（アカウント管理、文書管理、投稿管理）~~ ✓
 5. ~~データベーススキーマの作成~~ ✓
 6. ~~マイグレーションファイル生成と実行~~ ✓
-7. リポジトリの実装
+7. ~~リポジトリの実装~~ ✓
    - ~~ユーザーリポジトリ~~ ✓
    - ~~文書リポジトリ~~ ✓
    - ~~GitHubリポジトリリポジトリ~~ ✓
    - ~~タグリポジトリ~~ ✓
    - ~~投稿リポジトリ~~ ✓
-8. リポジトリの統合テスト
-   - テスト用データベース環境の構築
-   - 各リポジトリの統合テスト
-   - リポジトリ間の連携テスト
-
-## リポジトリの実装
-
-- [x] DocumentRepository
-- [x] GitHubRepoRepository
-- [x] TagRepository
-- [x] PostRepository
+8. ~~リポジトリの統合テスト~~ ✓
+   - ~~テスト用データベース環境の構築~~ ✓
+   - ~~各リポジトリの統合テスト~~ ✓
+   - ~~リポジトリ間の連携テスト~~ ✓
+9. GitHub APIクライアントの実装
+   - GitHub APIクライアント
+   - GitHub認証機能
+10. Bluesky APIクライアントの実装
+    - Bluesky APIクライアント
+    - Bluesky認証機能
