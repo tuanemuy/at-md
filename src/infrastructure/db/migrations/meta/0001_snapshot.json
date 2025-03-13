@@ -77,8 +77,12 @@
           "name": "github_connections_user_id_users_id_fk",
           "tableFrom": "github_connections",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -133,7 +137,9 @@
         "users_did_unique": {
           "name": "users_did_unique",
           "nullsNotDistinct": false,
-          "columns": ["did"]
+          "columns": [
+            "did"
+          ]
         }
       },
       "policies": {},
@@ -183,8 +189,12 @@
           "name": "document_tags_document_id_documents_id_fk",
           "tableFrom": "document_tags",
           "tableTo": "documents",
-          "columnsFrom": ["document_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -192,8 +202,12 @@
           "name": "document_tags_tag_id_tags_id_fk",
           "tableFrom": "document_tags",
           "tableTo": "tags",
-          "columnsFrom": ["tag_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -278,8 +292,12 @@
           "name": "documents_github_repo_id_github_repos_id_fk",
           "tableFrom": "documents",
           "tableTo": "github_repos",
-          "columnsFrom": ["github_repo_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "github_repo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -287,8 +305,12 @@
           "name": "documents_user_id_users_id_fk",
           "tableFrom": "documents",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -390,8 +412,12 @@
           "name": "github_repos_user_id_users_id_fk",
           "tableFrom": "github_repos",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -401,7 +427,9 @@
         "github_repos_full_name_unique": {
           "name": "github_repos_full_name_unique",
           "nullsNotDistinct": false,
-          "columns": ["full_name"]
+          "columns": [
+            "full_name"
+          ]
         }
       },
       "policies": {},
@@ -463,8 +491,12 @@
           "name": "tags_user_id_users_id_fk",
           "tableFrom": "tags",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -550,8 +582,12 @@
           "name": "posts_document_id_documents_id_fk",
           "tableFrom": "posts",
           "tableTo": "documents",
-          "columnsFrom": ["document_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
@@ -559,8 +595,12 @@
           "name": "posts_user_id_users_id_fk",
           "tableFrom": "posts",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "cascade"
         }
@@ -576,17 +616,27 @@
     "public.document_scope": {
       "name": "document_scope",
       "schema": "public",
-      "values": ["private", "public", "limited"]
+      "values": [
+        "private",
+        "public",
+        "limited"
+      ]
     },
     "public.post_platform": {
       "name": "post_platform",
       "schema": "public",
-      "values": ["bluesky"]
+      "values": [
+        "bluesky"
+      ]
     },
     "public.post_status": {
       "name": "post_status",
       "schema": "public",
-      "values": ["pending", "published", "failed"]
+      "values": [
+        "pending",
+        "published",
+        "failed"
+      ]
     }
   },
   "schemas": {},

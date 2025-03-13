@@ -9,6 +9,7 @@ import { createRepositoryError } from "@/domain/shared/models/common";
 import type { PgDatabase } from "../../client";
 import { documents } from "../../schema";
 import type { DocumentsTable } from "../../schema/types";
+import { logger } from "@/lib/logger";
 
 /**
  * 文書リポジトリの実装
@@ -26,18 +27,29 @@ export class DrizzleDocumentRepository implements DocumentRepository {
    */
   async findById(id: ID): Promise<Result<Document | null, RepositoryError>> {
     try {
+      logger.debug(`DocumentRepository.findById: ${id}`);
       // 文書情報を取得
       const documentData = await this.db.query.documents.findFirst({
         where: eq(documents.id, id),
       });
 
       if (!documentData) {
+        logger.info(
+          `DocumentRepository.findById: 文書が見つかりませんでした ID=${id}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `DocumentRepository.findById: 文書が見つかりました ID=${id}`,
+      );
       return ok(this.mapToDocument(documentData));
     } catch (error) {
+      logger.error(
+        `DocumentRepository.findById: エラーが発生しました ID=${id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -51,7 +63,7 @@ export class DrizzleDocumentRepository implements DocumentRepository {
   /**
    * GitHubリポジトリとパスによる文書検索
    * @param gitHubRepoId GitHubリポジトリID
-   * @param path ファイルパス
+   * @param path 文書パス
    * @returns 文書またはnull
    */
   async findByGitHubRepoAndPath(
@@ -59,21 +71,35 @@ export class DrizzleDocumentRepository implements DocumentRepository {
     path: string,
   ): Promise<Result<Document | null, RepositoryError>> {
     try {
+      logger.debug(
+        `DocumentRepository.findByGitHubRepoAndPath: repoId=${gitHubRepoId}, path=${path}`,
+      );
       // 文書情報を取得
       const documentData = await this.db.query.documents.findFirst({
-        where: and(
-          eq(documents.gitHubRepoId, gitHubRepoId),
-          eq(documents.path, path),
-        ),
+        where: (documents) =>
+          and(
+            eq(documents.gitHubRepoId, gitHubRepoId),
+            eq(documents.path, path),
+          ),
       });
 
       if (!documentData) {
+        logger.info(
+          `DocumentRepository.findByGitHubRepoAndPath: 文書が見つかりませんでした repoId=${gitHubRepoId}, path=${path}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `DocumentRepository.findByGitHubRepoAndPath: 文書が見つかりました repoId=${gitHubRepoId}, path=${path}`,
+      );
       return ok(this.mapToDocument(documentData));
     } catch (error) {
+      logger.error(
+        `DocumentRepository.findByGitHubRepoAndPath: エラーが発生しました repoId=${gitHubRepoId}, path=${path}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -93,14 +119,24 @@ export class DrizzleDocumentRepository implements DocumentRepository {
     gitHubRepoId: ID,
   ): Promise<Result<Document[], RepositoryError>> {
     try {
+      logger.debug(
+        `DocumentRepository.findByGitHubRepo: repoId=${gitHubRepoId}`,
+      );
       // 文書情報を取得
       const documentsData = await this.db.query.documents.findMany({
-        where: eq(documents.gitHubRepoId, gitHubRepoId),
+        where: (documents) => eq(documents.gitHubRepoId, gitHubRepoId),
       });
 
+      logger.debug(
+        `DocumentRepository.findByGitHubRepo: ${documentsData.length}件の文書が見つかりました repoId=${gitHubRepoId}`,
+      );
       // ドメインモデルに変換して返す
       return ok(documentsData.map((doc) => this.mapToDocument(doc)));
     } catch (error) {
+      logger.error(
+        `DocumentRepository.findByGitHubRepo: エラーが発生しました repoId=${gitHubRepoId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -118,15 +154,19 @@ export class DrizzleDocumentRepository implements DocumentRepository {
    */
   async save(document: Document): Promise<Result<Document, RepositoryError>> {
     try {
+      logger.debug(`DocumentRepository.save: ${document.id}`);
       // 文書が存在するか確認
       const existingDocument = await this.db.query.documents.findFirst({
-        where: eq(documents.id, document.id),
+        where: (documents) => eq(documents.id, document.id),
       });
 
       let result: DocumentsTable;
 
       if (existingDocument) {
         // 既存文書の更新
+        logger.debug(
+          `DocumentRepository.save: 文書を更新します ID=${document.id}`,
+        );
         [result] = await this.db
           .update(documents)
           .set({
@@ -140,17 +180,20 @@ export class DrizzleDocumentRepository implements DocumentRepository {
           .returning();
       } else {
         // 新規文書の作成
+        logger.debug(
+          `DocumentRepository.save: 新規文書を作成します ID=${document.id}`,
+        );
         [result] = await this.db
           .insert(documents)
           .values({
             id: document.id,
             gitHubRepoId: document.gitHubRepoId,
-            userId: document.userId,
             path: document.path,
             title: document.title,
             description: document.description,
             document: document.document,
             scope: document.scope,
+            userId: document.userId,
             createdAt: document.createdAt,
             updatedAt: document.updatedAt,
           })
@@ -158,12 +201,21 @@ export class DrizzleDocumentRepository implements DocumentRepository {
       }
 
       // ドメインモデルに変換して返す
-      return ok(this.mapToDocument(result));
+      const savedDocument = this.mapToDocument(result);
+      logger.debug(
+        `DocumentRepository.save: 文書を保存しました ID=${document.id}`,
+      );
+      return ok(savedDocument);
     } catch (error) {
+      const errorMessage = `Failed to save document: ${error instanceof Error ? error.message : "Unknown error"}`;
+      logger.error(
+        `DocumentRepository.save: エラーが発生しました ID=${document.id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
-          `Failed to save document: ${error instanceof Error ? error.message : "Unknown error"}`,
+          errorMessage,
           error instanceof Error ? error : undefined,
         ),
       );
@@ -179,12 +231,12 @@ export class DrizzleDocumentRepository implements DocumentRepository {
     return {
       id: data.id,
       gitHubRepoId: data.gitHubRepoId,
-      userId: data.userId,
       path: data.path,
       title: data.title,
-      description: data.description ?? undefined,
+      description: data.description || undefined,
       document: data.document,
       scope: data.scope,
+      userId: data.userId,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };

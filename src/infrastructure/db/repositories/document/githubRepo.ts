@@ -9,6 +9,7 @@ import { createRepositoryError } from "@/domain/shared/models/common";
 import type { PgDatabase } from "../../client";
 import { githubRepos } from "../../schema";
 import type { GitHubReposTable } from "../../schema/types";
+import { logger } from "@/lib/logger";
 
 /**
  * GitHubリポジトリリポジトリの実装
@@ -26,18 +27,29 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
    */
   async findById(id: ID): Promise<Result<GitHubRepo | null, RepositoryError>> {
     try {
+      logger.debug(`GitHubRepoRepository.findById: ${id}`);
       // GitHubリポジトリ情報を取得
       const repoData = await this.db.query.githubRepos.findFirst({
         where: eq(githubRepos.id, id),
       });
 
       if (!repoData) {
+        logger.info(
+          `GitHubRepoRepository.findById: リポジトリが見つかりませんでした ID=${id}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `GitHubRepoRepository.findById: リポジトリが見つかりました ID=${id}`,
+      );
       return ok(this.mapToGitHubRepo(repoData));
     } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.findById: エラーが発生しました ID=${id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -50,25 +62,36 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
 
   /**
    * フルネームによるGitHubリポジトリ検索
-   * @param fullName リポジトリのフルネーム（owner/name）
+   * @param fullName GitHubリポジトリのフルネーム（owner/name）
    * @returns GitHubリポジトリまたはnull
    */
   async findByFullName(
     fullName: string,
   ): Promise<Result<GitHubRepo | null, RepositoryError>> {
     try {
+      logger.debug(`GitHubRepoRepository.findByFullName: ${fullName}`);
       // GitHubリポジトリ情報を取得
       const repoData = await this.db.query.githubRepos.findFirst({
-        where: eq(githubRepos.fullName, fullName),
+        where: (githubRepos) => eq(githubRepos.fullName, fullName),
       });
 
       if (!repoData) {
+        logger.info(
+          `GitHubRepoRepository.findByFullName: リポジトリが見つかりませんでした fullName=${fullName}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `GitHubRepoRepository.findByFullName: リポジトリが見つかりました fullName=${fullName}`,
+      );
       return ok(this.mapToGitHubRepo(repoData));
     } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.findByFullName: エラーが発生しました fullName=${fullName}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -88,14 +111,22 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
     userId: ID,
   ): Promise<Result<GitHubRepo[], RepositoryError>> {
     try {
+      logger.debug(`GitHubRepoRepository.findByUserId: ${userId}`);
       // GitHubリポジトリ情報を取得
       const reposData = await this.db.query.githubRepos.findMany({
-        where: eq(githubRepos.userId, userId),
+        where: (githubRepos) => eq(githubRepos.userId, userId),
       });
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `GitHubRepoRepository.findByUserId: ${reposData.length}件のリポジトリが見つかりました userId=${userId}`,
+      );
       return ok(reposData.map((repo) => this.mapToGitHubRepo(repo)));
     } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.findByUserId: エラーが発生しました userId=${userId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -107,53 +138,91 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
   }
 
   /**
+   * インストールIDによるGitHubリポジトリ検索
+   * @param installationId GitHubアプリのインストールID
+   * @returns GitHubリポジトリの配列
+   */
+  async findByInstallationId(
+    installationId: string,
+  ): Promise<Result<GitHubRepo[], RepositoryError>> {
+    try {
+      logger.debug(
+        `GitHubRepoRepository.findByInstallationId: ${installationId}`,
+      );
+      // GitHubリポジトリ情報を取得
+      const reposData = await this.db.query.githubRepos.findMany({
+        where: eq(githubRepos.installationId, installationId),
+      });
+
+      // ドメインモデルに変換して返す
+      logger.debug(
+        `GitHubRepoRepository.findByInstallationId: ${reposData.length}件のリポジトリが見つかりました installationId=${installationId}`,
+      );
+      return ok(reposData.map((repo) => this.mapToGitHubRepo(repo)));
+    } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.findByInstallationId: エラーが発生しました installationId=${installationId}`,
+        error,
+      );
+      return err(
+        createRepositoryError(
+          "DATABASE_ERROR",
+          `Failed to find GitHub repositories by installation ID: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
+  }
+
+  /**
    * GitHubリポジトリの保存
-   * @param gitHubRepo GitHubリポジトリオブジェクト
+   * @param repo GitHubリポジトリオブジェクト
    * @returns 保存されたGitHubリポジトリ
    */
-  async save(
-    gitHubRepo: GitHubRepo,
-  ): Promise<Result<GitHubRepo, RepositoryError>> {
+  async save(repo: GitHubRepo): Promise<Result<GitHubRepo, RepositoryError>> {
     try {
+      logger.debug(`GitHubRepoRepository.save: ${repo.id}`);
       // GitHubリポジトリが存在するか確認
       const existingRepo = await this.db.query.githubRepos.findFirst({
-        where: eq(githubRepos.id, gitHubRepo.id),
+        where: (githubRepos) => eq(githubRepos.id, repo.id),
       });
 
       let result: GitHubReposTable;
 
       if (existingRepo) {
         // 既存GitHubリポジトリの更新
+        logger.debug(
+          `GitHubRepoRepository.save: リポジトリを更新します ID=${repo.id}`,
+        );
         [result] = await this.db
           .update(githubRepos)
           .set({
-            owner: gitHubRepo.owner,
-            name: gitHubRepo.name,
-            fullName: gitHubRepo.fullName,
-            installationId: gitHubRepo.installationId,
-            webhookSecret: gitHubRepo.webhookSecret,
+            name: repo.name,
+            owner: repo.owner,
+            fullName: repo.fullName,
+            installationId: repo.installationId,
+            webhookSecret: repo.webhookSecret,
             updatedAt: new Date(),
           })
-          .where(eq(githubRepos.id, gitHubRepo.id))
+          .where(eq(githubRepos.id, repo.id))
           .returning();
       } else {
         // 新規GitHubリポジトリの作成
+        logger.debug(
+          `GitHubRepoRepository.save: 新規リポジトリを作成します ID=${repo.id}`,
+        );
         [result] = await this.db
           .insert(githubRepos)
           .values({
-            id: gitHubRepo.id,
-            owner: gitHubRepo.owner,
-            name: gitHubRepo.name,
-            fullName: gitHubRepo.fullName,
-            installationId: gitHubRepo.installationId,
-            webhookSecret: gitHubRepo.webhookSecret,
-            userId: gitHubRepo.userId,
-            // スキーマにあるがドメインモデルにないフィールドのデフォルト値設定
-            description: "",
-            defaultBranch: "main",
-            private: false,
-            createdAt: gitHubRepo.createdAt,
-            updatedAt: gitHubRepo.updatedAt,
+            id: repo.id,
+            name: repo.name,
+            owner: repo.owner,
+            fullName: repo.fullName,
+            installationId: repo.installationId,
+            webhookSecret: repo.webhookSecret,
+            userId: repo.userId,
+            createdAt: repo.createdAt,
+            updatedAt: repo.updatedAt,
           })
           .returning();
       }
@@ -161,6 +230,10 @@ export class DrizzleGitHubRepoRepository implements GitHubRepoRepository {
       // ドメインモデルに変換して返す
       return ok(this.mapToGitHubRepo(result));
     } catch (error) {
+      logger.error(
+        `GitHubRepoRepository.save: エラーが発生しました ID=${repo.id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",

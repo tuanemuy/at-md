@@ -12,6 +12,7 @@ import { createRepositoryError } from "@/domain/shared/models/common";
 import type { PgDatabase } from "../../client";
 import { tags, documentTags, documents } from "../../schema";
 import type { TagsTable, DocumentTagsTable } from "../../schema/types";
+import { logger } from "@/lib/logger";
 
 /**
  * タグリポジトリの実装
@@ -29,18 +30,27 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async findById(id: ID): Promise<Result<Tag | null, RepositoryError>> {
     try {
+      logger.debug(`TagRepository.findById: ${id}`);
       // タグ情報を取得
       const tagData = await this.db.query.tags.findFirst({
         where: eq(tags.id, id),
       });
 
       if (!tagData) {
+        logger.info(
+          `TagRepository.findById: タグが見つかりませんでした ID=${id}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(`TagRepository.findById: タグが見つかりました ID=${id}`);
       return ok(this.mapToTag(tagData));
     } catch (error) {
+      logger.error(
+        `TagRepository.findById: エラーが発生しました ID=${id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -58,6 +68,7 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async findBySlug(slug: string): Promise<Result<Tag | null, RepositoryError>> {
     try {
+      logger.debug(`TagRepository.findBySlug: ${slug}`);
       // タグ情報を取得
       // 注意: ドメインモデルにはslugフィールドがないため、nameフィールドで検索
       const tagData = await this.db.query.tags.findFirst({
@@ -65,12 +76,22 @@ export class DrizzleTagRepository implements TagRepository {
       });
 
       if (!tagData) {
+        logger.info(
+          `TagRepository.findBySlug: タグが見つかりませんでした slug=${slug}`,
+        );
         return ok(null);
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `TagRepository.findBySlug: タグが見つかりました slug=${slug}`,
+      );
       return ok(this.mapToTag(tagData));
     } catch (error) {
+      logger.error(
+        `TagRepository.findBySlug: エラーが発生しました slug=${slug}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -88,14 +109,22 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async findByUserId(userId: ID): Promise<Result<Tag[], RepositoryError>> {
     try {
+      logger.debug(`TagRepository.findByUserId: ${userId}`);
       // タグ情報を取得
       const tagsData = await this.db.query.tags.findMany({
         where: eq(tags.userId, userId),
       });
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `TagRepository.findByUserId: ${tagsData.length}件のタグが見つかりました userId=${userId}`,
+      );
       return ok(tagsData.map((tag) => this.mapToTag(tag)));
     } catch (error) {
+      logger.error(
+        `TagRepository.findByUserId: エラーが発生しました userId=${userId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -115,12 +144,16 @@ export class DrizzleTagRepository implements TagRepository {
     documentId: ID,
   ): Promise<Result<Tag[], RepositoryError>> {
     try {
+      logger.debug(`TagRepository.findByDocumentId: ${documentId}`);
       // 文書に関連するタグIDを取得
       const documentTagsData = await this.db.query.documentTags.findMany({
         where: eq(documentTags.documentId, documentId),
       });
 
       if (documentTagsData.length === 0) {
+        logger.info(
+          `TagRepository.findByDocumentId: タグが見つかりませんでした documentId=${documentId}`,
+        );
         return ok([]);
       }
 
@@ -151,8 +184,15 @@ export class DrizzleTagRepository implements TagRepository {
       }
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `TagRepository.findByDocumentId: ${tagsData.length}件のタグが見つかりました documentId=${documentId}`,
+      );
       return ok(tagsData.map((tag) => this.mapToTag(tag)));
     } catch (error) {
+      logger.error(
+        `TagRepository.findByDocumentId: エラーが発生しました documentId=${documentId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -170,6 +210,7 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async save(tag: Tag): Promise<Result<Tag, RepositoryError>> {
     try {
+      logger.debug(`TagRepository.save: ${tag.id}`);
       // タグが存在するか確認
       const existingTag = await this.db.query.tags.findFirst({
         where: eq(tags.id, tag.id),
@@ -179,6 +220,7 @@ export class DrizzleTagRepository implements TagRepository {
 
       if (existingTag) {
         // 既存タグの更新
+        logger.debug(`TagRepository.save: タグを更新します ID=${tag.id}`);
         [result] = await this.db
           .update(tags)
           .set({
@@ -189,6 +231,7 @@ export class DrizzleTagRepository implements TagRepository {
           .returning();
       } else {
         // 新規タグの作成
+        logger.debug(`TagRepository.save: 新規タグを作成します ID=${tag.id}`);
         [result] = await this.db
           .insert(tags)
           .values({
@@ -204,6 +247,10 @@ export class DrizzleTagRepository implements TagRepository {
       // ドメインモデルに変換して返す
       return ok(this.mapToTag(result));
     } catch (error) {
+      logger.error(
+        `TagRepository.save: エラーが発生しました ID=${tag.id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -221,11 +268,17 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async delete(id: ID): Promise<Result<void, RepositoryError>> {
     try {
+      logger.debug(`TagRepository.delete: ${id}`);
       // タグを削除
       await this.db.delete(tags).where(eq(tags.id, id));
 
+      logger.info(`TagRepository.delete: タグを削除しました ID=${id}`);
       return ok(undefined);
     } catch (error) {
+      logger.error(
+        `TagRepository.delete: エラーが発生しました ID=${id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -270,14 +323,22 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
     documentId: ID,
   ): Promise<Result<DocumentTag[], RepositoryError>> {
     try {
+      logger.debug(`DocumentTagRepository.findByDocumentId: ${documentId}`);
       // 文書タグ情報を取得
       const documentTagsData = await this.db.query.documentTags.findMany({
         where: eq(documentTags.documentId, documentId),
       });
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `DocumentTagRepository.findByDocumentId: ${documentTagsData.length}件の文書タグが見つかりました documentId=${documentId}`,
+      );
       return ok(documentTagsData.map((dt) => this.mapToDocumentTag(dt)));
     } catch (error) {
+      logger.error(
+        `DocumentTagRepository.findByDocumentId: エラーが発生しました documentId=${documentId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -297,14 +358,22 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
     tagId: ID,
   ): Promise<Result<DocumentTag[], RepositoryError>> {
     try {
+      logger.debug(`DocumentTagRepository.findByTagId: ${tagId}`);
       // 文書タグ情報を取得
       const documentTagsData = await this.db.query.documentTags.findMany({
         where: eq(documentTags.tagId, tagId),
       });
 
       // ドメインモデルに変換して返す
+      logger.debug(
+        `DocumentTagRepository.findByTagId: ${documentTagsData.length}件の文書タグが見つかりました tagId=${tagId}`,
+      );
       return ok(documentTagsData.map((dt) => this.mapToDocumentTag(dt)));
     } catch (error) {
+      logger.error(
+        `DocumentTagRepository.findByTagId: エラーが発生しました tagId=${tagId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -324,6 +393,9 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
     documentTag: DocumentTag,
   ): Promise<Result<DocumentTag, RepositoryError>> {
     try {
+      logger.debug(
+        `DocumentTagRepository.save: documentId=${documentTag.documentId}, tagId=${documentTag.tagId}`,
+      );
       // 文書タグが存在するか確認
       const existingDocumentTag = await this.db.query.documentTags.findFirst({
         where: and(
@@ -334,10 +406,16 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
 
       if (existingDocumentTag) {
         // 既に存在する場合は既存のものを返す
+        logger.info(
+          `DocumentTagRepository.save: 文書タグが既に存在します documentId=${documentTag.documentId}, tagId=${documentTag.tagId}`,
+        );
         return ok(this.mapToDocumentTag(existingDocumentTag));
       }
 
       // 新規文書タグの作成
+      logger.debug(
+        `DocumentTagRepository.save: 新規文書タグを作成します ID=${documentTag.id}`,
+      );
       const [result] = await this.db
         .insert(documentTags)
         .values({
@@ -352,6 +430,10 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
       // ドメインモデルに変換して返す
       return ok(this.mapToDocumentTag(result));
     } catch (error) {
+      logger.error(
+        `DocumentTagRepository.save: エラーが発生しました ID=${documentTag.id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -369,11 +451,19 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
    */
   async delete(id: ID): Promise<Result<void, RepositoryError>> {
     try {
+      logger.debug(`DocumentTagRepository.delete: ${id}`);
       // 文書タグを削除
       await this.db.delete(documentTags).where(eq(documentTags.id, id));
 
+      logger.info(
+        `DocumentTagRepository.delete: 文書タグを削除しました ID=${id}`,
+      );
       return ok(undefined);
     } catch (error) {
+      logger.error(
+        `DocumentTagRepository.delete: エラーが発生しました ID=${id}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",
@@ -395,6 +485,9 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
     tagId: ID,
   ): Promise<Result<void, RepositoryError>> {
     try {
+      logger.debug(
+        `DocumentTagRepository.deleteByDocumentIdAndTagId: documentId=${documentId}, tagId=${tagId}`,
+      );
       // 文書タグを削除
       await this.db
         .delete(documentTags)
@@ -405,8 +498,15 @@ export class DrizzleDocumentTagRepository implements DocumentTagRepository {
           ),
         );
 
+      logger.info(
+        `DocumentTagRepository.deleteByDocumentIdAndTagId: 文書タグを削除しました documentId=${documentId}, tagId=${tagId}`,
+      );
       return ok(undefined);
     } catch (error) {
+      logger.error(
+        `DocumentTagRepository.deleteByDocumentIdAndTagId: エラーが発生しました documentId=${documentId}, tagId=${tagId}`,
+        error,
+      );
       return err(
         createRepositoryError(
           "DATABASE_ERROR",

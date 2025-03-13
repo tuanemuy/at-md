@@ -6,9 +6,9 @@
     "useIgnoreFile": true
   },
   "files": {
-    "include": ["src/**/*", "./*.json", "./*ts", "./*js"],
+    "include": ["./src/**/*", "./*.json", "./*ts", "./*js"],
     "ignoreUnknown": false,
-    "ignore": ["./drizzle/*"]
+    "ignore": ["./**/migrations/**/*"]
   },
   "formatter": {
     "enabled": true,
@@ -19,7 +19,7 @@
   },
   "linter": {
     "enabled": true,
-    "ignore": ["src/components/ui/**/*"],
+    "ignore": ["./src/components/ui/**/*"],
     "rules": {
       "recommended": true,
       "security": {

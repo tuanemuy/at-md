@@ -1,10 +1,14 @@
+import type {
+  PgDatabase as PgCoreDatabase,
+  PgQueryResultHKT,
+} from "drizzle-orm/pg-core";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { logger } from "@/lib/logger";
 import * as schema from "./schema";
 
 // Drizzleクライアントの型をエクスポート
-export type PgDatabase = ReturnType<typeof createDrizzleClient>;
+export type PgDatabase = PgCoreDatabase<PgQueryResultHKT, typeof schema>;
 
 /**
  * データベース接続プールを作成する

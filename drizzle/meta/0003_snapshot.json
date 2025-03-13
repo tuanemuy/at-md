@@ -1,6 +1,6 @@
 {
-  "id": "649c36ae-5247-4003-8f62-65a166189b8f",
-  "prevId": "668ad084-62ea-4515-9140-f5bf64c5a5b2",
+  "id": "9c6d401b-6ca3-4a81-8cd6-daab08795c0a",
+  "prevId": "2ecd518f-e113-4f45-a16e-e4a417dc2d4c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -358,30 +358,6 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "default_branch": {
-          "name": "default_branch",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "private": {
-          "name": "private",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -443,18 +419,6 @@
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "color": {
-          "name": "color",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},

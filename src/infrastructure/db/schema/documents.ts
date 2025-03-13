@@ -30,10 +30,6 @@ export const githubRepos = pgTable("github_repos", {
   owner: varchar("owner", { length: 255 }).notNull(),
   installationId: varchar("installation_id", { length: 255 }).notNull(),
   webhookSecret: varchar("webhook_secret", { length: 255 }),
-  description: text("description"),
-  defaultBranch: varchar("default_branch", { length: 100 }).notNull(),
-  private: boolean("private").notNull(),
-  lastSyncedAt: timestamp("last_synced_at"),
 });
 
 /**
