@@ -10,7 +10,7 @@
 ```mermaid
 flowchart TB
     subgraph Integration["統合層"]
-        GitHub["GitHub<br/>[Software System]<br/>文書管理"]
+        GitHub["GitHub<br/>[Software System]<br/>ノート管理"]
         Bluesky["Bluesky<br/>[Software System]<br/>ソーシャル基盤"]
     end
 
@@ -22,7 +22,7 @@ flowchart TB
         WebServer["Webサーバー<br/>[Container]<br/>Next.js"]
         DB["データベース<br/>[Container]<br/>データ永続化"]
         subgraph Function["Function"]
-            GitHubSyncFn["GitHub同期関数<br/>[Container]<br/>文書同期処理"]
+            GitHubSyncFn["GitHub同期関数<br/>[Container]<br/>ノート同期処理"]
         end
     end
 
@@ -36,7 +36,7 @@ flowchart TB
     User -->|A.2 BlueskyによるSSO| WebApp
     WebServer -->|A.3 GitHub Appsインストール| GitHub
 
-    %% 文書作成・配信フロー
+    %% ノート作成・配信フロー
     User -->|B.1 プッシュ| GitHub
     GitHub -->|B.2 Webhook| GitHubSyncFn
     GitHubSyncFn -->|B.3 保存| DB
@@ -61,4 +61,4 @@ flowchart TB
 - Software System: 外部システム（灰色）
 - Container: 内部コンポーネント（水色）
 - A.x: アカウント管理フロー
-- B.x: 文書作成・配信フロー
+- B.x: ノート作成・配信フロー
