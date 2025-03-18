@@ -8,6 +8,7 @@
 - [ドメインモデルの定義](./domains/)
 - [ドメインモデルの型定義](./domain-types/)
 - [アプリケーション層の実装パターン](./application-layer.md)
+- [インフラストラクチャ層の実装パターン](./infrastructure-layer.md)
 
 ## 技術スタック概要
 
@@ -16,9 +17,12 @@
 - バリデーション: Zod（モデル全般）, @hono/zod-validator（APIリクエスト）
 - RPC: Server Actions, hono/client
 - データベース: PostgreSQL, Drizzle ORM
+- セッション管理: iron-session
 - 外部システム連携:
   - GitHub Apps（octkit）
-  - Bluesky（PDS, OAuth: @atproto/oauth-client-node）
+  - GitHub API（octkit）
+  - Bluesky OAuth（@atproto/oauth-client-node）
+  - Bluesky API（@atproto/api）
 - テスト: Vitest
 - エラーハンドリング: neverthrow（Result型）
 - ロギング: winston（グローバルシングルトン）
@@ -104,164 +108,66 @@ src/
 │       └── [noteId]/         # 個別ノート表示
 ├── components/               # UIコンポーネント
 │   ├── ui/                   # 基本UIコンポーネント
-│   │   ├── button.tsx        # ボタンコンポーネント
-│   │   ├── input.tsx         # 入力コンポーネント
-│   │   ├── __tests__/        # UIコンポーネントのテスト
-│   │   └── ...               # その他UIコンポーネント
 │   └── domain/               # ドメイン固有コンポーネント
 │       ├── note/             # ノート関連コンポーネント
-│       │   ├── noteCard.tsx  # ノートカード
-│       │   ├── __tests__/    # ノート関連コンポーネントのテスト
-│       │   └── ...           # その他ノート関連コンポーネント
+│       │   └── __tests__/    # ノート関連コンポーネントのテスト
 │       ├── book/             # ブック関連コンポーネント
 │       │   └── __tests__/    # ブック関連コンポーネントのテスト
 │       └── post/             # 投稿関連コンポーネント
 │           └── __tests__/    # 投稿関連コンポーネントのテスト
 ├── domain/                   # ドメイン層
-│   ├── shared/               # 共有カーネル
-│   │   ├── models/           # 共有モデル
-│   │   │   ├── id.ts         # ID値オブジェクト
-│   │   │   ├── result.ts     # Result型
-│   │   │   └── errors.ts     # 共通エラー型
-│   │   ├── __tests__/        # 共有カーネルのテスト
-│   │   └── utils/            # 共通ユーティリティ
+│   ├── types/                # 共有型
 │   ├── account/              # アカウント管理コンテキスト
-│   │   ├── models/           # アカウント関連モデル
-│   │   │   ├── user.ts       # ユーザーエンティティ
-│   │   │   ├── session.ts    # セッションエンティティ
-│   │   │   └── githubConnection.ts # GitHub連携情報
-│   │   ├── services/         # アカウント関連サービス
-│   │   │   ├── authService.ts      # 認証サービス
-│   │   │   ├── githubService.ts    # GitHub連携サービス
-│   │   │   └── sessionService.ts   # セッション管理サービス
-│   │   ├── repositories/     # アカウント関連リポジトリインターフェース
-│   │   │   ├── userRepository.ts   # ユーザーリポジトリ
-│   │   │   └── sessionRepository.ts # セッションリポジトリ
-│   │   ├── __tests__/        # アカウント管理コンテキストのテスト
-│   │   │   ├── models/       # モデルのテスト
-│   │   │   ├── services/     # サービスのテスト
-│   │   │   └── repositories/ # リポジトリのテスト
-│   │   └── events/           # アカウント関連ドメインイベント
+│   │   ├── models/           # アカウント関連モデル（エンティティ・値オブジェクト）
+│   │   ├── dtos/             # ドメイン層のDTO
+│   │   ├── adapters/         # アカウント関連アダプターインターフェース
+│   │   └── repositories/     # アカウント関連リポジトリインターフェース
 │   ├── note/                 # ノート管理コンテキスト
-│   │   ├── models/           # ノート関連モデル
-│   │   │   ├── note.ts       # ノートエンティティ
-│   │   │   ├── book.ts       # ブックエンティティ
-│   │   │   └── tag.ts        # タグエンティティ
-│   │   ├── services/         # ノート関連サービス
-│   │   │   ├── syncService.ts      # 同期サービス
-│   │   │   ├── tagService.ts       # タグ管理サービス
-│   │   │   └── noteAnalysisService.ts # ノート解析サービス
-│   │   ├── repositories/     # ノート関連リポジトリインターフェース
-│   │   │   ├── noteRepository.ts   # ノートリポジトリ
-│   │   │   ├── bookRepository.ts   # ブックリポジトリ
-│   │   │   └── tagRepository.ts    # タグリポジトリ
-│   │   ├── __tests__/        # ノート管理コンテキストのテスト
-│   │   │   ├── models/       # モデルのテスト
-│   │   │   ├── services/     # サービスのテスト
-│   │   │   └── repositories/ # リポジトリのテスト
-│   │   └── events/           # ノート関連ドメインイベント
+│   │   ├── models/           # ノート関連モデル（エンティティ・値オブジェクト）
+│   │   ├── dtos/             # ドメイン層のDTO
+│   │   ├── adapters/         # ドメイン関連アダプターインターフェース
+│   │   └── repositories/     # ノート関連リポジトリインターフェース
 │   └── post/                 # 投稿管理コンテキスト
-│       ├── models/           # 投稿関連モデル
-│       │   └── post.ts       # 投稿エンティティ
-│       ├── services/         # 投稿関連サービス
-│       │   ├── postingService.ts   # 投稿サービス
-│       │   └── engagementService.ts # エンゲージメント取得サービス
-│       ├── repositories/     # 投稿関連リポジトリインターフェース
-│       │   └── postRepository.ts   # 投稿リポジトリ
-│       ├── __tests__/        # 投稿管理コンテキストのテスト
-│       │   ├── models/       # モデルのテスト
-│       │   ├── services/     # サービスのテスト
-│       │   └── repositories/ # リポジトリのテスト
-│       └── events/           # 投稿関連ドメインイベント
+│       ├── models/           # 投稿関連モデル（エンティティ・値オブジェクト）
+│       ├── dtos/             # ドメイン層のDTO
+│       ├── adapters/         # 投稿関連アダプターインターフェース
+│       └── repositories/     # 投稿関連リポジトリインターフェース
 ├── application/              # アプリケーション層
 │   ├── account/              # アカウント管理
 │   │   ├── usecases/         # ユースケースインターフェース
-│   │   │   ├── authenticateWithBluesky.ts # 認証ユースケース
-│   │   │   ├── connectGithub.ts    # GitHub連携ユースケース
-│   │   │   ├── validateSession.ts  # セッション検証ユースケース
-│   │   │   └── ...                  # その他ユースケース
-│   │   ├── services/         # アプリケーションサービス（実装）
-│   │   │   ├── authenticateWithBlueskyService.ts # 認証サービス
-│   │   │   ├── connectGithubService.ts    # GitHub連携サービス
-│   │   │   ├── validateSessionService.ts  # セッション検証サービス
-│   │   │   └── ...                  # その他サービス
-│   │   └── __tests__/        # アカウント管理アプリケーションのテスト
-│   │       ├── usecases/     # ユースケースのテスト
-│   │       └── services/     # サービスのテスト
+│   │   └── services/         # アプリケーションサービス（ユースケースの実装）
+│   │       └── __tests__/    # アプリケーションサービスのテスト
 │   ├── note/                 # ノート管理
 │   │   ├── usecases/         # ユースケースインターフェース
-│   │   │   ├── addBook.ts          # ブック追加ユースケース
-│   │   │   ├── syncNotes.ts        # ノート同期ユースケース
-│   │   │   ├── processWebhook.ts   # Webhook処理ユースケース
-│   │   │   └── ...                  # その他ユースケース
-│   │   ├── services/         # アプリケーションサービス（実装）
-│   │   │   ├── addBookService.ts  # ブック追加サービス
-│   │   │   ├── syncNotesService.ts # ノート同期サービス
-│   │   │   ├── processWebhookService.ts # Webhook処理サービス
-│   │   │   └── ...                  # その他サービス
-│   │   └── __tests__/        # ノート管理アプリケーションのテスト
-│   │       ├── usecases/     # ユースケースのテスト
-│   │       └── services/     # サービスのテスト
+│   │   └── services/         # アプリケーションサービス（ユースケースの実装）
+│   │       └── __tests__/    # アプリケーションサービスのテスト
 │   └── post/                 # 投稿管理
 │       ├── usecases/         # ユースケースインターフェース
-│       │   ├── postNote.ts         # ノート投稿ユースケース
-│       │   ├── getEngagement.ts    # エンゲージメント取得ユースケース
-│       │   └── ...                  # その他ユースケース
-│       ├── services/         # アプリケーションサービス（実装）
-│       │   ├── postNoteService.ts # ノート投稿サービス
-│       │   ├── getEngagementService.ts # エンゲージメント取得サービス
-│       │   └── ...                  # その他サービス
-│       └── __tests__/        # 投稿管理アプリケーションのテスト
-│           ├── usecases/     # ユースケースのテスト
-│           └── services/     # サービスのテスト
+│       └── services/         # アプリケーションサービス（ユースケースの実装）
+│           └── __tests__/    # アプリケーションサービスのテスト
 ├── infrastructure/           # インフラストラクチャ層
 │   ├── db/                   # データベース
 │   │   ├── client.ts         # データベースクライアント
 │   │   ├── migrations/       # マイグレーションファイル
 │   │   ├── schema/           # スキーマ定義
-│   │   │   ├── users.ts      # ユーザーテーブル
-│   │   │   ├── sessions.ts   # セッションテーブル
-│   │   │   ├── books.ts      # ブックテーブル
-│   │   │   ├── notes.ts      # ノートテーブル
-│   │   │   ├── tags.ts       # タグテーブル
-│   │   │   ├── posts.ts      # 投稿テーブル
-│   │   │   └── index.ts      # スキーマ定義エクスポート
-│   │   ├── repositories/     # リポジトリ実装
-│   │   │   ├── account/      # アカウント関連リポジトリ実装
-│   │   │   │   ├── userRepository.ts   # ユーザーリポジトリ実装
-│   │   │   │   └── sessionRepository.ts # セッションリポジトリ実装
-│   │   │   ├── note/         # ノート関連リポジトリ実装
-│   │   │   │   ├── noteRepository.ts   # ノートリポジトリ実装
-│   │   │   │   ├── bookRepository.ts   # ブックリポジトリ実装
-│   │   │   │   └── tagRepository.ts    # タグリポジトリ実装
-│   │   │   └── post/         # 投稿関連リポジトリ実装
-│   │   │       └── postRepository.ts   # 投稿リポジトリ実装
-│   │   └── __tests__/        # データベース関連のテスト
-│   │       └── repositories/ # リポジトリ実装のテスト
-│   ├── api/                  # 外部API
-│   │   ├── github/           # GitHub API
-│   │   │   ├── client.ts     # GitHub APIクライアント
-│   │   │   ├── app.ts        # GitHub Appsインテグレーション
-│   │   │   ├── services/     # GitHub関連サービス実装
-│   │   │   └── __tests__/    # GitHub API関連のテスト
-│   │   └── bluesky/          # Bluesky API
-│   │       ├── client.ts     # Bluesky APIクライアント
-│   │       ├── auth.ts       # Bluesky認証
-│   │       ├── services/     # Bluesky関連サービス実装
-│   │       └── __tests__/    # Bluesky API関連のテスト
-│   ├── auth/                 # 認証
-│   │   ├── blueskyAuth.ts    # Bluesky認証実装
-│   │   ├── session.ts        # セッション管理実装
-│   │   └── __tests__/        # 認証関連のテスト
-│   └── events/               # イベント処理
-│       ├── eventBus.ts       # イベントバス
-│       ├── handlers/         # イベントハンドラー
-│       └── __tests__/        # イベント処理関連のテスト
+│   │   └── repositories/     # リポジトリ実装
+│   │       ├── account/      # アカウント関連リポジトリ実装
+│   │       │   └── __tests__/  # アカウント関連リポジトリのテスト
+│   │       ├── note/         # ノート関連リポジトリ実装
+│   │       │   └── __tests__/  # ノート関連リポジトリのテスト
+│   │       └── post/         # 投稿関連リポジトリ実装
+│   │           └── __tests__/  # 投稿関連リポジトリのテスト
+│   └── api/                  # 外部API
+│       ├── github/           # GitHub API
+│       │   ├── client.ts     # GitHub APIクライアント
+│       │   └── services/     # GitHub API関連サービス実装
+│       │       └── __tests__/  # GitHub API関連サービスのテスト
+│       └── bluesky/          # Bluesky API
+│           ├── client.ts     # Bluesky APIクライアント
+│           └── services/     # Bluesky API関連サービス実装
+│               └── __tests__/  # Bluesky API関連サービスのテスト
 ├── lib/                      # ユーティリティ
 │   ├── logger.ts             # ロガー
-│   ├── container.ts          # DIコンテナ
-│   ├── types/                # 型定義
-│   │   └── __tests__/        # 型定義のテスト
 │   └── __tests__/            # ユーティリティのテスト
 ├── e2e/                      # E2Eテスト
 │   ├── api/                  # API E2Eテスト

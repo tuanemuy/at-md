@@ -1,6 +1,8 @@
 # 共通型定義
 
-## 基本型
+このファイルでは、複数のコンテキストで共有される共通の型定義を提供します。
+
+## 共通型
 
 ### ID
 
@@ -20,67 +22,19 @@ export type Date = z.infer<typeof dateSchema>;
 
 ```typescript
 export const paginationSchema = z.object({
-  page: z.number().int().positive(),
-  limit: z.number().int().positive().max(100),
-  total: z.number().int().nonnegative()
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().default(20)
 });
 export type Pagination = z.infer<typeof paginationSchema>;
 ```
 
-## 値オブジェクト
-
-### メタデータ
-
-```typescript
-export const metadataSchema = z.object({
-  createdAt: dateSchema,
-  updatedAt: dateSchema,
-  deletedAt: dateSchema.nullable()
-});
-export type Metadata = z.infer<typeof metadataSchema>;
-```
-
-### 検索クエリ
-
-```typescript
-export const searchQuerySchema = z.object({
-  query: z.string().nonempty(),
-  filters: z.record(z.unknown()).optional(),
-  pagination: paginationSchema
-});
-export type SearchQuery = z.infer<typeof searchQuerySchema>;
-```
-
-## エラー型
+## 共通エラー型
 
 ### 基本エラー
 
 ```typescript
 export interface AnyError {
   name: string;
-  type: string;
-  message: string;
-  cause?: Error;
-}
-```
-
-### リポジトリエラー
-
-```typescript
-export const repositoryErrorCodeSchema = z.enum([
-  "CONNECTION_ERROR",
-  "QUERY_ERROR",
-  "CONSTRAINT_ERROR",
-  "NOT_FOUND",
-  "INVALID_ID",
-  "DUPLICATE_ENTRY",
-  "OPTIMISTIC_LOCK_ERROR"
-]);
-export type RepositoryErrorCode = z.infer<typeof repositoryErrorCodeSchema>;
-
-export interface RepositoryError extends AnyError {
-  name: "RepositoryError";
-  type: RepositoryErrorCode;
   message: string;
   cause?: Error;
 }
@@ -92,15 +46,36 @@ export interface RepositoryError extends AnyError {
 export const validationErrorCodeSchema = z.enum([
   "INVALID_INPUT",
   "MISSING_REQUIRED_FIELD",
-  "INVALID_FORMAT",
-  "OUT_OF_RANGE",
-  "INVALID_ENUM_VALUE"
+  "TYPE_ERROR",
+  "CONSTRAINT_VIOLATION"
 ]);
 export type ValidationErrorCode = z.infer<typeof validationErrorCodeSchema>;
 
 export interface ValidationError extends AnyError {
   name: "ValidationError";
   type: ValidationErrorCode;
+  field?: string;
+  message: string;
+  cause?: Error;
+}
+```
+
+### リポジトリエラー
+
+```typescript
+export const repositoryErrorCodeSchema = z.enum([
+  "NOT_FOUND",
+  "ALREADY_EXISTS",
+  "CONFLICT",
+  "CONNECTION_ERROR",
+  "TRANSACTION_ERROR"
+]);
+export type RepositoryErrorCode = z.infer<typeof repositoryErrorCodeSchema>;
+
+export interface RepositoryError extends AnyError {
+  name: "RepositoryError";
+  type: RepositoryErrorCode;
+  entityName: string;
   message: string;
   cause?: Error;
 }
@@ -109,36 +84,18 @@ export interface ValidationError extends AnyError {
 ### 認証エラー
 
 ```typescript
-export const authenticationErrorCodeSchema = z.enum([
+export const authErrorCodeSchema = z.enum([
   "UNAUTHORIZED",
-  "TOKEN_EXPIRED",
-  "INVALID_TOKEN",
-  "MISSING_TOKEN",
-  "INVALID_CREDENTIALS"
-]);
-export type AuthenticationErrorCode = z.infer<typeof authenticationErrorCodeSchema>;
-
-export interface AuthenticationError extends AnyError {
-  name: "AuthenticationError";
-  type: AuthenticationErrorCode;
-  message: string;
-  cause?: Error;
-}
-```
-
-### 認可エラー
-
-```typescript
-export const authorizationErrorCodeSchema = z.enum([
   "FORBIDDEN",
-  "INSUFFICIENT_PERMISSIONS",
-  "RESOURCE_ACCESS_DENIED"
+  "INVALID_CREDENTIALS",
+  "SESSION_EXPIRED",
+  "TOKEN_INVALID"
 ]);
-export type AuthorizationErrorCode = z.infer<typeof authorizationErrorCodeSchema>;
+export type AuthErrorCode = z.infer<typeof authErrorCodeSchema>;
 
-export interface AuthorizationError extends AnyError {
-  name: "AuthorizationError";
-  type: AuthorizationErrorCode;
+export interface AuthError extends AnyError {
+  name: "AuthError";
+  type: AuthErrorCode;
   message: string;
   cause?: Error;
 }
@@ -148,17 +105,18 @@ export interface AuthorizationError extends AnyError {
 
 ```typescript
 export const externalServiceErrorCodeSchema = z.enum([
-  "SERVICE_UNAVAILABLE",
-  "RATE_LIMITED",
+  "API_ERROR",
+  "CONNECTION_ERROR",
+  "RATE_LIMIT",
   "TIMEOUT",
-  "NETWORK_ERROR",
-  "API_ERROR"
+  "UNEXPECTED_RESPONSE"
 ]);
 export type ExternalServiceErrorCode = z.infer<typeof externalServiceErrorCodeSchema>;
 
 export interface ExternalServiceError extends AnyError {
   name: "ExternalServiceError";
   type: ExternalServiceErrorCode;
+  service: string;
   message: string;
   cause?: Error;
 }

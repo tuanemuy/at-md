@@ -4,7 +4,7 @@
 
 ## ドメイン層
 
-### エンティティ・値オブジェクト
+### エンティティ
 
 #### ユーザー
 
@@ -12,370 +12,293 @@
 export const userSchema = z.object({
   id: idSchema,
   did: z.string().nonempty(),
-  profile: userProfileSchema,
-  metadata: metadataSchema,
-  gitHubConnections: z.array(gitHubConnectionSchema).default([])
+  profile: profileSchema,
+  createdAt: dateSchema,
+  updatedAt: dateSchema
 });
 export type User = z.infer<typeof userSchema>;
 ```
 
-#### DID
-
-```typescript
-export const didSchema = z.string().nonempty();
-export type DID = z.infer<typeof didSchema>;
-```
-
-#### ユーザープロファイル
-
-```typescript
-export const userProfileSchema = z.object({
-  displayName: z.string().nonempty(),
-  avatarUrl: z.string().url().nullable(),
-  bannerUrl: z.string().url().nullable(),
-  description: z.string().nullable(),
-});
-export type UserProfile = z.infer<typeof userProfileSchema>;
-```
-
-#### GitHub連携情報
+#### GitHub接続情報
 
 ```typescript
 export const gitHubConnectionSchema = z.object({
   id: idSchema,
   userId: idSchema,
-  installationId: z.string().nonempty(),
-  accessToken: z.string().nonempty().nullable(),
-  metadata: metadataSchema
+  accessToken: z.string().nonempty(),
+  refreshToken: z.string().optional(),
+  expiresAt: dateSchema.optional(),
+  scope: z.array(z.string()).default([]),
+  createdAt: dateSchema,
+  updatedAt: dateSchema
 });
 export type GitHubConnection = z.infer<typeof gitHubConnectionSchema>;
 ```
 
-#### GitHubInstallationId
+### 値オブジェクト
+
+#### Profile
 
 ```typescript
-export const gitHubInstallationIdSchema = z.string().nonempty();
-export type GitHubInstallationId = z.infer<typeof gitHubInstallationIdSchema>;
+export const profileSchema = z.object({
+  displayName: z.string().max(64).nullable(),
+  description: z.string().max(256).nullable(),
+  avatarUrl: z.string().url().nullable(),
+  bannerUrl: z.string().url().nullable()
+});
+export type Profile = z.infer<typeof profileSchema>;
 ```
 
-#### セッション
+#### Session
 
 ```typescript
 export const sessionSchema = z.object({
-  id: idSchema,
-  userId: idSchema,
-  token: sessionTokenSchema,
-  expiresAt: dateSchema,
-  metadata: metadataSchema
+  did: z.string().nonempty(),
+  accessToken: z.string().nonempty(),
+  refreshToken: z.string().optional(),
+  expiresAt: dateSchema
 });
 export type Session = z.infer<typeof sessionSchema>;
 ```
 
-#### セッショントークン
+### エラー
+
+#### アカウント管理エラー
 
 ```typescript
-export const sessionTokenSchema = z.string().nonempty();
-export type SessionToken = z.infer<typeof sessionTokenSchema>;
+export const accountErrorCodeSchema = z.enum([
+  // 認証関連
+  "INVALID_HANDLE",
+  "AUTHORIZATION_FAILED",
+  "CALLBACK_FAILED",
+  // セッション関連
+  "SESSION_CREATION_FAILED",
+  "SESSION_VALIDATION_FAILED",
+  "SESSION_REFRESH_FAILED",
+  "SESSION_REVOCATION_FAILED",
+  // GitHub連携関連
+  "GITHUB_CONNECTION_FAILED",
+  "GITHUB_DISCONNECTION_FAILED",
+  "GITHUB_INSTALLATION_NOT_FOUND",
+  // ユーザー関連
+  "USER_NOT_FOUND",
+  "USER_ALREADY_EXISTS",
+  "PROFILE_UPDATE_FAILED"
+]);
+export type AccountErrorCode = z.infer<typeof accountErrorCodeSchema>;
+
+export interface AccountError extends AnyError {
+  name: "AccountError";
+  type: AccountErrorCode;
+  message: string;
+  cause?: Error;
+}
+```
+
+### DTOs
+
+#### GitHubInstallation
+
+```typescript
+export const gitHubInstallationSchema = z.object({
+  id: z.number(),
+  account: z.object({
+    login: z.string(),
+    type: z.enum(["User", "Organization"])
+  }),
+  repositorySelection: z.enum(["all", "selected"])
+});
+export type GitHubInstallation = z.infer<typeof gitHubInstallationSchema>;
+```
+
+### アダプターインターフェース
+
+#### Bluesky認証アダプター
+
+```typescript
+export interface BlueskyAuthProvider {
+  authorize(handle: string, options: AuthorizeOptions): Promise<Result<URL, ExternalServiceError>>;
+  callback(params: URLSearchParams): Promise<Result<Session, ExternalServiceError>>;
+  getUserProfile(did: string): Promise<Result<Profile, ExternalServiceError>>;
+}
+
+export interface AuthorizeOptions {
+  scope: string;
+}
+```
+
+#### GitHub連携アダプター
+
+```typescript
+export interface GitHubAppProvider {
+  getInstallations(accessToken: string): Promise<Result<GitHubInstallation[], ExternalServiceError>>;
+}
+```
+
+#### セッション管理アダプター
+
+```typescript
+export interface SessionManager {
+  createSession(session: Session): Promise<Result<void, AccountError>>;
+  validateSession(token: string): Promise<Result<Session, AccountError>>;
+  refreshSession(token: string): Promise<Result<Session, AccountError>>;
+  revokeSession(token: string): Promise<Result<void, AccountError>>;
+}
 ```
 
 ### リポジトリインターフェース
 
-#### ユーザーリポジトリ
-
 ```typescript
 export interface UserRepository {
-  findById(id: ID): Promise<Result<User | null, RepositoryError>>;
-  findByDid(did: string): Promise<Result<User | null, RepositoryError>>;
   save(user: User): Promise<Result<User, RepositoryError>>;
-  addGitHubConnection(userId: ID, connection: GitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
-  delete(id: ID): Promise<Result<void, RepositoryError>>;
+  findById(id: string): Promise<Result<User, RepositoryError>>;
+  findByDid(did: string): Promise<Result<User, RepositoryError>>;
+  delete(id: string): Promise<Result<void, RepositoryError>>;
+}
+
+export interface GitHubConnectionRepository {
+  save(connection: GitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
+  findByUserId(userId: string): Promise<Result<GitHubConnection[], RepositoryError>>;
+  delete(id: string): Promise<Result<void, RepositoryError>>;
 }
 ```
 
-#### セッションリポジトリ
+### ユースケース
+
+#### Bluesky認証を開始する
 
 ```typescript
-export interface SessionRepository {
-  findById(id: ID): Promise<Result<Session | null, RepositoryError>>;
-  findByToken(token: SessionToken): Promise<Result<Session | null, RepositoryError>>;
-  findByUserId(userId: ID): Promise<Result<Session[], RepositoryError>>;
-  save(session: Session): Promise<Result<Session, RepositoryError>>;
-  delete(id: ID): Promise<Result<void, RepositoryError>>;
-  deleteExpired(): Promise<Result<number, RepositoryError>>;
+export interface StartBlueskyAuthInput {
+  handle: string;
+}
+
+export interface StartBlueskyAuthUseCase {
+  execute(input: StartBlueskyAuthInput): Promise<Result<URL, AccountError>>;
 }
 ```
 
-### ドメインサービスインターフェース
-
-#### 認証サービス
+#### Bluesky認証のコールバックを処理する
 
 ```typescript
-export interface AuthService {
-  authenticateWithBluesky(did: string, jwt: string): Promise<Result<User, AuthenticationError>>;
-  authorize(userId: ID, action: string, resource: string): Promise<Result<boolean, AuthorizationError>>;
+export interface HandleBlueskyAuthCallbackInput {
+  params: URLSearchParams;
+}
+
+export interface HandleBlueskyAuthCallbackUseCase {
+  execute(input: HandleBlueskyAuthCallbackInput): Promise<Result<Session, AccountError>>;
 }
 ```
 
-#### GitHub連携サービス
+#### セッションを検証する
 
 ```typescript
-export interface GitHubService {
-  connectGitHub(userId: ID, installationId: string): Promise<Result<GitHubConnection, ExternalServiceError>>;
-  disconnectGitHub(connectionId: ID): Promise<Result<void, ExternalServiceError>>;
-  getAccessToken(connectionId: ID): Promise<Result<string, ExternalServiceError>>;
-  refreshAccessToken(connectionId: ID): Promise<Result<string, ExternalServiceError>>;
-  validateConnection(connectionId: ID): Promise<Result<boolean, ExternalServiceError>>;
+export interface ValidateSessionInput {
+  token: string;
 }
-```
 
-#### セッション管理サービス
-
-```typescript
-export interface SessionService {
-  createSession(userId: ID): Promise<Result<Session, AuthenticationError>>;
-  validateSession(token: SessionToken): Promise<Result<Session, AuthenticationError>>;
-  invalidateSession(sessionId: ID): Promise<Result<void, AuthenticationError>>;
-  cleanExpiredSessions(): Promise<Result<number, AuthenticationError>>;
-}
-```
-
-## アプリケーション層
-
-### ユースケース入力/出力の型定義
-
-#### ユーザー登録入力
-
-```typescript
-export const registerUserInputSchema = z.object({
-  did: z.string().nonempty(),
-  jwt: z.string().nonempty(),
-  profile: userProfileSchema.optional()
-});
-export type RegisterUserInput = z.infer<typeof registerUserInputSchema>;
-```
-
-#### ログイン入力
-
-```typescript
-export const loginWithBlueskyInputSchema = z.object({
-  did: z.string().nonempty(),
-  jwt: z.string().nonempty()
-});
-export type LoginWithBlueskyInput = z.infer<typeof loginWithBlueskyInputSchema>;
-```
-
-#### GitHub連携入力
-
-```typescript
-export const connectGitHubInputSchema = z.object({
-  userId: idSchema,
-  installationId: z.string().nonempty()
-});
-export type ConnectGitHubInput = z.infer<typeof connectGitHubInputSchema>;
-```
-
-#### GitHub連携解除入力
-
-```typescript
-export const disconnectGitHubInputSchema = z.object({
-  userId: idSchema,
-  connectionId: idSchema
-});
-export type DisconnectGitHubInput = z.infer<typeof disconnectGitHubInputSchema>;
-```
-
-#### ユーザー情報取得入力
-
-```typescript
-export const getUserByIdInputSchema = z.object({
-  userId: idSchema
-});
-export type GetUserByIdInput = z.infer<typeof getUserByIdInputSchema>;
-```
-
-#### ユーザー情報更新入力
-
-```typescript
-export const updateUserInputSchema = z.object({
-  userId: idSchema,
-  profile: userProfileSchema.partial()
-});
-export type UpdateUserInput = z.infer<typeof updateUserInputSchema>;
-```
-
-#### ユーザー削除入力
-
-```typescript
-export const deleteUserInputSchema = z.object({
-  userId: idSchema
-});
-export type DeleteUserInput = z.infer<typeof deleteUserInputSchema>;
-```
-
-#### GitHub連携一覧取得入力
-
-```typescript
-export const listGitHubConnectionsInputSchema = z.object({
-  userId: idSchema
-});
-export type ListGitHubConnectionsInput = z.infer<typeof listGitHubConnectionsInputSchema>;
-```
-
-#### セッション検証入力
-
-```typescript
-export const validateSessionInputSchema = z.object({
-  token: sessionTokenSchema
-});
-export type ValidateSessionInput = z.infer<typeof validateSessionInputSchema>;
-```
-
-#### ログアウト入力
-
-```typescript
-export const logoutInputSchema = z.object({
-  sessionId: idSchema
-});
-export type LogoutInput = z.infer<typeof logoutInputSchema>;
-```
-
-### ユースケースインターフェース
-
-#### ユーザー登録ユースケース
-
-```typescript
-export interface RegisterUserUseCase {
-  execute(input: RegisterUserInput): Promise<Result<User, RegisterUserError>>;
-}
-```
-
-#### ログインユースケース
-
-```typescript
-export interface LoginWithBlueskyUseCase {
-  execute(input: LoginWithBlueskyInput): Promise<Result<{ user: User, session: Session }, AuthenticationError>>;
-}
-```
-
-#### GitHub連携ユースケース
-
-```typescript
-export interface ConnectGitHubUseCase {
-  execute(input: ConnectGitHubInput): Promise<Result<GitHubConnection, ConnectGitHubError>>;
-}
-```
-
-#### GitHub連携解除ユースケース
-
-```typescript
-export interface DisconnectGitHubUseCase {
-  execute(input: DisconnectGitHubInput): Promise<Result<void, ConnectGitHubError>>;
-}
-```
-
-#### ユーザー情報取得ユースケース
-
-```typescript
-export interface GetUserByIdUseCase {
-  execute(input: GetUserByIdInput): Promise<Result<User, RepositoryError>>;
-}
-```
-
-#### ユーザー情報更新ユースケース
-
-```typescript
-export interface UpdateUserUseCase {
-  execute(input: UpdateUserInput): Promise<Result<User, RepositoryError | ValidationError>>;
-}
-```
-
-#### ユーザー削除ユースケース
-
-```typescript
-export interface DeleteUserUseCase {
-  execute(input: DeleteUserInput): Promise<Result<void, RepositoryError>>;
-}
-```
-
-#### GitHub連携一覧取得ユースケース
-
-```typescript
-export interface ListGitHubConnectionsUseCase {
-  execute(input: ListGitHubConnectionsInput): Promise<Result<GitHubConnection[], RepositoryError>>;
-}
-```
-
-#### セッション検証ユースケース
-
-```typescript
 export interface ValidateSessionUseCase {
-  execute(input: ValidateSessionInput): Promise<Result<Session, AuthenticationError>>;
+  execute(input: ValidateSessionInput): Promise<Result<Session, AccountError>>;
 }
 ```
 
-#### ログアウトユースケース
+#### セッションを更新する
 
 ```typescript
+export interface RefreshSessionInput {
+  token: string;
+}
+
+export interface RefreshSessionUseCase {
+  execute(input: RefreshSessionInput): Promise<Result<Session, AccountError>>;
+}
+```
+
+#### ログアウトする
+
+```typescript
+export interface LogoutInput {
+  token: string;
+}
+
 export interface LogoutUseCase {
-  execute(input: LogoutInput): Promise<Result<void, SessionError>>;
+  execute(input: LogoutInput): Promise<Result<void, AccountError>>;
 }
 ```
 
-### アプリケーションエラー
-
-#### ユーザー登録エラー
+#### GitHubと連携する
 
 ```typescript
-export const registerUserErrorCodeSchema = z.enum([
-  "VALIDATION_ERROR",
-  "USER_ALREADY_EXISTS",
-  "BLUESKY_AUTH_FAILED",
-  "REPOSITORY_ERROR"
-]);
-export type RegisterUserErrorCode = z.infer<typeof registerUserErrorCodeSchema>;
+export interface ConnectGitHubInput {
+  userId: string;
+  code: string;
+}
 
-export interface RegisterUserError extends AnyError {
-  name: "RegisterUserError";
-  type: RegisterUserErrorCode;
-  message: string;
-  cause?: Error;
+export interface ConnectGitHubUseCase {
+  execute(input: ConnectGitHubInput): Promise<Result<void, AccountError>>;
 }
 ```
 
-#### GitHub連携エラー
+#### GitHubとの連携を解除する
 
 ```typescript
-export const connectGitHubErrorCodeSchema = z.enum([
-  "VALIDATION_ERROR",
-  "USER_NOT_FOUND",
-  "GITHUB_CONNECTION_FAILED",
-  "REPOSITORY_ERROR"
-]);
-export type ConnectGitHubErrorCode = z.infer<typeof connectGitHubErrorCodeSchema>;
+export interface DisconnectGitHubInput {
+  userId: string;
+  githubConnectionId: string;
+}
 
-export interface ConnectGitHubError extends AnyError {
-  name: "ConnectGitHubError";
-  type: ConnectGitHubErrorCode;
-  message: string;
-  cause?: Error;
+export interface DisconnectGitHubUseCase {
+  execute(input: DisconnectGitHubInput): Promise<Result<void, AccountError>>;
 }
 ```
 
-#### セッションエラー
+#### ユーザー情報を取得する
 
 ```typescript
-export const sessionErrorCodeSchema = z.enum([
-  "INVALID_SESSION",
-  "SESSION_EXPIRED",
-  "SESSION_NOT_FOUND",
-  "REPOSITORY_ERROR"
-]);
-export type SessionErrorCode = z.infer<typeof sessionErrorCodeSchema>;
-
-export interface SessionError extends AnyError {
-  name: "SessionError";
-  type: SessionErrorCode;
-  message: string;
-  cause?: Error;
+export interface GetUserByIdInput {
+  userId: string;
 }
-``` 
+
+export interface GetUserByIdUseCase {
+  execute(input: GetUserByIdInput): Promise<Result<User, AccountError>>;
+}
+```
+
+#### プロフィールを更新する
+
+```typescript
+export interface UpdateProfileInput {
+  userId: string;
+  displayName: string | null;
+  description: string | null;
+  avatarUrl: string | null;
+  bannerUrl: string | null;
+}
+
+export interface UpdateProfileUseCase {
+  execute(input: UpdateProfileInput): Promise<Result<User, AccountError>>;
+}
+```
+
+#### ユーザーを削除する
+
+```typescript
+export interface DeleteUserInput {
+  userId: string;
+}
+
+export interface DeleteUserUseCase {
+  execute(input: DeleteUserInput): Promise<Result<void, AccountError>>;
+}
+```
+
+#### ユーザーのGitHub連携一覧を取得する
+
+```typescript
+export interface ListGitHubConnectionsInput {
+  userId: string;
+}
+
+export interface ListGitHubConnectionsUseCase {
+  execute(input: ListGitHubConnectionsInput): Promise<Result<GitHubConnection[], AccountError>>;
+}
+```

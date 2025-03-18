@@ -4,170 +4,67 @@
 
 ## ドメイン層
 
-### エンティティ・値オブジェクト
+### エンティティ
 
 #### 投稿
 
 ```typescript
+export const postStatusSchema = z.enum(["POSTED", "ERROR"]);
+export type PostStatus = z.infer<typeof postStatusSchema>;
+
 export const postSchema = z.object({
   id: idSchema,
   userId: idSchema,
   noteId: idSchema,
-  uri: blueskyURISchema,
-  cid: z.string().nonempty(),
   status: postStatusSchema,
-  postedAt: dateSchema.nullable().default(null),
-  metadata: metadataSchema
+  createdAt: z.date(),
+  updatedAt: z.date()
 });
 export type Post = z.infer<typeof postSchema>;
-```
-
-#### 投稿ステータス
-
-```typescript
-export const postStatusSchema = z.enum([
-  "POSTED",
-  "FAILED"
-]);
-export type PostStatus = z.infer<typeof postStatusSchema>;
 ```
 
 #### エンゲージメント
 
 ```typescript
 export const engagementSchema = z.object({
-  likes: z.number().int().nonnegative(),
-  reposts: z.number().int().nonnegative(),
-  replies: z.number().int().nonnegative(),
-  quotes: z.number().int().nonnegative()
+  likes: z.number().default(0),
+  reposts: z.number().default(0),
+  quotes: z.number().default(0),
+  replies: z.number().default(0)
 });
 export type Engagement = z.infer<typeof engagementSchema>;
 ```
 
-#### コメント
+#### 投稿設定
 
 ```typescript
-export const commentSchema = z.object({
-  uri: blueskyURISchema,
-  content: z.string().nonempty(),
-  from: z.string().nonempty(),
-  createdAt: dateSchema
-});
-export type Comment = z.infer<typeof commentSchema>;
-```
-
-#### BlueskyURI
-
-```typescript
-export const blueskyURISchema = z.string().regex(/^at:\/\/[^/]+\/[^/]+\/[^/]+$/);
-export type BlueskyURI = z.infer<typeof blueskyURISchema>;
-```
-
-### リポジトリインターフェース
-
-#### 投稿リポジトリ
-
-```typescript
-export interface PostRepository {
-  findById(id: ID): Promise<Result<Post | null, RepositoryError>>;
-  findByNoteId(noteId: ID): Promise<Result<Post | null, RepositoryError>>;
-  findByUserId(userId: ID): Promise<Result<Post[], RepositoryError>>;
-  findByUserIdAndStatus(userId: ID, status: PostStatus): Promise<Result<Post[], RepositoryError>>;
-  save(post: Post): Promise<Result<Post, RepositoryError>>;
-  delete(id: ID): Promise<Result<void, RepositoryError>>;
-}
-```
-
-### ドメインサービスインターフェース
-
-#### 投稿サービス
-
-```typescript
-export interface PostingService {
-  createPost(userId: ID, noteId: ID): Promise<Result<Post, PostError>>;
-  updatePost(postId: ID, content: string): Promise<Result<Post, PostError>>;
-  deletePost(postId: ID): Promise<Result<void, PostError>>;
-}
-```
-
-#### エンゲージメント取得サービス
-
-```typescript
-export interface EngagementService {
-  getEngagement(postUri: BlueskyURI): Promise<Result<Engagement, EngagementError>>;
-  getComments(postUri: BlueskyURI, limit?: number): Promise<Result<Comment[], EngagementError>>;
-}
-```
-
-## アプリケーション層
-
-### ユースケース入力/出力の型定義
-
-#### ノート投稿入力
-
-```typescript
-export const postNoteInputSchema = z.object({
+export const postSettingsSchema = z.object({
+  id: idSchema,
   userId: idSchema,
-  noteId: idSchema,
+  defaultStatus: postStatusSchema.default("DRAFT"),
+  autoPublish: z.boolean().default(false),
+  publishPlatforms: z.array(publishConfigSchema).default([]),
+  metadata: metadataSchema
 });
-export type PostNoteInput = z.infer<typeof postNoteInputSchema>;
+export type PostSettings = z.infer<typeof postSettingsSchema>;
 ```
 
-#### エンゲージメント取得入力
+### エラー
 
-```typescript
-export const getEngagementInputSchema = z.object({
-  postUri: blueskyURISchema
-});
-export type GetEngagementInput = z.infer<typeof getEngagementInputSchema>;
-```
-
-#### 投稿ステータス確認入力
-
-```typescript
-export const checkPostStatusInputSchema = z.object({
-  postId: idSchema
-});
-export type CheckPostStatusInput = z.infer<typeof checkPostStatusInputSchema>;
-```
-
-### ユースケースインターフェース
-
-#### ノート投稿ユースケース
-
-```typescript
-export interface PostNoteUseCase {
-  execute(input: PostNoteInput): Promise<Result<Post, PostError>>;
-}
-```
-
-#### エンゲージメント取得ユースケース
-
-```typescript
-export interface GetEngagementUseCase {
-  execute(input: GetEngagementInput): Promise<Result<Engagement, EngagementError>>;
-}
-```
-
-#### 投稿ステータス確認ユースケース
-
-```typescript
-export interface CheckPostStatusUseCase {
-  execute(input: CheckPostStatusInput): Promise<Result<Post, PostError>>;
-}
-```
-
-### アプリケーションエラー
-
-#### 投稿エラー
+#### 投稿管理エラー
 
 ```typescript
 export const postErrorCodeSchema = z.enum([
+  // 投稿関連
+  "POST_FAILED",
+  "POST_NOT_FOUND",
+  "INVALID_POST_CONTENT",
+  // エンゲージメント関連
+  "ENGAGEMENT_FETCH_FAILED",
+  "INVALID_ENGAGEMENT_DATA",
+  // 認証関連
   "UNAUTHORIZED",
-  "RATE_LIMITED",
-  "CONTENT_REJECTED",
-  "CONNECTION_ERROR",
-  "UNKNOWN_ERROR"
+  "AUTHENTICATION_FAILED"
 ]);
 export type PostErrorCode = z.infer<typeof postErrorCodeSchema>;
 
@@ -179,20 +76,83 @@ export interface PostError extends AnyError {
 }
 ```
 
-#### エンゲージメント取得エラー
+### アダプターインターフェース
+
+#### Blueskyアダプター
 
 ```typescript
-export const engagementErrorCodeSchema = z.enum([
-  "POST_NOT_FOUND",
-  "CONNECTION_ERROR",
-  "UNKNOWN_ERROR"
-]);
-export type EngagementErrorCode = z.infer<typeof engagementErrorCodeSchema>;
+export interface BlueskyPostProvider {
+  createPost(repo: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>;
+  getEngagement(uri: string): Promise<Result<Engagement, ExternalServiceError>>;
+}
 
-export interface EngagementError extends AnyError {
-  name: "EngagementError";
-  type: EngagementErrorCode;
-  message: string;
-  cause?: Error;
+export interface BlueskyPost {
+  uri: string;
+  cid: string;
+}
+```
+
+### リポジトリインターフェース
+
+```typescript
+export interface PostRepository {
+  save(post: Post): Promise<Result<Post, RepositoryError>>;
+  findById(id: string): Promise<Result<Post, RepositoryError>>;
+  findByNoteId(noteId: string): Promise<Result<Post, RepositoryError>>;
+  findByUserId(userId: string): Promise<Result<Post[], RepositoryError>>;
+  delete(id: string): Promise<Result<void, RepositoryError>>;
+}
+```
+
+### ユースケース
+
+#### ノートを投稿する
+
+```typescript
+export interface PostNoteInput {
+  userId: string;
+  noteId: string;
+  text: string;
+}
+
+export interface PostNoteUseCase {
+  execute(input: PostNoteInput): Promise<Result<Post, PostError>>;
+}
+```
+
+#### エンゲージメントを取得する
+
+```typescript
+export interface GetEngagementInput {
+  noteId: string;
+}
+
+export interface GetEngagementUseCase {
+  execute(input: GetEngagementInput): Promise<Result<Engagement, PostError>>;
+}
+```
+
+#### 投稿のステータスを確認する
+
+```typescript
+export interface CheckPostStatusInput {
+  noteId: string;
+}
+
+export interface CheckPostStatusUseCase {
+  execute(input: CheckPostStatusInput): Promise<Result<PostStatus, PostError>>;
+}
+```
+
+#### 投稿を再試行する
+
+```typescript
+export interface RetryPostInput {
+  userId: string;
+  noteId: string;
+}
+
+export interface RetryPostUseCase {
+  execute(input: RetryPostInput): Promise<Result<Post, PostError>>;
 }
 ```

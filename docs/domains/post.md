@@ -18,84 +18,65 @@
 - 投稿ステータスの追跡
 - エンゲージメント情報の取得
 
-## 外部システムとの関係
-
-- **Bluesky**: ATプロトコルを通じた投稿先のプラットフォーム
-
 ## ドメイン層
 
 ### エンティティ
 
-- 投稿
-  - 型定義: [Post型](../domain-types/post.md#投稿)
-
-### 値オブジェクト
-
-- PostStatus
-  - 型定義: [PostStatus型](../domain-types/post.md#PostStatus)
-  - 説明: 投稿の状態を表す値オブジェクト
-- BlueskyURI
-  - 型定義: [BlueskyURI型](../domain-types/post.md#BlueskyURI)
-- Engagement
-  - 型定義: [Engagement型](../domain-types/post.md#Engagement)
-  - 説明: Blueskyからの反応情報（いいね、リポスト、引用、返信など）を表す値オブジェクト
-- Comment
-  - 型定義: [Comment型](../domain-types/post.md#Comment)
-
-### 集約
-
-- 投稿集約
-  - ルートエンティティ: Post
-  - 責務: 投稿情報の管理
+- 投稿: [Post](../domain-types/post.md#投稿)
+  - id, userId, noteId, status, createdAt, updatedAt
+- エンゲージメント: [Engagement](../domain-types/post.md#エンゲージメント)
+  - likes, reposts, quotes, replies
+  - Blueskyからの反応情報（いいね、リポスト、引用、返信など）
 
 ### リポジトリ
 
-- 投稿リポジトリ
-  - 責務: 投稿エンティティの永続化と取得
-  - 型定義: [PostRepository](../domain-types/post.md#投稿リポジトリ)
+- 投稿リポジトリ: [PostRepository](../domain-types/post.md#リポジトリインターフェース)
 
-### ドメインサービス
+### アダプターインターフェース
 
-- 投稿サービス（PostingService）
-  - 責務: Blueskyへの投稿処理
-  - 型定義: [PostingService](../domain-types/post.md#投稿サービス)
-- エンゲージメント取得サービス（EngagementService）
-  - 責務: Blueskyからのエンゲージメント情報取得処理
-  - 型定義: [EngagementService](../domain-types/post.md#エンゲージメント取得サービス)
+#### Blueskyアダプター: [BlueskyPostProvider](../domain-types/post.md#blueskyアダプター)
+
+- `createPost(repo: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>`
+- `getEngagement(uri: string): Promise<Result<Engagement, ExternalServiceError>>`
 
 ## アプリケーション層
 
 ### ユースケース
 
-#### 1. ノートを投稿する
+#### ノートを投稿する
 
-- 実装: `PostNoteUseCase`
-- 入力: ユーザーID、ノートID
-- 出力: 作成された投稿情報
+- 実装: [PostNoteUseCase](../domain-types/post.md#ノートを投稿する)
+- 入力: [PostNoteInput](../domain-types/post.md#ノートを投稿する)
+  - userId, noteId, text
+- 出力: Result<Post, PostError>
 - 処理: ノートをBlueskyに投稿し、投稿情報を保存
-- 型定義: [PostNoteUseCase](../domain-types/post.md#ノート投稿ユースケース)
 
-#### 2. エンゲージメントを取得する
+#### エンゲージメントを取得する
 
-- 実装: `GetEngagementUseCase`
-- 入力: 投稿URI
-- 出力: 取得したエンゲージメント情報
-- 処理: 特定のノートに紐づく投稿のエンゲージメント情報をBlueskyから取得する
-- 型定義: [GetEngagementUseCase](../domain-types/post.md#エンゲージメント取得ユースケース)
+- 実装: [GetEngagementUseCase](../domain-types/post.md#エンゲージメントを取得する)
+- 入力: [GetEngagementInput](../domain-types/post.md#エンゲージメントを取得する)
+  - noteId
+- 出力: Result<Engagement, PostError>
+- 処理: ノートに紐づいた投稿のエンゲージメント情報をBlueskyから取得する
 
-#### 3. 投稿のステータスを確認する
+#### 投稿のステータスを確認する
 
-- 実装: `CheckPostStatusUseCase`
-- 入力: 投稿ID
-- 出力: 投稿ステータス情報
-- 処理: 投稿の現在のステータスを確認
-- 型定義: [CheckPostStatusUseCase](../domain-types/post.md#投稿ステータス確認ユースケース)
+- 実装: [CheckPostStatusUseCase](../domain-types/post.md#投稿のステータスを確認する)
+- 入力: [CheckPostStatusInput](../domain-types/post.md#投稿のステータスを確認する)
+  - noteId
+- 出力: Result<PostStatus, PostError>
+- 処理: ノートに紐づいた投稿の現在のステータスを確認
+
+#### 投稿を再試行する
+ 
+- 実装: [RetryPostUseCase](../domain-types/post.md#投稿を再試行する)
+- 入力: [RetryPostInput](../domain-types/post.md#投稿を再試行する)
+  - userId, noteId
+- 出力: Result<Post, PostError>
+- 処理: 失敗した投稿を再試行する
 
 ## エラー処理
 
 投稿管理コンテキストでは、以下のエラーを定義しています：
 
-- 投稿エラー
-  - 型定義: [PostError](../domain-types/post.md#投稿エラー)
-- エンゲージメント取得エラー
-  - 型定義: [EngagementError](../domain-types/post.md#エンゲージメント取得エラー)
+- 投稿管理エラー: [PostError](../domain-types/post.md#投稿管理エラー)
