@@ -4,69 +4,55 @@
 
 ## 完了したタスク
 
-### フェーズ1: 共有カーネルの実装
+### Phase 1: 共有カーネルの実装
+- 共有カーネルコンポーネントの実装
+  - ロギング機能
+  - Result型の実装（neverthrow）
+  - 共通型/インターフェース定義
+  - バリデーションスキーマ
 
-#### ステップ1.1 外部ユーティリティーの実装
+### Phase 2: ドメイン層の実装
+- アカウント管理コンテキスト
+  - エンティティ: User, GitHubConnection
+  - 値オブジェクト: Profile, Session
+  - DTO: GitHubInstallation
+  - エラー型: AccountError
+  - リポジトリインターフェース: UserRepository, GitHubConnectionRepository
+  - アダプターインターフェース: GitHubAppProvider, GitHubContentProvider, BlueskyAuthProvider, SessionManager
 
-- [x] ロギング機能の実装（構造化ロギング・グローバルシングルトン）
-  - winstonを使用したロガーをシングルトンとして実装
-  - ログレベル、メッセージ、メタデータをサポート
-  - 環境に応じた出力先の切り替え（コンソール、ファイル）
+- ノート管理コンテキスト
+  - エンティティ: Note, Book, Tag
+  - 値オブジェクト: BookDetails, SyncStatus
+  - エラー型: NoteError
+  - リポジトリインターフェース: NoteRepository, BookRepository, TagRepository
+  - アダプターインターフェース: GitHubContentProvider
 
-- [x] Result型の実装（neverthrowの活用）
-  - neverthrowをラップしたResult型の実装
-  - Ok, Err型の提供
-  - fromPromise, fromThrowable, fromAsyncThrowableなどのユーティリティ関数の提供
-  - combine, combineAsyncによる複数Result値の結合機能
-  - withErrorLoggingによるエラーログ機能の提供
+- 投稿管理コンテキスト
+  - エンティティ: Post
+  - 値オブジェクト: Engagement
+  - DTO: BlueskyPost, DID
+  - エラー型: PostError
+  - リポジトリインターフェース: PostRepository
+  - アダプターインターフェース: BlueskyPostProvider
 
-#### ステップ1.2 共通型／インターフェース定義の実装
+## 次のステップ
 
-- [x] ID型の実装（UUIDベース）
-  - 型安全なID型の実装（ブランド型）
-  - UUID検証機能
-  - ID生成、解析機能の提供
-  - ZodスキーマによるIDバリデーション
+### Phase 3: インフラストラクチャ層の実装
+1. 基本インフラストラクチャの実装
+   - DIコンテナの設定
+   - 環境変数管理
+   - HTTPクライアントの共通実装
 
-- [x] 日付型の実装
-  - 型安全な日付型の実装（ブランド型）
-  - date-fnsを活用した日付操作機能
-  - 複数フォーマットのサポート
-  - Zodスキーマによるバリデーション
+2. データベース基盤
+   - Drizzleのセットアップ
+   - マイグレーション管理の設定
+   - スキーマ定義（各コンテキスト）
 
-- [x] 共通エラー型の実装（AnyError）
-  - 共通インターフェースの定義
-  - エラー種別によるエラーの分類
-  - バリデーション、認証、アクセス権、未検出、競合、内部、外部、ネットワークなどのエラータイプ
-  - 継承可能な基本エラークラス
-  - 未知のエラーを既知のエラー型に変換する機能
+3. リポジトリの実装
+   - 各コンテキストのリポジトリ実装
 
-- [x] バリデーション用のZodスキーマ定義
-  - 共通バリデーションメッセージ
-  - 文字列、数値、配列などの型に対する共通バリデーションスキーマ生成関数
-  - Zodエラーのフォーマット機能
-  - Result型と統合したバリデーション関数
-
-## 次のステップ: フェーズ2
-
-### ドメイン層の実装
-
-次のステップでは、ドメイン層の実装を進めます。以下の順序で実装していきます：
-
-1. アカウント管理コンテキスト
-   - エンティティ（User, GitHubConnection）
-   - 値オブジェクト（Profile, Session）
-   - エラー型（AccountError）
-   - リポジトリ・アダプターインターフェース
-
-2. ノート管理コンテキスト
-   - エンティティ（Note, Book, Tag）
-   - 値オブジェクト（BookDetails, SyncStatus）
-   - エラー型（NoteError）
-   - リポジトリ・アダプターインターフェース
-
-3. 投稿管理コンテキスト
-   - エンティティ（Post, Engagement）
-   - 値オブジェクト（PostSettings）
-   - エラー型（PostError）
-   - リポジトリ・アダプターインターフェース 
+4. 外部サービス連携
+   - Bluesky認証
+   - GitHub連携
+   - セッション管理
+   - Bluesky投稿 
