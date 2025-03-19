@@ -12,7 +12,7 @@ export const gitHubConnectionSchema = z.object({
   accessToken: z.string().nonempty(),
   refreshToken: z.string().optional(),
   expiresAt: z.date().optional(),
-  scope: z.array(z.string()).default([]),
+  scope: z.string(),
   createdAt: z.date(),
   updatedAt: z.date()
 });

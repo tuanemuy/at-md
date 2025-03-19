@@ -1,6 +1,6 @@
 {
-  "id": "69a97b07-f67b-4bac-8ede-c64379d47251",
-  "prevId": "fac951b7-ffc2-4d28-bcab-67f35e692258",
+  "id": "c27fb635-3ec0-4eab-9780-230da15d2b85",
+  "prevId": "fa434d95-0b63-4e6e-a873-67ba47918395",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -302,7 +302,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "owner_repo_idx": {
+          "name": "owner_repo_idx",
+          "columns": [
+            {
+              "expression": "owner",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "repo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "books_user_id_users_id_fk": {
           "name": "books_user_id_users_id_fk",
@@ -446,7 +468,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "book_path_idx": {
+          "name": "book_path_idx",
+          "columns": [
+            {
+              "expression": "book_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "notes_user_id_users_id_fk": {
           "name": "notes_user_id_users_id_fk",
@@ -574,94 +618,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.engagements": {
-      "name": "engagements",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "post_id": {
-          "name": "post_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_updated_at": {
-          "name": "last_updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "likes": {
-          "name": "likes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "reposts": {
-          "name": "reposts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "quotes": {
-          "name": "quotes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "replies": {
-          "name": "replies",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+      "uniqueConstraints": {
+        "tags_name_unique": {
+          "name": "tags_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {
-        "engagements_post_id_posts_id_fk": {
-          "name": "engagements_post_id_posts_id_fk",
-          "tableFrom": "engagements",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -700,26 +665,20 @@
           "primaryKey": false,
           "notNull": true
         },
-        "platform_post_id": {
-          "name": "platform_post_id",
+        "post_uri": {
+          "name": "post_uri",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "scheduled_at": {
-          "name": "scheduled_at",
-          "type": "timestamp",
+        "post_cid": {
+          "name": "post_cid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error_details": {
-          "name": "error_details",
+        "error_message": {
+          "name": "error_message",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -1,14 +1,17 @@
-import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import { expect, test, beforeEach, beforeAll, afterAll } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
-import { type User, Profile } from "@/domain/account/models";
+import type { User } from "@/domain/account/models";
+import type { CreateUser, UpdateUser } from "@/domain/account/repositories";
 import { DrizzleUserRepository } from "../user-repository";
+import { RepositoryErrorCode } from "@/domain/types/error";
 import { 
   setupTestDatabase, 
   cleanupTestDatabase, 
   closeTestDatabase,
   getTestDatabase
 } from "../../../__test__/setup";
+import { users } from "@/infrastructure/db/schema/account";
 
 // テスト用のデータベース
 let client: PGlite;
@@ -17,16 +20,45 @@ let userRepository: DrizzleUserRepository;
 // テスト用のユーザーデータ
 const createTestUser = (): User => ({
   id: uuidv7(),
-  did: `did:plc:${uuidv7()}`,
+  did: `did:example:${Math.floor(Math.random() * 1000)}`,
   profile: {
     displayName: "テストユーザー",
     description: "これはテスト用のユーザーです。",
     avatarUrl: "https://example.com/avatar.png",
-    bannerUrl: null
+    bannerUrl: "https://example.com/banner.png"
   },
   createdAt: new Date(),
   updatedAt: new Date()
 });
+
+// テスト用のCreateUserデータ
+const createTestCreateUser = (): CreateUser => {
+  const user = createTestUser();
+  return {
+    did: user.did,
+    profile: {
+      displayName: user.profile.displayName || "",
+      description: user.profile.description || "",
+      avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
+      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png"
+    }
+  };
+};
+
+// テスト用のUpdateUserデータ
+const createTestUpdateUser = (id: string): UpdateUser => {
+  const user = createTestUser();
+  return {
+    id,
+    did: user.did,
+    profile: {
+      displayName: "更新されたユーザー名",
+      description: "更新された説明文",
+      avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
+      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png"
+    }
+  };
+};
 
 // テストの前に一度だけDBをセットアップ
 beforeAll(async () => {
@@ -46,53 +78,45 @@ afterAll(async () => {
   await closeTestDatabase(client);
 });
 
-test("新規ユーザーを保存するとユーザーが正常に作成されること", async () => {
+test("新規ユーザーを作成するとユーザーが正常に作成されること", async () => {
   // 準備
-  const testUser = createTestUser();
+  const testUser = createTestCreateUser();
   
   // 実行
-  const result = await userRepository.save(testUser);
+  const result = await userRepository.create(testUser);
   
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedUser) => {
-    expect(savedUser.id).toBe(testUser.id);
     expect(savedUser.did).toBe(testUser.did);
-    expect(savedUser.profile.displayName).toBe(testUser.profile.displayName);
-    expect(savedUser.profile.description).toBe(testUser.profile.description);
-    expect(savedUser.profile.avatarUrl).toBe(testUser.profile.avatarUrl);
-    expect(savedUser.profile.bannerUrl).toBe(testUser.profile.bannerUrl);
+    expect(savedUser.profile).toEqual(testUser.profile);
     expect(savedUser.createdAt).toBeInstanceOf(Date);
     expect(savedUser.updatedAt).toBeInstanceOf(Date);
   });
 });
 
 test("既存ユーザーを更新するとユーザー情報が正常に更新されること", async () => {
-  // 準備 - 最初のユーザーを保存
-  const testUser = createTestUser();
-  await userRepository.save(testUser);
+  // 準備 - 最初のユーザーを作成
+  const createData = createTestCreateUser();
+  const createResult = await userRepository.create(createData);
+  
+  let userId = "";
+  createResult.map((user) => {
+    userId = user.id;
+  });
   
   // 更新用のユーザー情報
-  const updatedUser: User = {
-    ...testUser,
-    profile: {
-      ...testUser.profile,
-      displayName: "更新されたユーザー名",
-      description: "更新された説明文"
-    },
-    updatedAt: new Date()
-  };
+  const updateData = createTestUpdateUser(userId);
   
   // 実行
-  const result = await userRepository.save(updatedUser);
+  const result = await userRepository.update(updateData);
   
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedUser) => {
-    expect(savedUser.id).toBe(testUser.id);
-    expect(savedUser.did).toBe(testUser.did);
-    expect(savedUser.profile.displayName).toBe(updatedUser.profile.displayName);
-    expect(savedUser.profile.description).toBe(updatedUser.profile.description);
+    expect(savedUser.id).toBe(userId);
+    expect(savedUser.profile.displayName).toBe(updateData.profile.displayName);
+    expect(savedUser.profile.description).toBe(updateData.profile.description);
     expect(savedUser.createdAt).toBeInstanceOf(Date);
     expect(savedUser.updatedAt).toBeInstanceOf(Date);
   });
@@ -100,20 +124,25 @@ test("既存ユーザーを更新するとユーザー情報が正常に更新�
 
 test("存在するIDでユーザーを検索するとユーザーが取得できること", async () => {
   // 準備
-  const testUser = createTestUser();
-  await userRepository.save(testUser);
+  const createData = createTestCreateUser();
+  const createResult = await userRepository.create(createData);
+  
+  let userId = "";
+  createResult.map((user) => {
+    userId = user.id;
+  });
   
   // 実行
-  const result = await userRepository.findById(testUser.id);
+  const result = await userRepository.findById(userId);
   
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
     expect(user).not.toBeNull();
     if (user) {
-      expect(user.id).toBe(testUser.id);
-      expect(user.did).toBe(testUser.did);
-      expect(user.profile.displayName).toBe(testUser.profile.displayName);
+      expect(user.id).toBe(userId);
+      expect(user.did).toBe(createData.did);
+      expect(user.profile).toEqual(createData.profile);
     }
   });
 });
@@ -134,27 +163,26 @@ test("存在しないIDでユーザーを検索するとnullが返されるこ�
 
 test("存在するDIDでユーザーを検索するとユーザーが取得できること", async () => {
   // 準備
-  const testUser = createTestUser();
-  await userRepository.save(testUser);
+  const createData = createTestCreateUser();
+  const createResult = await userRepository.create(createData);
   
   // 実行
-  const result = await userRepository.findByDid(testUser.did);
+  const result = await userRepository.findByDid(createData.did);
   
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
     expect(user).not.toBeNull();
     if (user) {
-      expect(user.id).toBe(testUser.id);
-      expect(user.did).toBe(testUser.did);
-      expect(user.profile.displayName).toBe(testUser.profile.displayName);
+      expect(user.did).toBe(createData.did);
+      expect(user.profile).toEqual(createData.profile);
     }
   });
 });
 
 test("存在しないDIDでユーザーを検索するとnullが返されること", async () => {
   // 準備
-  const nonExistentDid = `did:plc:${uuidv7()}`;
+  const nonExistentDid = "did:example:nonexistent";
   
   // 実行
   const result = await userRepository.findByDid(nonExistentDid);
@@ -168,21 +196,43 @@ test("存在しないDIDでユーザーを検索するとnullが返されるこ�
 
 test("ユーザーを削除すると該当ユーザーが削除されること", async () => {
   // 準備
-  const testUser = createTestUser();
-  await userRepository.save(testUser);
+  const createData = createTestCreateUser();
+  const createResult = await userRepository.create(createData);
   
-  // 実行 - 削除
-  const deleteResult = await userRepository.delete(testUser.id);
+  let userId = "";
+  createResult.map((user) => {
+    userId = user.id;
+  });
   
-  // 検証 - 削除成功
+  // 実行
+  const deleteResult = await userRepository.delete(userId);
+  
+  // 検証
   expect(deleteResult.isOk()).toBe(true);
   
-  // 実行 - 確認
-  const findResult = await userRepository.findById(testUser.id);
-  
-  // 検証 - 削除確認
+  // 削除されたことを確認
+  const findResult = await userRepository.findById(userId);
   expect(findResult.isOk()).toBe(true);
   findResult.map((user) => {
     expect(user).toBeNull();
+  });
+});
+
+test("重複するDIDでユーザーを作成すると失敗すること", async () => {
+  // 準備 - 最初のユーザーを作成
+  const createData = createTestCreateUser();
+  await userRepository.create(createData);
+  
+  // 同じDIDで別のユーザーを作成
+  const duplicateData = createTestCreateUser();
+  duplicateData.did = createData.did;
+  
+  // 実行
+  const result = await userRepository.create(duplicateData);
+  
+  // 検証
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
   });
 }); 

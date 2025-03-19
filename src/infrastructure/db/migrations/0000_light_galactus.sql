@@ -1,17 +1,10 @@
-CREATE TABLE "github_connection_scopes" (
-	"connection_id" uuid NOT NULL,
-	"scope" text NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "github_connection_scopes_connection_id_scope_pk" PRIMARY KEY("connection_id","scope")
-);
---> statement-breakpoint
 CREATE TABLE "github_connections" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
 	"access_token" text NOT NULL,
 	"refresh_token" text,
 	"expires_at" timestamp,
+	"scope" text DEFAULT '' NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -81,7 +74,8 @@ CREATE TABLE "tags" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "tags_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
 CREATE TABLE "engagements" (
@@ -102,15 +96,15 @@ CREATE TABLE "posts" (
 	"note_id" uuid NOT NULL,
 	"status" text NOT NULL,
 	"platform" text NOT NULL,
-	"platform_post_id" text,
+	"post_uri" text,
+	"post_cid" text,
 	"scheduled_at" timestamp,
 	"published_at" timestamp,
-	"error_details" text,
+	"error_message" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "github_connection_scopes" ADD CONSTRAINT "github_connection_scopes_connection_id_github_connections_id_fk" FOREIGN KEY ("connection_id") REFERENCES "public"."github_connections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "github_connections" ADD CONSTRAINT "github_connections_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "profiles" ADD CONSTRAINT "profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "book_details" ADD CONSTRAINT "book_details_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -122,4 +116,6 @@ ALTER TABLE "notes" ADD CONSTRAINT "notes_book_id_books_id_fk" FOREIGN KEY ("boo
 ALTER TABLE "sync_statuses" ADD CONSTRAINT "sync_statuses_book_id_books_id_fk" FOREIGN KEY ("book_id") REFERENCES "public"."books"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "engagements" ADD CONSTRAINT "engagements_post_id_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."posts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "posts" ADD CONSTRAINT "posts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "posts" ADD CONSTRAINT "posts_note_id_notes_id_fk" FOREIGN KEY ("note_id") REFERENCES "public"."notes"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "posts" ADD CONSTRAINT "posts_note_id_notes_id_fk" FOREIGN KEY ("note_id") REFERENCES "public"."notes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "owner_repo_idx" ON "books" USING btree ("owner","repo");--> statement-breakpoint
+CREATE UNIQUE INDEX "book_path_idx" ON "notes" USING btree ("book_id","path");

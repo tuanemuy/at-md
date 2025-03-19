@@ -1,7 +1,9 @@
-import { pgTable, text, uuid, timestamp, primaryKey, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./account";
 import { v7 as uuidv7 } from "uuid";
+import { NoteScope } from "@/domain/note/models/note";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
 
 // ブックテーブル（GitHubリポジトリに対応）
 export const books = pgTable("books", {
@@ -11,7 +13,9 @@ export const books = pgTable("books", {
   repo: text("repo").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+}, (t) => ({
+  ownerRepoIndex: uniqueIndex("owner_repo_idx").on(t.owner, t.repo)
+}));
 
 // ブック詳細テーブル
 export const bookDetails = pgTable("book_details", {
@@ -26,7 +30,7 @@ export const bookDetails = pgTable("book_details", {
 export const syncStatuses = pgTable("sync_statuses", {
   bookId: uuid("book_id").primaryKey().references(() => books.id, { onDelete: "cascade" }),
   lastSyncedAt: timestamp("last_synced_at"),
-  status: text("status").notNull().$type<"SYNCING" | "SYNCED" | "ERROR">(),
+  status: text("status").notNull().$type<SyncStatusCode>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -34,7 +38,7 @@ export const syncStatuses = pgTable("sync_statuses", {
 // タグテーブル
 export const tags = pgTable("tags", {
   id: uuid("id").primaryKey().$defaultFn(() => uuidv7()),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -47,10 +51,12 @@ export const notes = pgTable("notes", {
   path: text("path").notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
-  scope: text("scope").notNull().$type<"public" | "private" | "limited">().default("public"),
+  scope: text("scope").notNull().$type<NoteScope>().default(NoteScope.PUBLIC),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
+}, (t) => ({
+  bookPathIndex: uniqueIndex("book_path_idx").on(t.bookId, t.path)
+}));
 
 // ノートとタグの多対多関係を表すジャンクションテーブル
 export const noteTags = pgTable("note_tags", {

@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { type Result, err, ok } from "@/lib/result";
-import { v7 as uuidv7 } from "uuid";
 import type { User } from "@/domain/account/models";
-import type { UserRepository } from "@/domain/account/repositories";
+import { userSchema } from "@/domain/account/models";
+import type { UserRepository, CreateUser, UpdateUser } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   type PgDatabase,
@@ -18,24 +18,14 @@ export class DrizzleUserRepository implements UserRepository {
   constructor(private readonly db: PgDatabase) {}
 
   /**
-   * ユーザーを保存する
-   * 新規作成または更新を行う
+   * ユーザーを作成する
    */
-  async save(user: User): Promise<Result<User, RepositoryError>> {
+  async create(user: CreateUser): Promise<Result<User, RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
         const [savedUser] = await tx
           .insert(users)
-          .values({
-            id: user.id,
-            did: user.did,
-          })
-          .onConflictDoUpdate({
-            target: users.id,
-            set: {
-              did: user.did,
-            },
-          })
+          .values(user)
           .returning();
 
         if (!savedUser) {
@@ -46,11 +36,7 @@ export class DrizzleUserRepository implements UserRepository {
           .insert(profiles)
           .values({
             userId: savedUser.id,
-            ...user.profile,
-          })
-          .onConflictDoUpdate({
-            target: profiles.userId,
-            set: { ...user.profile },
+            ...user.profile
           })
           .returning();
 
@@ -58,7 +44,16 @@ export class DrizzleUserRepository implements UserRepository {
           throw new Error("Failed to save profile");
         }
 
-        return { ...savedUser, profile: savedProfile };
+        const parsed = userSchema.safeParse({
+          ...savedUser,
+          profile: savedProfile,
+        });
+
+        if (!parsed.success) {
+          throw new Error("Failed to parse user data");
+        }
+
+        return parsed.data;
       });
 
       return ok(result);
@@ -67,7 +62,69 @@ export class DrizzleUserRepository implements UserRepository {
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to save user",
+          "Failed to create user",
+          error,
+        ),
+      );
+    }
+  }
+
+  /**
+   * ユーザーを更新する
+   */
+  async update(user: UpdateUser): Promise<Result<User, RepositoryError>> {
+    try {
+      const [updatedUser] = await this.db
+        .update(users)
+        .set(user)
+        .where(eq(users.id, user.id))
+        .returning();
+
+      if (!updatedUser) {
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.DATA_ERROR,
+            "User not found",
+          ),
+        );
+      }
+
+      const [updatedProfile] = await this.db
+        .update(profiles)
+        .set(user.profile)
+        .where(eq(profiles.userId, user.id))
+        .returning();
+
+      if (!updatedProfile) {
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.DATA_ERROR,
+            "Profile not found",
+          ),
+        );
+      }
+
+      const parsed = userSchema.safeParse({
+        ...updatedUser,
+        profile: updatedProfile,
+      });
+
+      if (!parsed.success) {
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.DATA_ERROR,
+            "Failed to parse user data",
+          ),
+        );
+      }
+
+      return ok(parsed.data);
+    } catch (error) {
+      const code = isDatabaseError(error) ? error.code : undefined;
+      return err(
+        new RepositoryError(
+          codeToRepositoryErrorCode(code),
+          "Failed to update user",
           error,
         ),
       );
@@ -96,12 +153,17 @@ export class DrizzleUserRepository implements UserRepository {
 
         if (profileResult.length === 0) return null;
 
-        return { ...userResult[0], profile: profileResult[0] };
-      });
+        const parsed = userSchema.safeParse({
+          ...userResult[0],
+          profile: profileResult[0],
+        });
 
-      if (result === null) {
-        return ok(null);
-      }
+        if (!parsed.success) {
+          throw new Error("Failed to parse user data");
+        }
+
+        return parsed.data;
+      });
 
       return ok(result);
     } catch (error) {
@@ -138,12 +200,17 @@ export class DrizzleUserRepository implements UserRepository {
 
         if (profileResult.length === 0) return null;
 
-        return { ...userResult[0], profile: profileResult[0] };
-      });
+        const parsed = userSchema.safeParse({
+          ...userResult[0],
+          profile: profileResult[0],
+        });
 
-      if (result === null) {
-        return ok(null);
-      }
+        if (!parsed.success) {
+          throw new Error("Failed to parse user data");
+        }
+
+        return parsed.data;
+      });
 
       return ok(result);
     } catch (error) {

@@ -1,70 +1,9 @@
 {
-  "id": "fac951b7-ffc2-4d28-bcab-67f35e692258",
+  "id": "fa434d95-0b63-4e6e-a873-67ba47918395",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.github_connection_scopes": {
-      "name": "github_connection_scopes",
-      "schema": "",
-      "columns": {
-        "connection_id": {
-          "name": "connection_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "github_connection_scopes_connection_id_github_connections_id_fk": {
-          "name": "github_connection_scopes_connection_id_github_connections_id_fk",
-          "tableFrom": "github_connection_scopes",
-          "tableTo": "github_connections",
-          "columnsFrom": [
-            "connection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "github_connection_scopes_connection_id_scope_pk": {
-          "name": "github_connection_scopes_connection_id_scope_pk",
-          "columns": [
-            "connection_id",
-            "scope"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.github_connections": {
       "name": "github_connections",
       "schema": "",
@@ -98,6 +37,13 @@
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
         },
         "created_at": {
           "name": "created_at",
@@ -356,7 +302,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "owner_repo_idx": {
+          "name": "owner_repo_idx",
+          "columns": [
+            {
+              "expression": "owner",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "repo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "books_user_id_users_id_fk": {
           "name": "books_user_id_users_id_fk",
@@ -500,7 +468,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "book_path_idx": {
+          "name": "book_path_idx",
+          "columns": [
+            {
+              "expression": "book_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "notes_user_id_users_id_fk": {
           "name": "notes_user_id_users_id_fk",
@@ -628,7 +618,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "tags_name_unique": {
+          "name": "tags_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -754,8 +752,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "platform_post_id": {
-          "name": "platform_post_id",
+        "post_uri": {
+          "name": "post_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "post_cid": {
+          "name": "post_cid",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -772,8 +776,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "error_details": {
-          "name": "error_details",
+        "error_message": {
+          "name": "error_message",
           "type": "text",
           "primaryKey": false,
           "notNull": false

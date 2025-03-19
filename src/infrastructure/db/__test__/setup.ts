@@ -33,7 +33,6 @@ export async function cleanupTestDatabase(client: PGlite): Promise<void> {
   await client.query("SET session_replication_role = 'replica'");
 
   // 各テーブルのデータを削除
-  await client.query("TRUNCATE TABLE engagements CASCADE");
   await client.query("TRUNCATE TABLE posts CASCADE");
   await client.query("TRUNCATE TABLE note_tags CASCADE");
   await client.query("TRUNCATE TABLE tags CASCADE");
