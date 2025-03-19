@@ -1,7 +1,7 @@
 /**
  * ノート管理コンテキストのエラー定義
  */
-import { AnyError, ErrorType } from "@/domain/types/error";
+import { AnyError } from "@/domain/types/error";
 
 /**
  * ノート管理関連のエラーコード
@@ -45,41 +45,6 @@ export class NoteError extends AnyError {
     public message: string,
     public cause?: Error | unknown
   ) {
-    const errorType = getErrorTypeForCode(code);
-    super("NoteError", errorType, code, message, cause);
-  }
-}
-
-/**
- * エラーコードからエラータイプを決定するヘルパー関数
- */
-function getErrorTypeForCode(code: NoteErrorCode): ErrorType {
-  switch (code) {
-    case NoteErrorCode.BOOK_NOT_FOUND:
-    case NoteErrorCode.TAG_NOT_FOUND:
-    case NoteErrorCode.NOTE_NOT_FOUND:
-      return ErrorType.NOT_FOUND;
-    
-    case NoteErrorCode.BOOK_ALREADY_EXISTS:
-    case NoteErrorCode.TAG_ALREADY_EXISTS:
-    case NoteErrorCode.NOTE_ALREADY_EXISTS:
-      return ErrorType.CONFLICT;
-    
-    case NoteErrorCode.SYNC_IN_PROGRESS:
-    case NoteErrorCode.SYNC_FAILED:
-    case NoteErrorCode.WEBHOOK_SETUP_FAILED:
-    case NoteErrorCode.SEARCH_FAILED:
-      return ErrorType.EXTERNAL;
-    
-    case NoteErrorCode.INVALID_CONTENT:
-    case NoteErrorCode.PARSE_ERROR:
-    case NoteErrorCode.INVALID_REPOSITORY:
-    case NoteErrorCode.INVALID_TAG_NAME:
-    case NoteErrorCode.INVALID_NOTE_FORMAT:
-    case NoteErrorCode.INVALID_QUERY:
-      return ErrorType.VALIDATION;
-    
-    default:
-      return ErrorType.INTERNAL;
+    super(code, message, cause);
   }
 } 

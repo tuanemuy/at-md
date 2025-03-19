@@ -40,7 +40,7 @@ alwaysApply: true
 
 ## 6. エラー処理にResult型を活用する
 
-- `npm:neverthrow` のResult型を活用する
+- `npm:neverthrow` のResult型（のラッパー）を活用する
 - 具体的なケースを列挙する
 - エラーメッセージを含める
 - 型の網羅性チェックを活用する

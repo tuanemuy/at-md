@@ -1,22 +1,24 @@
 import { z } from "zod";
 import { logger } from "@/lib/logger";
-import type { AppConfig } from "./context";
+import type { AppConfig } from "../context";
 
 // 環境変数のスキーマ定義
 const envSchema = z.object({
   // 基本設定
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
-  
+
   // データベース設定
   DATABASE_URL: z.string().min(1),
-  
+
   // GitHub API設定
   GITHUB_APP_ID: z.string().min(1),
   GITHUB_PRIVATE_KEY: z.string().min(1),
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
-  
+
   // Bluesky API設定
   BLUESKY_SERVICE_URL: z.string().url().default("https://bsky.social"),
 });
@@ -26,7 +28,7 @@ export const loadConfig = (): AppConfig => {
   try {
     // 環境変数を検証
     const env = envSchema.parse(process.env);
-    
+
     return {
       environment: env.NODE_ENV,
       logging: {
@@ -61,4 +63,4 @@ export const loadConfig = (): AppConfig => {
     }
     throw new Error("アプリケーション設定の読み込みに失敗しました");
   }
-}; 
+};

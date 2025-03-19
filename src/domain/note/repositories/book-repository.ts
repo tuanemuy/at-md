@@ -3,7 +3,7 @@
  */
 import type { Result } from "neverthrow";
 import type { Book } from "../models";
-import type { NoteError } from "../models/errors";
+import type { RepositoryError } from "@/domain/types/error";
 
 /**
  * ブックリポジトリのインターフェース
@@ -12,25 +12,25 @@ export interface BookRepository {
   /**
    * ブックを保存する
    */
-  save(book: Book): Promise<Result<Book, NoteError>>;
+  save(book: Book): Promise<Result<Book, RepositoryError>>;
 
   /**
    * 指定したIDのブックを取得する
    */
-  findById(id: string): Promise<Result<Book | null, NoteError>>;
+  findById(id: string): Promise<Result<Book | null, RepositoryError>>;
 
   /**
    * 指定したユーザーIDのブック一覧を取得する
    */
-  findByUserId(userId: string): Promise<Result<Book[], NoteError>>;
+  findByUserId(userId: string): Promise<Result<Book[], RepositoryError>>;
 
   /**
    * 指定したオーナーとリポジトリのブックを取得する
    */
-  findByOwnerAndRepo(owner: string, repo: string): Promise<Result<Book | null, NoteError>>;
+  findByOwnerAndRepo(owner: string, repo: string): Promise<Result<Book | null, RepositoryError>>;
 
   /**
    * 指定したIDのブックを削除する
    */
-  delete(id: string): Promise<Result<void, NoteError>>;
+  delete(id: string): Promise<Result<void, RepositoryError>>;
 } 

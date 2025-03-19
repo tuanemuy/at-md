@@ -3,7 +3,7 @@
  */
 import type { Result } from "neverthrow";
 import type { User } from "../models";
-import type { AccountError } from "../models/errors";
+import type { RepositoryError } from "@/domain/types/error";
 
 /**
  * ユーザーリポジトリのインターフェース
@@ -12,20 +12,20 @@ export interface UserRepository {
   /**
    * ユーザーを保存する
    */
-  save(user: User): Promise<Result<User, AccountError>>;
+  save(user: User): Promise<Result<User, RepositoryError>>;
 
   /**
    * 指定したIDのユーザーを取得する
    */
-  findById(id: string): Promise<Result<User | null, AccountError>>;
+  findById(id: string): Promise<Result<User | null, RepositoryError>>;
 
   /**
    * 指定したDIDのユーザーを取得する
    */
-  findByDid(did: string): Promise<Result<User | null, AccountError>>;
+  findByDid(did: string): Promise<Result<User | null, RepositoryError>>;
 
   /**
    * 指定したIDのユーザーを削除する
    */
-  delete(id: string): Promise<Result<void, AccountError>>;
+  delete(id: string): Promise<Result<void, RepositoryError>>;
 } 

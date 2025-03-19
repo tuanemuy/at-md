@@ -1,5 +1,5 @@
 import { expect, test, vi, beforeEach } from "vitest";
-import { loadConfig } from "../config";
+import { loadConfig } from "../../config";
 
 // スナップショットを保存する
 vi.mock("@/lib/logger", () => ({
@@ -18,11 +18,11 @@ beforeEach(() => {
   // 環境変数をリセット
   vi.resetModules();
   // テスト用の環境変数を設定
-  process.env = { } as NodeJS.ProcessEnv;
-  
+  process.env = {} as NodeJS.ProcessEnv;
+
   // consoleのエラーを抑制（テスト時に余計なログを表示しないため）
-  vi.spyOn(console, 'error').mockImplementation(() => {});
-  
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
   return () => {
     // テスト後に環境変数を元に戻す
     process.env = { ...originalEnv };
@@ -83,7 +83,9 @@ test("必須の環境変数が不足している場合にエラーをスロー�
   });
 
   // 設定ロードでエラーが発生することを検証
-  expect(() => loadConfig()).toThrow("アプリケーション設定の読み込みに失敗しました");
+  expect(() => loadConfig()).toThrow(
+    "アプリケーション設定の読み込みに失敗しました",
+  );
 });
 
 test("環境変数の検証が正しく行われること", () => {
@@ -100,7 +102,9 @@ test("環境変数の検証が正しく行われること", () => {
   });
 
   // 設定ロードでZodエラーが発生することを検証
-  expect(() => loadConfig()).toThrow("アプリケーション設定の読み込みに失敗しました");
+  expect(() => loadConfig()).toThrow(
+    "アプリケーション設定の読み込みに失敗しました",
+  );
 });
 
 test("デフォルト値が適用されること", () => {
@@ -122,4 +126,4 @@ test("デフォルト値が適用されること", () => {
   expect(config.environment).toEqual("development"); // デフォルト値
   expect(config.logging.level).toEqual("info"); // デフォルト値
   expect(config.api.bluesky.serviceUrl).toEqual("https://bsky.social"); // デフォルト値
-}); 
+});

@@ -41,18 +41,27 @@
   - 環境変数管理（dotenvとzodによる型安全な設定）
   - HTTPクライアントの共通実装（エラーハンドリングとResult型統合）
 
+- データベース基盤の実装
+  - Drizzleのセットアップ
+  - マイグレーション管理の設定
+  - データベーススキーマ定義
+    - アカウント管理コンテキスト（users, githubConnections）
+    - ノート管理コンテキスト（books, notes, tags, noteTags）
+    - 投稿管理コンテキスト（posts, engagements）
+
+- リポジトリの実装
+  - アカウント管理コンテキスト
+    - UserRepository（Drizzle ORM使用）
+    - GitHubConnectionRepository（Drizzle ORM使用）
+
 ## 次のステップ
 
 ### Phase 3: インフラストラクチャ層の実装（続き）
-1. データベース基盤
-   - Drizzleのセットアップ
-   - マイグレーション管理の設定
-   - スキーマ定義（各コンテキスト）
+1. リポジトリの実装
+   - ノート管理コンテキスト（NoteRepository, BookRepository, TagRepository）
+   - 投稿管理コンテキスト（PostRepository）
 
-2. リポジトリの実装
-   - 各コンテキストのリポジトリ実装
-
-3. 外部サービス連携
+2. 外部サービス連携
    - Bluesky認証
    - GitHub連携
    - セッション管理
