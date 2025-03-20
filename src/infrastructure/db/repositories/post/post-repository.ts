@@ -26,10 +26,7 @@ export class DrizzlePostRepository implements PostRepository {
    */
   async create(post: CreatePost): Promise<Result<Post, RepositoryError>> {
     try {
-      const [savedPost] = await this.db
-        .insert(posts)
-        .values(post)
-        .returning();
+      const [savedPost] = await this.db.insert(posts).values(post).returning();
 
       if (!savedPost) {
         throw new Error("Failed to create post");
@@ -44,7 +41,7 @@ export class DrizzlePostRepository implements PostRepository {
         status: savedPost.status,
         errorMessage: savedPost.errorMessage || undefined,
         createdAt: savedPost.createdAt,
-        updatedAt: savedPost.updatedAt
+        updatedAt: savedPost.updatedAt,
       });
       if (!parsed.success) {
         throw new Error("Failed to parse post data");
@@ -79,10 +76,7 @@ export class DrizzlePostRepository implements PostRepository {
 
       if (!updatedPost) {
         return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Post not found",
-          ),
+          new RepositoryError(RepositoryErrorCode.DATA_ERROR, "Post not found"),
         );
       }
 
@@ -95,7 +89,7 @@ export class DrizzlePostRepository implements PostRepository {
         status: updatedPost.status,
         errorMessage: updatedPost.errorMessage || undefined,
         createdAt: updatedPost.createdAt,
-        updatedAt: updatedPost.updatedAt
+        updatedAt: updatedPost.updatedAt,
       });
       if (!parsed.success) {
         throw new Error("Failed to parse post data");
@@ -139,7 +133,7 @@ export class DrizzlePostRepository implements PostRepository {
         status: post.status,
         errorMessage: post.errorMessage || undefined,
         createdAt: post.createdAt,
-        updatedAt: post.updatedAt
+        updatedAt: post.updatedAt,
       });
       if (!parsed.success) {
         throw new Error("Failed to parse post data");
@@ -164,7 +158,9 @@ export class DrizzlePostRepository implements PostRepository {
   /**
    * 指定したノートIDの投稿を取得する
    */
-  async findByNoteId(noteId: string): Promise<Result<Post | null, RepositoryError>> {
+  async findByNoteId(
+    noteId: string,
+  ): Promise<Result<Post | null, RepositoryError>> {
     try {
       const [post] = await this.db
         .select()
@@ -183,7 +179,7 @@ export class DrizzlePostRepository implements PostRepository {
         status: post.status,
         errorMessage: post.errorMessage || undefined,
         createdAt: post.createdAt,
-        updatedAt: post.updatedAt
+        updatedAt: post.updatedAt,
       });
       if (!parsed.success) {
         throw new Error("Failed to parse post data");
@@ -215,7 +211,7 @@ export class DrizzlePostRepository implements PostRepository {
         .from(posts)
         .where(eq(posts.userId, userId));
 
-      const parsedPosts = postResults.map(post => {
+      const parsedPosts = postResults.map((post) => {
         const parsed = postSchema.safeParse({
           id: post.id,
           userId: post.userId,
@@ -225,7 +221,7 @@ export class DrizzlePostRepository implements PostRepository {
           status: post.status,
           errorMessage: post.errorMessage || undefined,
           createdAt: post.createdAt,
-          updatedAt: post.updatedAt
+          updatedAt: post.updatedAt,
         });
         if (!parsed.success) {
           throw new Error("Failed to parse post data");
@@ -270,4 +266,4 @@ export class DrizzlePostRepository implements PostRepository {
       );
     }
   }
-} 
+}

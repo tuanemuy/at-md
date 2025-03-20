@@ -14,11 +14,11 @@ export const gitHubWebhookSchema = z.object({
   config: z.object({
     url: z.string().url(),
     content_type: z.string(),
-    insecure_ssl: z.union([z.string(), z.number(), z.boolean()]).optional()
-  })
+    insecure_ssl: z.union([z.string(), z.number(), z.boolean()]).optional(),
+  }),
 });
 
 /**
  * GitHubウェブフック情報の型定義
  */
-export type GitHubWebhook = z.infer<typeof gitHubWebhookSchema>; 
+export type GitHubWebhook = z.infer<typeof gitHubWebhookSchema>;

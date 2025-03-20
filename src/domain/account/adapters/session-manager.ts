@@ -28,4 +28,4 @@ export interface SessionManager {
    * セッションを無効化する
    */
   revokeSession(token: string): Promise<Result<void, AccountError>>;
-} 
+}

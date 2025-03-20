@@ -4,7 +4,7 @@ import {
   ok,
   err,
   fromPromise,
-  fromThrowable
+  fromThrowable,
 } from "neverthrow";
 
 /**
@@ -31,7 +31,7 @@ export function combine<T, E>(results: Result<T, E>[]): Result<T[], E> {
           ? ok([...acc.unwrapOr([]), result.unwrapOr(null as unknown as T)])
           : err(result.error)
         : acc,
-    ok<T[], E>([])
+    ok<T[], E>([]),
   );
 }
 
@@ -41,7 +41,7 @@ export function combine<T, E>(results: Result<T, E>[]): Result<T[], E> {
  * @param results ResultAsync配列
  */
 export function combineAsync<T, E>(
-  results: ResultAsync<T, E>[]
+  results: ResultAsync<T, E>[],
 ): ResultAsync<T[], E> {
   return ResultAsync.combine(results);
-} 
+}

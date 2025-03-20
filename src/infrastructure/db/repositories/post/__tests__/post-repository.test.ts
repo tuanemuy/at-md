@@ -1,22 +1,29 @@
-import { describe, test, expect, beforeEach, beforeAll, afterAll } from "vitest";
-import { PGlite } from "@electric-sql/pglite";
-import { v7 as uuidv7 } from "uuid";
-import { ok } from "@/lib/result";
-import { 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
-  closeTestDatabase,
-  getTestDatabase
-} from "../../../__test__/setup";
 import type { User } from "@/domain/account/models/user";
 import type { Note } from "@/domain/note/models/note";
 import type { Post } from "@/domain/post/models/post";
-import { PostStatus } from "@/domain/post/models/post";
+import type { PostStatus } from "@/domain/post/models/post";
 import type { CreatePost, UpdatePost } from "@/domain/post/repositories";
-import { DrizzlePostRepository } from "../post-repository";
-import { DrizzleNoteRepository } from "../../note/note-repository";
-import { DrizzleBookRepository } from "../../note/book-repository";
 import { users } from "@/infrastructure/db/schema/account";
+import { ok } from "@/lib/result";
+import { PGlite } from "@electric-sql/pglite";
+import { v7 as uuidv7 } from "uuid";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "../../../__test__/setup";
+import { DrizzleBookRepository } from "../../note/book-repository";
+import { DrizzleNoteRepository } from "../../note/note-repository";
+import { DrizzlePostRepository } from "../post-repository";
 
 describe("DrizzlePostRepository", () => {
   let client: PGlite;
@@ -33,10 +40,10 @@ describe("DrizzlePostRepository", () => {
       displayName: "テストユーザー",
       description: "テスト用のユーザーです",
       avatarUrl: "https://example.com/avatar.png",
-      bannerUrl: null
+      bannerUrl: null,
     },
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
   const createTestNote = (userId: string): Note => ({
@@ -49,39 +56,61 @@ describe("DrizzlePostRepository", () => {
     scope: "public",
     tags: [],
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
-  const createTestPost = (userId: string, noteId: string, status: PostStatus = "posted"): Post => ({
+  const createTestPost = (
+    userId: string,
+    noteId: string,
+    status: PostStatus = "posted",
+  ): Post => ({
     id: uuidv7(),
     userId,
     noteId,
     status,
-    postUri: status === "posted" ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}` : undefined,
+    postUri:
+      status === "posted"
+        ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}`
+        : undefined,
     postCid: status === "posted" ? uuidv7() : undefined,
     errorMessage: status === "error" ? "投稿に失敗しました" : undefined,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 
-  const createTestCreatePost = (userId: string, noteId: string, status: PostStatus = "posted"): CreatePost => ({
+  const createTestCreatePost = (
+    userId: string,
+    noteId: string,
+    status: PostStatus = "posted",
+  ): CreatePost => ({
     userId,
     noteId,
     status,
     platform: "bluesky",
-    postUri: status === "posted" ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}` : null,
+    postUri:
+      status === "posted"
+        ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}`
+        : null,
     postCid: status === "posted" ? uuidv7() : null,
-    errorMessage: status === "error" ? "投稿に失敗しました" : null
+    errorMessage: status === "error" ? "投稿に失敗しました" : null,
   });
 
-  const createTestUpdatePost = (id: string, userId: string, noteId: string, status: PostStatus = "posted"): UpdatePost => ({
+  const createTestUpdatePost = (
+    id: string,
+    userId: string,
+    noteId: string,
+    status: PostStatus = "posted",
+  ): UpdatePost => ({
     id,
     userId,
     noteId,
     status,
-    postUri: status === "posted" ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}` : null,
+    postUri:
+      status === "posted"
+        ? `at://did:plc:${uuidv7()}/app.bsky.feed.post/${uuidv7()}`
+        : null,
     postCid: status === "posted" ? uuidv7() : null,
-    errorMessage: status === "error" ? "投稿に失敗しました" : null
+    errorMessage: status === "error" ? "投稿に失敗しました" : null,
   });
 
   beforeAll(async () => {
@@ -109,9 +138,9 @@ describe("DrizzlePostRepository", () => {
       id: user.id,
       did: user.did,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
-    
+
     // ブックを作成
     const book = {
       id: uuidv7(),
@@ -122,8 +151,8 @@ describe("DrizzlePostRepository", () => {
       updatedAt: new Date(),
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     };
     const bookResult = await bookRepository.create({
       userId: user.id,
@@ -131,21 +160,21 @@ describe("DrizzlePostRepository", () => {
       repo: "testRepo",
       details: {
         name: "テストブック",
-        description: "テスト用のブックです"
+        description: "テスト用のブックです",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
-    
+
     let bookId = "";
     if (bookResult.isOk()) {
       bookId = bookResult.value.id;
     } else {
       throw new Error("ブックの作成に失敗しました");
     }
-    
+
     // ノートを作成
     const note = createTestNote(user.id);
     note.bookId = bookId;
@@ -156,22 +185,22 @@ describe("DrizzlePostRepository", () => {
       title: note.title,
       body: note.body,
       scope: note.scope,
-      tags: []
+      tags: [],
     });
-    
+
     let noteId = "";
     if (noteResult.isOk()) {
       noteId = noteResult.value.id;
     } else {
       throw new Error("ノートの作成に失敗しました");
     }
-    
+
     // 投稿を作成
     const createPost = createTestCreatePost(user.id, noteId);
-    
+
     // 実行
     const result = await postRepository.create(createPost);
-    
+
     // 検証
     expect(result.isOk()).toBe(true);
     if (result.isOk()) {
@@ -198,23 +227,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo2",
       details: {
         name: "テストブック2",
-        description: "テスト用のブックです2"
+        description: "テスト用のブックです2",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノートを作成
     const noteResult = await noteRepository.create({
       userId: user.id,
@@ -223,24 +254,26 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート2",
       body: "# テスト2\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult.isErr()) {
-      throw new Error(`ノートの作成に失敗しました: ${noteResult.error.message}`);
+      throw new Error(
+        `ノートの作成に失敗しました: ${noteResult.error.message}`,
+      );
     }
 
     let noteId = "";
     noteResult.map((savedNote) => {
       noteId = savedNote.id;
     });
-    
+
     // エラー状態の投稿データを作成
     const createPost = createTestCreatePost(user.id, noteId, "error");
-    
+
     // 実行
     const result = await postRepository.create(createPost);
-    
+
     // 結果を検証
     expect(result.isOk()).toBe(true);
     result.map((savedPost) => {
@@ -263,23 +296,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo3",
       details: {
         name: "テストブック3",
-        description: "テスト用のブックです3"
+        description: "テスト用のブックです3",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノートを作成
     const noteResult = await noteRepository.create({
       userId: user.id,
@@ -288,34 +323,36 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート3",
       body: "# テスト3\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult.isErr()) {
-      throw new Error(`ノートの作成に失敗しました: ${noteResult.error.message}`);
+      throw new Error(
+        `ノートの作成に失敗しました: ${noteResult.error.message}`,
+      );
     }
 
     let noteId = "";
     noteResult.map((savedNote) => {
       noteId = savedNote.id;
     });
-    
+
     // 投稿を作成
     const createPost = createTestCreatePost(user.id, noteId);
     const createResult = await postRepository.create(createPost);
     expect(createResult.isOk()).toBe(true);
-    
+
     let postId = "";
     createResult.map((savedPost) => {
       postId = savedPost.id;
     });
-    
+
     // 更新用の投稿データを作成
     const updatePost = createTestUpdatePost(postId, user.id, noteId);
-    
+
     // 投稿を更新
     const result = await postRepository.update(updatePost);
-    
+
     // 結果を検証
     expect(result.isOk()).toBe(true);
     result.map((updatedPost) => {
@@ -339,23 +376,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo4",
       details: {
         name: "テストブック4",
-        description: "テスト用のブックです4"
+        description: "テスト用のブックです4",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノートを作成
     const noteResult = await noteRepository.create({
       userId: user.id,
@@ -364,31 +403,33 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート4",
       body: "# テスト4\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult.isErr()) {
-      throw new Error(`ノートの作成に失敗しました: ${noteResult.error.message}`);
+      throw new Error(
+        `ノートの作成に失敗しました: ${noteResult.error.message}`,
+      );
     }
 
     let noteId = "";
     noteResult.map((savedNote) => {
       noteId = savedNote.id;
     });
-    
+
     // 投稿を作成
     const createPost = createTestCreatePost(user.id, noteId);
     const createResult = await postRepository.create(createPost);
     expect(createResult.isOk()).toBe(true);
-    
+
     let postId = "";
     createResult.map((savedPost) => {
       postId = savedPost.id;
     });
-    
+
     // IDで投稿を検索
     const result = await postRepository.findById(postId);
-    
+
     // 結果を検証
     expect(result.isOk()).toBe(true);
     result.map((foundPost) => {
@@ -414,23 +455,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo5",
       details: {
         name: "テストブック5",
-        description: "テスト用のブックです5"
+        description: "テスト用のブックです5",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノートを作成
     const noteResult = await noteRepository.create({
       userId: user.id,
@@ -439,26 +482,28 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート5",
       body: "# テスト5\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult.isErr()) {
-      throw new Error(`ノートの作成に失敗しました: ${noteResult.error.message}`);
+      throw new Error(
+        `ノートの作成に失敗しました: ${noteResult.error.message}`,
+      );
     }
 
     let noteId = "";
     noteResult.map((savedNote) => {
       noteId = savedNote.id;
     });
-    
+
     // 投稿を作成
     const createPost = createTestCreatePost(user.id, noteId);
     const createResult = await postRepository.create(createPost);
     expect(createResult.isOk()).toBe(true);
-    
+
     // ノートIDで投稿を検索
     const result = await postRepository.findByNoteId(noteId);
-    
+
     // 結果を検証
     expect(result.isOk()).toBe(true);
     result.map((foundPost) => {
@@ -471,7 +516,7 @@ describe("DrizzlePostRepository", () => {
 
   test("存在しないIDで検索するとnullが返ること", async () => {
     const result = await postRepository.findById(uuidv7());
-    
+
     expect(result.isOk()).toBe(true);
     result.map((foundPost) => {
       expect(foundPost).toBeNull();
@@ -490,23 +535,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo6",
       details: {
         name: "テストブック6",
-        description: "テスト用のブックです6"
+        description: "テスト用のブックです6",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノート1を作成
     const noteResult1 = await noteRepository.create({
       userId: user.id,
@@ -515,18 +562,20 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート6-1",
       body: "# テスト6-1\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult1.isErr()) {
-      throw new Error(`ノート1の作成に失敗しました: ${noteResult1.error.message}`);
+      throw new Error(
+        `ノート1の作成に失敗しました: ${noteResult1.error.message}`,
+      );
     }
 
     let noteId1 = "";
     noteResult1.map((savedNote) => {
       noteId1 = savedNote.id;
     });
-    
+
     // ノート2を作成
     const noteResult2 = await noteRepository.create({
       userId: user.id,
@@ -535,46 +584,48 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート6-2",
       body: "# テスト6-2\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult2.isErr()) {
-      throw new Error(`ノート2の作成に失敗しました: ${noteResult2.error.message}`);
+      throw new Error(
+        `ノート2の作成に失敗しました: ${noteResult2.error.message}`,
+      );
     }
 
     let noteId2 = "";
     noteResult2.map((savedNote) => {
       noteId2 = savedNote.id;
     });
-    
+
     // 投稿1を作成
     const post1 = createTestCreatePost(user.id, noteId1);
     const createResult1 = await postRepository.create(post1);
     expect(createResult1.isOk()).toBe(true);
-    
+
     let postId1 = "";
     createResult1.map((post) => {
       postId1 = post.id;
     });
-    
+
     // 投稿2を作成
     const post2 = createTestCreatePost(user.id, noteId2);
     const createResult2 = await postRepository.create(post2);
     expect(createResult2.isOk()).toBe(true);
-    
+
     let postId2 = "";
     createResult2.map((post) => {
       postId2 = post.id;
     });
-    
+
     // ユーザーIDで投稿一覧を取得
     const result = await postRepository.findByUserId(user.id);
-    
+
     // 結果を検証
     expect(result.isOk()).toBe(true);
     result.map((posts) => {
       expect(posts.length).toEqual(2);
-      const ids = posts.map(p => p.id);
+      const ids = posts.map((p) => p.id);
       expect(ids).toContain(postId1);
       expect(ids).toContain(postId2);
     });
@@ -583,7 +634,7 @@ describe("DrizzlePostRepository", () => {
   test("存在しないユーザーIDで投稿一覧を検索すると空配列が返されること", async () => {
     const nonExistentUserId = uuidv7();
     const result = await postRepository.findByUserId(nonExistentUserId);
-    
+
     expect(result.isOk()).toBe(true);
     result.map((posts) => {
       expect(posts).toEqual([]);
@@ -602,23 +653,25 @@ describe("DrizzlePostRepository", () => {
       repo: "testrepo7",
       details: {
         name: "テストブック7",
-        description: "テスト用のブックです7"
+        description: "テスト用のブックです7",
       },
       syncStatus: {
         lastSyncedAt: null,
-        status: "synced"
-      }
+        status: "synced",
+      },
     });
 
     if (bookResult.isErr()) {
-      throw new Error(`ブックの作成に失敗しました: ${bookResult.error.message}`);
+      throw new Error(
+        `ブックの作成に失敗しました: ${bookResult.error.message}`,
+      );
     }
 
     let bookId = "";
     bookResult.map((savedBook) => {
       bookId = savedBook.id;
     });
-    
+
     // ノートを作成
     const noteResult = await noteRepository.create({
       userId: user.id,
@@ -627,34 +680,36 @@ describe("DrizzlePostRepository", () => {
       title: "テストノート7",
       body: "# テスト7\nこれはテスト用のノートです。",
       scope: "public",
-      tags: []
+      tags: [],
     });
 
     if (noteResult.isErr()) {
-      throw new Error(`ノートの作成に失敗しました: ${noteResult.error.message}`);
+      throw new Error(
+        `ノートの作成に失敗しました: ${noteResult.error.message}`,
+      );
     }
 
     let noteId = "";
     noteResult.map((savedNote) => {
       noteId = savedNote.id;
     });
-    
+
     // 投稿を作成
     const createPost = createTestCreatePost(user.id, noteId);
     const createResult = await postRepository.create(createPost);
     expect(createResult.isOk()).toBe(true);
-    
+
     let postId = "";
     createResult.map((post) => {
       postId = post.id;
     });
-    
+
     // 削除を実行
     const deleteResult = await postRepository.delete(postId);
-    
+
     // 削除結果を検証
     expect(deleteResult.isOk()).toBe(true);
-    
+
     // 削除されたことを確認
     const findResult = await postRepository.findById(postId);
     expect(findResult.isOk()).toBe(true);
@@ -666,7 +721,7 @@ describe("DrizzlePostRepository", () => {
   test("存在しないIDの投稿を削除しても成功すること", async () => {
     const nonExistentId = uuidv7();
     const result = await postRepository.delete(nonExistentId);
-    
+
     expect(result.isOk()).toBe(true);
   });
 
@@ -677,20 +732,20 @@ describe("DrizzlePostRepository", () => {
       id: user.id,
       did: user.did,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     });
-    
+
     const note = createTestNote(user.id);
     const noteResult = await noteRepository.create(note);
-    
+
     // 不正なデータで投稿を作成（ステータスが不正）
     const invalidPost = {
       ...createTestCreatePost(user.id, note.id),
-      status: "invalid_status" as any
+      status: "invalid_status" as unknown as PostStatus,
     };
-    
+
     // 実行と検証
     const result = await postRepository.create(invalidPost);
     expect(result.isErr()).toBe(true);
   });
-}); 
+});

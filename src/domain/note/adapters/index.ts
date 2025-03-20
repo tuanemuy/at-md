@@ -1,1 +1,1 @@
-export * from './github-content-provider'; 
+export * from "./github-content-provider";

@@ -10,7 +10,7 @@ import { tagSchema } from "./tag";
 export const NoteScope = {
   PUBLIC: "public",
   PRIVATE: "private",
-  LIMITED: "limited"
+  LIMITED: "limited",
 } as const;
 
 export type NoteScope = (typeof NoteScope)[keyof typeof NoteScope];
@@ -21,7 +21,7 @@ export type NoteScope = (typeof NoteScope)[keyof typeof NoteScope];
 export const noteScopeSchema = z.enum([
   NoteScope.PUBLIC,
   NoteScope.PRIVATE,
-  NoteScope.LIMITED
+  NoteScope.LIMITED,
 ]);
 
 /**
@@ -37,10 +37,10 @@ export const noteSchema = z.object({
   scope: noteScopeSchema,
   tags: z.array(tagSchema).default([]),
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 /**
  * ノートの型定義
  */
-export type Note = z.infer<typeof noteSchema>; 
+export type Note = z.infer<typeof noteSchema>;

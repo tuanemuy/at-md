@@ -2,7 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { type Result, err, ok } from "@/lib/result";
 import type { Book } from "@/domain/note/models";
 import { bookSchema } from "@/domain/note/models/book";
-import type { CreateBook, UpdateBook } from "@/domain/note/repositories/book-repository";
+import type {
+  CreateBook,
+  UpdateBook,
+} from "@/domain/note/repositories/book-repository";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
@@ -26,10 +29,7 @@ export class DrizzleBookRepository implements BookRepository {
       // トランザクションで全てのデータを保存
       const result = await this.db.transaction(async (tx) => {
         // ブックの保存
-        const [savedBook] = await tx
-          .insert(books)
-          .values(book)
-          .returning();
+        const [savedBook] = await tx.insert(books).values(book).returning();
 
         if (!savedBook) {
           throw new Error("Failed to parse book data");
@@ -40,7 +40,7 @@ export class DrizzleBookRepository implements BookRepository {
           .insert(bookDetails)
           .values({
             bookId: savedBook.id,
-            ...book.details
+            ...book.details,
           })
           .returning();
 
@@ -53,7 +53,7 @@ export class DrizzleBookRepository implements BookRepository {
           .insert(syncStatuses)
           .values({
             bookId: savedBook.id,
-            ...book.syncStatus
+            ...book.syncStatus,
           })
           .returning();
 
@@ -243,10 +243,15 @@ export class DrizzleBookRepository implements BookRepository {
 
       // 有効なデータのみフィルタしてドメインモデルに変換
       const parsedBooks = bookResults
-        .filter((row): row is typeof row & { details: NonNullable<typeof row.details>, syncStatus: NonNullable<typeof row.syncStatus> } => 
-          row.details !== null && row.syncStatus !== null
+        .filter(
+          (
+            row,
+          ): row is typeof row & {
+            details: NonNullable<typeof row.details>;
+            syncStatus: NonNullable<typeof row.syncStatus>;
+          } => row.details !== null && row.syncStatus !== null,
         )
-        .map(row => {
+        .map((row) => {
           const parsed = bookSchema.safeParse({
             ...row.book,
             details: {
@@ -287,7 +292,7 @@ export class DrizzleBookRepository implements BookRepository {
    */
   async findByOwnerAndRepo(
     owner: string,
-    repo: string
+    repo: string,
   ): Promise<Result<Book | null, RepositoryError>> {
     try {
       const [book] = await this.db
@@ -299,12 +304,7 @@ export class DrizzleBookRepository implements BookRepository {
         .from(books)
         .leftJoin(bookDetails, eq(books.id, bookDetails.bookId))
         .leftJoin(syncStatuses, eq(books.id, syncStatuses.bookId))
-        .where(
-          and(
-            eq(books.owner, owner),
-            eq(books.repo, repo)
-          )
-        )
+        .where(and(eq(books.owner, owner), eq(books.repo, repo)))
         .limit(1);
 
       if (!book || !book.details || !book.syncStatus) return ok(null);
@@ -369,4 +369,4 @@ export class DrizzleBookRepository implements BookRepository {
       );
     }
   }
-} 
+}

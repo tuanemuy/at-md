@@ -14,7 +14,7 @@ export const gitHubConnectionSchema = z.object({
   expiresAt: z.date().optional(),
   scope: z.string(),
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 /**
@@ -25,9 +25,11 @@ export type GitHubConnection = z.infer<typeof gitHubConnectionSchema>;
 /**
  * GitHub連携情報が有効期限切れかどうかを判定する
  */
-export function isGitHubConnectionExpired(connection: GitHubConnection): boolean {
+export function isGitHubConnectionExpired(
+  connection: GitHubConnection,
+): boolean {
   if (!connection.expiresAt) {
     return false;
   }
   return new Date() > connection.expiresAt;
-} 
+}

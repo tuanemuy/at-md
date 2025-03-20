@@ -17,9 +17,13 @@ export const createNoteSchema = z.object({
   title: z.string().nonempty(),
   body: z.string(),
   scope: noteScopeSchema,
-  tags: z.array(z.object({
-    name: z.string().nonempty()
-  })).default([])
+  tags: z
+    .array(
+      z.object({
+        name: z.string().nonempty(),
+      }),
+    )
+    .default([]),
 });
 
 /**
@@ -33,9 +37,13 @@ export const updateNoteSchema = z.object({
   title: z.string().nonempty(),
   body: z.string(),
   scope: noteScopeSchema,
-  tags: z.array(z.object({
-    name: z.string().nonempty()
-  })).default([])
+  tags: z
+    .array(
+      z.object({
+        name: z.string().nonempty(),
+      }),
+    )
+    .default([]),
 });
 
 /**
@@ -78,20 +86,30 @@ export interface NoteRepository {
   /**
    * 指定したブックIDのノート一覧を取得する
    */
-  findByBookId(bookId: string, pagination?: PaginationParams): Promise<Result<Note[], RepositoryError>>;
+  findByBookId(
+    bookId: string,
+    pagination?: PaginationParams,
+  ): Promise<Result<Note[], RepositoryError>>;
 
   /**
    * 指定したタグIDのノート一覧を取得する
    */
-  findByTag(tagId: string, pagination?: PaginationParams): Promise<Result<Note[], RepositoryError>>;
+  findByTag(
+    tagId: string,
+    pagination?: PaginationParams,
+  ): Promise<Result<Note[], RepositoryError>>;
 
   /**
    * 指定した条件でノートを検索する
    */
-  search(bookId: string, query: string, pagination?: PaginationParams): Promise<Result<Note[], RepositoryError>>;
+  search(
+    bookId: string,
+    query: string,
+    pagination?: PaginationParams,
+  ): Promise<Result<Note[], RepositoryError>>;
 
   /**
    * 指定したIDのノートを削除する
    */
   delete(id: string): Promise<Result<void, RepositoryError>>;
-} 
+}

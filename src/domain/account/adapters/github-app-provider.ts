@@ -12,15 +12,22 @@ export interface GitHubAppProvider {
   /**
    * GitHubアプリのインストール一覧を取得する
    */
-  getInstallations(accessToken: string): Promise<Result<GitHubInstallation[], ExternalServiceError>>;
+  getInstallations(
+    accessToken: string,
+  ): Promise<Result<GitHubInstallation[], ExternalServiceError>>;
 
   /**
    * GitHub OAuthのアクセストークンを取得する
    */
-  getAccessToken(code: string): Promise<Result<{
-    accessToken: string;
-    refreshToken?: string;
-    expiresAt?: Date;
-    scope: string[];
-  }, ExternalServiceError>>;
-} 
+  getAccessToken(code: string): Promise<
+    Result<
+      {
+        accessToken: string;
+        refreshToken?: string;
+        expiresAt?: Date;
+        scope: string[];
+      },
+      ExternalServiceError
+    >
+  >;
+}

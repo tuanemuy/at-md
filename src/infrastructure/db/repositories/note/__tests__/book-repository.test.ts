@@ -1,18 +1,18 @@
-import { expect, test, beforeEach, beforeAll, afterAll } from "vitest";
+import type { Book } from "@/domain/note/models";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import type { CreateBook, UpdateBook } from "@/domain/note/repositories";
+import { RepositoryErrorCode } from "@/domain/types/error";
+import { users } from "../../../schema/account";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
-import { type Book } from "@/domain/note/models";
-import { type CreateBook, type UpdateBook } from "@/domain/note/repositories";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
-import { DrizzleBookRepository } from "../book-repository";
-import { RepositoryErrorCode } from "@/domain/types/error";
-import { 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
+import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
+import {
+  cleanupTestDatabase,
   closeTestDatabase,
-  getTestDatabase
+  getTestDatabase,
+  setupTestDatabase,
 } from "../../../__test__/setup";
-import { users } from "@/infrastructure/db/schema/account";
+import { DrizzleBookRepository } from "../book-repository";
 
 // テスト用のデータベース
 let client: PGlite;
@@ -27,14 +27,14 @@ const createTestBook = (userId?: string): Book => ({
   repo: `repo-${Math.floor(Math.random() * 1000)}`,
   details: {
     name: "テストブック",
-    description: "これはテスト用のブックです。"
+    description: "これはテスト用のブックです。",
   },
   syncStatus: {
     lastSyncedAt: new Date(),
-    status: SyncStatusCode.SYNCED
+    status: SyncStatusCode.SYNCED,
   },
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 });
 
 // テスト用のCreateBookデータを作成する関数
@@ -45,7 +45,7 @@ const createTestCreateBook = (userId?: string): CreateBook => {
     owner: book.owner,
     repo: book.repo,
     details: book.details,
-    syncStatus: book.syncStatus
+    syncStatus: book.syncStatus,
   };
 };
 
@@ -59,12 +59,12 @@ const createTestUpdateBook = (id: string, userId?: string): UpdateBook => {
     repo: book.repo,
     details: {
       name: "更新されたブック名",
-      description: "更新された説明文"
+      description: "更新された説明文",
     },
     syncStatus: {
       lastSyncedAt: new Date(),
-      status: SyncStatusCode.SYNCED
-    }
+      status: SyncStatusCode.SYNCED,
+    },
   };
 };
 
@@ -79,7 +79,7 @@ beforeAll(async () => {
 // 各テストの前にデータをクリーンアップし、テスト用ユーザーを作成
 beforeEach(async () => {
   await cleanupTestDatabase(client);
-  
+
   // テスト用ユーザーを作成
   const db = getTestDatabase(client);
   testUserId = uuidv7();
@@ -87,7 +87,7 @@ beforeEach(async () => {
     id: testUserId,
     did: `did:example:${testUserId}`,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 });
 
@@ -99,10 +99,10 @@ afterAll(async () => {
 test("新規ブックを保存するとブックが正常に作成されること", async () => {
   // 準備
   const testBook = createTestCreateBook();
-  
+
   // 実行
   const result = await bookRepository.create(testBook);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedBook) => {
@@ -121,18 +121,18 @@ test("既存ブックを更新するとブック情報が正常に更新され�
   const createData = createTestCreateBook();
   const createResult = await bookRepository.create(createData);
   expect(createResult.isOk()).toBe(true);
-  
+
   let bookId = "";
   createResult.map((book) => {
     bookId = book.id;
   });
-  
+
   // 更新用のブック情報
   const updateData = createTestUpdateBook(bookId);
-  
+
   // 実行
   const result = await bookRepository.update(updateData);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedBook) => {
@@ -149,15 +149,15 @@ test("存在するIDでブックを検索するとブックが取得できるこ
   const createData = createTestCreateBook();
   const createResult = await bookRepository.create(createData);
   expect(createResult.isOk()).toBe(true);
-  
+
   let bookId = "";
   createResult.map((book) => {
     bookId = book.id;
   });
-  
+
   // 実行
   const result = await bookRepository.findById(bookId);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((book) => {
@@ -175,10 +175,10 @@ test("存在するIDでブックを検索するとブックが取得できるこ
 test("存在しないIDでブックを検索するとnullが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
-  
+
   // 実行
   const result = await bookRepository.findById(nonExistentId);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((book) => {
@@ -191,27 +191,29 @@ test("指定したユーザーIDのブック一覧を取得できること", asy
   const testBooks = [
     createTestCreateBook(),
     createTestCreateBook(),
-    createTestCreateBook()
+    createTestCreateBook(),
   ];
-  
+
   // 別のユーザーのブック
   const otherUserId = uuidv7();
-  await getTestDatabase(client).insert(users).values({
-    id: otherUserId,
-    did: `did:example:${otherUserId}`,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
+  await getTestDatabase(client)
+    .insert(users)
+    .values({
+      id: otherUserId,
+      did: `did:example:${otherUserId}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   const otherUserBook = createTestCreateBook(otherUserId);
-  
+
   // すべてのブックを保存
   for (const book of [...testBooks, otherUserBook]) {
     await bookRepository.create(book);
   }
-  
+
   // 実行
   const result = await bookRepository.findByUserId(testUserId);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((books) => {
@@ -227,12 +229,15 @@ test("指定したオーナーとリポジトリ名のブックを取得でき�
   const createData = createTestCreateBook();
   const createResult = await bookRepository.create(createData);
   expect(createResult.isOk()).toBe(true);
-  
+
   await bookRepository.create(createTestCreateBook()); // 別のブック
-  
+
   // 実行
-  const result = await bookRepository.findByOwnerAndRepo(createData.owner, createData.repo);
-  
+  const result = await bookRepository.findByOwnerAndRepo(
+    createData.owner,
+    createData.repo,
+  );
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((book) => {
@@ -249,18 +254,18 @@ test("ブックを削除すると該当ブックが削除されること", async
   const createData = createTestCreateBook();
   const createResult = await bookRepository.create(createData);
   expect(createResult.isOk()).toBe(true);
-  
+
   let bookId = "";
   createResult.map((book) => {
     bookId = book.id;
   });
-  
+
   // 実行
   const deleteResult = await bookRepository.delete(bookId);
-  
+
   // 検証
   expect(deleteResult.isOk()).toBe(true);
-  
+
   // 削除されたことを確認
   const findResult = await bookRepository.findById(bookId);
   expect(findResult.isOk()).toBe(true);
@@ -273,10 +278,10 @@ test("存在しないユーザーIDでブックを作成すると外部キー制
   // 準備 - 存在しないユーザーID
   const nonExistentUserId = uuidv7();
   const testBook = createTestCreateBook(nonExistentUserId);
-  
+
   // 実行
   const result = await bookRepository.create(testBook);
-  
+
   // 検証
   expect(result.isErr()).toBe(true);
   result.mapErr((error) => {
@@ -288,18 +293,18 @@ test("重複するオーナー/リポジトリの組み合わせで作成する�
   // 準備 - 最初のブックを保存
   const createData = createTestCreateBook();
   await bookRepository.create(createData);
-  
+
   // 同じオーナー/リポジトリで別のブックを作成
   const duplicateBook = createTestCreateBook();
   duplicateBook.owner = createData.owner;
   duplicateBook.repo = createData.repo;
-  
+
   // 実行
   const result = await bookRepository.create(duplicateBook);
-  
+
   // 検証
   expect(result.isErr()).toBe(true);
   result.mapErr((error) => {
     expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
   });
-}); 
+});

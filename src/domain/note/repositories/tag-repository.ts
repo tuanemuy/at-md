@@ -10,7 +10,7 @@ import type { RepositoryError } from "@/domain/types/error";
  * タグ作成時のZodスキーマ
  */
 export const createTagSchema = z.object({
-  name: z.string().nonempty()
+  name: z.string().nonempty(),
 });
 
 /**
@@ -18,7 +18,7 @@ export const createTagSchema = z.object({
  */
 export const updateTagSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().nonempty()
+  name: z.string().nonempty(),
 });
 
 /**
@@ -59,4 +59,4 @@ export interface TagRepository {
    * 指定したIDのタグを削除する
    */
   delete(id: string): Promise<Result<void, RepositoryError>>;
-} 
+}

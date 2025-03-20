@@ -13,10 +13,13 @@ export interface BlueskyPostProvider {
   /**
    * 投稿を作成する
    */
-  createPost(repo: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>;
+  createPost(
+    repo: DID,
+    text: string,
+  ): Promise<Result<BlueskyPost, ExternalServiceError>>;
 
   /**
    * エンゲージメントを取得する
    */
   getEngagement(uri: string): Promise<Result<Engagement, ExternalServiceError>>;
-} 
+}

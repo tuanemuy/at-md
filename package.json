@@ -94,10 +94,7 @@
     "vitest": "^3.0.8"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp"
-    ]
+    "onlyBuiltDependencies": ["esbuild", "sharp"]
   },
   "engines": {
     "npm": "Use pnpm please!",

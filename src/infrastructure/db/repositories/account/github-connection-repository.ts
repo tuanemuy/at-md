@@ -27,7 +27,7 @@ export class DrizzleGitHubConnectionRepository
    * GitHub連携情報を作成する
    */
   async create(
-    connection: CreateGitHubConnection
+    connection: CreateGitHubConnection,
   ): Promise<Result<GitHubConnection, RepositoryError>> {
     try {
       const [savedConnection] = await this.db
@@ -41,7 +41,7 @@ export class DrizzleGitHubConnectionRepository
 
       const parsed = gitHubConnectionSchema.safeParse({
         ...savedConnection,
-        scope: savedConnection.scope ? savedConnection.scope : ""
+        scope: savedConnection.scope ? savedConnection.scope : "",
       });
 
       if (!parsed.success) {
@@ -68,7 +68,7 @@ export class DrizzleGitHubConnectionRepository
    * GitHub連携情報を更新する
    */
   async update(
-    connection: UpdateGitHubConnection
+    connection: UpdateGitHubConnection,
   ): Promise<Result<GitHubConnection, RepositoryError>> {
     try {
       const [updatedConnection] = await this.db
@@ -88,7 +88,7 @@ export class DrizzleGitHubConnectionRepository
 
       const parsed = gitHubConnectionSchema.safeParse({
         ...updatedConnection,
-        scope: updatedConnection.scope ? updatedConnection.scope : ""
+        scope: updatedConnection.scope ? updatedConnection.scope : "",
       });
 
       if (!parsed.success) {
@@ -123,10 +123,10 @@ export class DrizzleGitHubConnectionRepository
         .from(githubConnections)
         .where(eq(githubConnections.userId, userId));
 
-      const parsedConnections = connectionResults.map(connection => {
+      const parsedConnections = connectionResults.map((connection) => {
         const parsed = gitHubConnectionSchema.safeParse({
           ...connection,
-          scope: connection.scope ? connection.scope : ""
+          scope: connection.scope ? connection.scope : "",
         });
         if (!parsed.success) {
           throw new Error("Failed to parse GitHub connection data");
@@ -153,7 +153,9 @@ export class DrizzleGitHubConnectionRepository
   /**
    * 指定したIDのGitHub連携情報を取得する
    */
-  async findById(id: string): Promise<Result<GitHubConnection | null, RepositoryError>> {
+  async findById(
+    id: string,
+  ): Promise<Result<GitHubConnection | null, RepositoryError>> {
     try {
       const [connection] = await this.db
         .select()
@@ -165,7 +167,7 @@ export class DrizzleGitHubConnectionRepository
 
       const parsed = gitHubConnectionSchema.safeParse({
         ...connection,
-        scope: connection.scope ? connection.scope : ""
+        scope: connection.scope ? connection.scope : "",
       });
 
       if (!parsed.success) {
@@ -193,7 +195,9 @@ export class DrizzleGitHubConnectionRepository
    */
   async delete(id: string): Promise<Result<void, RepositoryError>> {
     try {
-      await this.db.delete(githubConnections).where(eq(githubConnections.id, id));
+      await this.db
+        .delete(githubConnections)
+        .where(eq(githubConnections.id, id));
       return ok(undefined);
     } catch (error) {
       if (error instanceof RepositoryError) {
@@ -210,4 +214,3 @@ export class DrizzleGitHubConnectionRepository
     }
   }
 }
-

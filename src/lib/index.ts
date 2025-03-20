@@ -6,4 +6,4 @@
 export * from "./logger";
 
 // Result型
-export * from "./result"; 
+export * from "./result";

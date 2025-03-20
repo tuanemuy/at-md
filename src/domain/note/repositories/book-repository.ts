@@ -16,12 +16,12 @@ export const createBookSchema = z.object({
   repo: z.string().nonempty(),
   details: z.object({
     name: z.string().nonempty(),
-    description: z.string().nonempty()
+    description: z.string().nonempty(),
   }),
   syncStatus: z.object({
     lastSyncedAt: z.date().nullable(),
-    status: z.nativeEnum(SyncStatusCode)
-  })
+    status: z.nativeEnum(SyncStatusCode),
+  }),
 });
 
 /**
@@ -34,12 +34,12 @@ export const updateBookSchema = z.object({
   repo: z.string().nonempty(),
   details: z.object({
     name: z.string().nonempty(),
-    description: z.string().nonempty()
+    description: z.string().nonempty(),
   }),
   syncStatus: z.object({
     lastSyncedAt: z.date().nullable(),
-    status: z.nativeEnum(SyncStatusCode)
-  })
+    status: z.nativeEnum(SyncStatusCode),
+  }),
 });
 
 /**
@@ -79,10 +79,13 @@ export interface BookRepository {
   /**
    * 指定したオーナーとリポジトリのブックを取得する
    */
-  findByOwnerAndRepo(owner: string, repo: string): Promise<Result<Book | null, RepositoryError>>;
+  findByOwnerAndRepo(
+    owner: string,
+    repo: string,
+  ): Promise<Result<Book | null, RepositoryError>>;
 
   /**
    * 指定したIDのブックを削除する
    */
   delete(id: string): Promise<Result<void, RepositoryError>>;
-} 
+}

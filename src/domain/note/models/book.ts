@@ -16,10 +16,10 @@ export const bookSchema = z.object({
   details: bookDetailsSchema,
   syncStatus: syncStatusSchema,
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 /**
  * ブックの型定義
  */
-export type Book = z.infer<typeof bookSchema>; 
+export type Book = z.infer<typeof bookSchema>;

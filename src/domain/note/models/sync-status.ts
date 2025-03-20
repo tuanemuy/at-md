@@ -12,14 +12,19 @@ export const SyncStatusCode = {
   ERROR: "error",
 } as const;
 
-export type SyncStatusCode = (typeof SyncStatusCode)[keyof typeof SyncStatusCode];
+export type SyncStatusCode =
+  (typeof SyncStatusCode)[keyof typeof SyncStatusCode];
 
 /**
  * 同期状態のZodスキーマ
  */
 export const syncStatusSchema = z.object({
   lastSyncedAt: z.date().nullable(),
-  status: z.enum([SyncStatusCode.SYNCING, SyncStatusCode.SYNCED, SyncStatusCode.ERROR])
+  status: z.enum([
+    SyncStatusCode.SYNCING,
+    SyncStatusCode.SYNCED,
+    SyncStatusCode.ERROR,
+  ]),
 });
 
 /**
@@ -39,4 +44,4 @@ export function isSyncing(syncStatus: SyncStatus): boolean {
  */
 export function isSyncError(syncStatus: SyncStatus): boolean {
   return syncStatus.status === SyncStatusCode.ERROR;
-} 
+}

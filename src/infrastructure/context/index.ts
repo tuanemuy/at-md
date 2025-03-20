@@ -41,11 +41,11 @@ export interface AppContext {
 // コンテキスト作成関数
 export const createAppContext = (config: AppConfig): AppContext => {
   // グローバルシングルトンとしてロガーを使用
-  
+
   // リポジトリとAPIクライアントは後で実装
   const repositories: Repositories = {};
   const apiClients: ApiClients = {};
-  
+
   return {
     config,
     logger,
@@ -55,4 +55,7 @@ export const createAppContext = (config: AppConfig): AppContext => {
 };
 
 // コンテキストを利用するためのヘルパー
-export type ContextDependencies<T extends keyof AppContext> = Pick<AppContext, T>; 
+export type ContextDependencies<T extends keyof AppContext> = Pick<
+  AppContext,
+  T
+>;

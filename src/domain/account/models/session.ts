@@ -11,7 +11,7 @@ export const sessionSchema = z.object({
   did: z.string().nonempty(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().optional(),
-  expiresAt: z.date()
+  expiresAt: z.date(),
 });
 
 /**
@@ -24,4 +24,4 @@ export type Session = z.infer<typeof sessionSchema>;
  */
 export function isSessionExpired(session: Session): boolean {
   return new Date() > session.expiresAt;
-} 
+}

@@ -8,10 +8,10 @@ import { z } from "zod";
  */
 export const bookDetailsSchema = z.object({
   name: z.string().nonempty(),
-  description: z.string().default("")
+  description: z.string().default(""),
 });
 
 /**
  * ブック詳細の型定義
  */
-export type BookDetails = z.infer<typeof bookDetailsSchema>; 
+export type BookDetails = z.infer<typeof bookDetailsSchema>;

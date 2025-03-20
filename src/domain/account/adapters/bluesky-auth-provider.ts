@@ -19,15 +19,20 @@ export interface BlueskyAuthProvider {
   /**
    * Blueskyの認証URLを取得する
    */
-  authorize(handle: string, options: AuthorizeOptions): Promise<Result<URL, ExternalServiceError>>;
+  authorize(
+    handle: string,
+    options: AuthorizeOptions,
+  ): Promise<Result<URL, ExternalServiceError>>;
 
   /**
    * コールバックURLからセッション情報を取得する
    */
-  callback(params: URLSearchParams): Promise<Result<Session, ExternalServiceError>>;
+  callback(
+    params: URLSearchParams,
+  ): Promise<Result<Session, ExternalServiceError>>;
 
   /**
    * ユーザープロフィールを取得する
    */
   getUserProfile(did: string): Promise<Result<Profile, ExternalServiceError>>;
-} 
+}

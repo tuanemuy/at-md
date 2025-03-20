@@ -12,20 +12,35 @@ export interface GitHubContentProvider {
   /**
    * リポジトリ一覧を取得する
    */
-  listRepositories(accessToken: string): Promise<Result<GitHubRepository[], ExternalServiceError>>;
+  listRepositories(
+    accessToken: string,
+  ): Promise<Result<GitHubRepository[], ExternalServiceError>>;
 
   /**
    * リポジトリの特定パスのコンテンツを取得する
    */
-  getContent(accessToken: string, owner: string, repo: string, path: string): Promise<Result<string, ExternalServiceError>>;
+  getContent(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    path: string,
+  ): Promise<Result<string, ExternalServiceError>>;
 
   /**
    * リポジトリ内のパス一覧を取得する
    */
-  listPaths(accessToken: string, owner: string, repo: string): Promise<Result<string[], ExternalServiceError>>;
+  listPaths(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<Result<string[], ExternalServiceError>>;
 
   /**
    * Webhookを設定する
    */
-  setupWebhook(accessToken: string, owner: string, repo: string): Promise<Result<GitHubWebhook, ExternalServiceError>>;
-} 
+  setupWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<Result<GitHubWebhook, ExternalServiceError>>;
+}

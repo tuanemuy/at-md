@@ -17,7 +17,7 @@ export const createPostSchema = z.object({
   platform: z.literal("bluesky"),
   postUri: z.string().nullable(),
   postCid: z.string().nullable(),
-  errorMessage: z.string().nullable()
+  errorMessage: z.string().nullable(),
 });
 
 /**
@@ -30,7 +30,7 @@ export const updatePostSchema = z.object({
   status: z.nativeEnum(PostStatus),
   postUri: z.string().nullable(),
   postCid: z.string().nullable(),
-  errorMessage: z.string().nullable()
+  errorMessage: z.string().nullable(),
 });
 
 /**
@@ -76,4 +76,4 @@ export interface PostRepository {
    * 指定したIDの投稿を削除する
    */
   delete(id: string): Promise<Result<void, RepositoryError>>;
-} 
+}

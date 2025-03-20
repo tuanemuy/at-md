@@ -23,7 +23,7 @@ export class Logger {
         }),
         format.errors({ stack: true }),
         format.splat(),
-        format.json()
+        format.json(),
       ),
       defaultMeta: { service: "at-md" },
       transports: [
@@ -32,8 +32,8 @@ export class Logger {
           format: format.combine(
             format.colorize(),
             format.printf(
-              (info) => `${info.timestamp} ${info.level}: ${info.message}`
-            )
+              (info) => `${info.timestamp} ${info.level}: ${info.message}`,
+            ),
           ),
         }),
         // 本番環境ではファイルにも出力（オプション）
@@ -102,7 +102,11 @@ export class Logger {
    * @param message ログメッセージ
    * @param meta 追加情報（オブジェクト）
    */
-  public log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+  public log(
+    level: LogLevel,
+    message: string,
+    meta?: Record<string, unknown>,
+  ): void {
     this.logger.log(level, message, meta);
   }
 }
@@ -111,4 +115,4 @@ export class Logger {
  * グローバルなロガーインスタンス
  * アプリケーション全体で利用可能
  */
-export const logger = Logger.getInstance(); 
+export const logger = Logger.getInstance();

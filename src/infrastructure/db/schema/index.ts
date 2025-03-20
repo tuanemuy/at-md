@@ -5,4 +5,4 @@ export * from "./account";
 export * from "./note";
 
 // 投稿管理コンテキストのスキーマ
-export * from "./post"; 
+export * from "./post";

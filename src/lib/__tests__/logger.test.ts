@@ -14,4 +14,4 @@ test("Loggerインスタンスがすべてのログレベルのメソッドを�
   expect(typeof logger.info).toBe("function");
   expect(typeof logger.debug).toBe("function");
   expect(typeof logger.log).toBe("function");
-}); 
+});

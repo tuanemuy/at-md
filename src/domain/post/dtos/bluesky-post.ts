@@ -13,10 +13,10 @@ export type DID = string;
  */
 export const blueskyPostSchema = z.object({
   uri: z.string().nonempty(),
-  cid: z.string().nonempty()
+  cid: z.string().nonempty(),
 });
 
 /**
  * Bluesky投稿情報の型定義
  */
-export type BlueskyPost = z.infer<typeof blueskyPostSchema>; 
+export type BlueskyPost = z.infer<typeof blueskyPostSchema>;

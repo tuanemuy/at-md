@@ -13,10 +13,10 @@ export const gitHubCommitSchema = z.object({
   url: z.string().url(),
   added: z.array(z.string()),
   removed: z.array(z.string()),
-  modified: z.array(z.string())
+  modified: z.array(z.string()),
 });
 
 /**
  * GitHubコミット情報の型定義
  */
-export type GitHubCommit = z.infer<typeof gitHubCommitSchema>; 
+export type GitHubCommit = z.infer<typeof gitHubCommitSchema>;

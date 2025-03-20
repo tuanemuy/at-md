@@ -12,10 +12,10 @@ export const userSchema = z.object({
   did: z.string().nonempty(),
   profile: profileSchema,
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 /**
  * ユーザーの型定義
  */
-export type User = z.infer<typeof userSchema>; 
+export type User = z.infer<typeof userSchema>;

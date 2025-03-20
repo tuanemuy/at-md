@@ -8,7 +8,7 @@ import { z } from "zod";
  */
 export const PostStatus = {
   POSTED: "posted",
-  ERROR: "error"
+  ERROR: "error",
 } as const;
 
 export type PostStatus = (typeof PostStatus)[keyof typeof PostStatus];
@@ -16,10 +16,7 @@ export type PostStatus = (typeof PostStatus)[keyof typeof PostStatus];
 /**
  * 投稿ステータスのZodスキーマ
  */
-export const postStatusSchema = z.enum([
-  PostStatus.POSTED, 
-  PostStatus.ERROR
-]);
+export const postStatusSchema = z.enum([PostStatus.POSTED, PostStatus.ERROR]);
 
 /**
  * 投稿のZodスキーマ
@@ -33,7 +30,7 @@ export const postSchema = z.object({
   status: postStatusSchema,
   errorMessage: z.string().optional(),
   createdAt: z.date(),
-  updatedAt: z.date()
+  updatedAt: z.date(),
 });
 
 /**
@@ -53,4 +50,4 @@ export function isPostSuccessful(post: Post): boolean {
  */
 export function isPostError(post: Post): boolean {
   return post.status === PostStatus.ERROR;
-} 
+}

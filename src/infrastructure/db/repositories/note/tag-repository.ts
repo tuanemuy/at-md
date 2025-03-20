@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { type Result, err, ok } from "@/lib/result";
 import type { Tag } from "@/domain/note/models";
 import { tagSchema } from "@/domain/note/models/tag";
-import type { TagRepository, CreateTag, UpdateTag } from "@/domain/note/repositories";
+import type {
+  TagRepository,
+  CreateTag,
+  UpdateTag,
+} from "@/domain/note/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   type PgDatabase,
@@ -22,10 +26,7 @@ export class DrizzleTagRepository implements TagRepository {
    */
   async create(tag: CreateTag): Promise<Result<Tag, RepositoryError>> {
     try {
-      const [savedTag] = await this.db
-        .insert(tags)
-        .values(tag)
-        .returning();
+      const [savedTag] = await this.db.insert(tags).values(tag).returning();
 
       if (!savedTag) {
         throw new Error("Failed to parse tag data");
@@ -175,4 +176,4 @@ export class DrizzleTagRepository implements TagRepository {
       );
     }
   }
-} 
+}

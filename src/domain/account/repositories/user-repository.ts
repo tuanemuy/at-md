@@ -71,4 +71,4 @@ export interface UserRepository {
    * 指定したIDのユーザーを削除する
    */
   delete(id: string): Promise<Result<void, RepositoryError>>;
-} 
+}

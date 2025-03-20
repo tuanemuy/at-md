@@ -5,13 +5,12 @@ import type { User } from "@/domain/account/models";
 import type { CreateUser, UpdateUser } from "@/domain/account/repositories";
 import { DrizzleUserRepository } from "../user-repository";
 import { RepositoryErrorCode } from "@/domain/types/error";
-import { 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
+import {
+  setupTestDatabase,
+  cleanupTestDatabase,
   closeTestDatabase,
-  getTestDatabase
+  getTestDatabase,
 } from "../../../__test__/setup";
-import { users } from "@/infrastructure/db/schema/account";
 
 // テスト用のデータベース
 let client: PGlite;
@@ -25,10 +24,10 @@ const createTestUser = (): User => ({
     displayName: "テストユーザー",
     description: "これはテスト用のユーザーです。",
     avatarUrl: "https://example.com/avatar.png",
-    bannerUrl: "https://example.com/banner.png"
+    bannerUrl: "https://example.com/banner.png",
   },
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
 });
 
 // テスト用のCreateUserデータ
@@ -40,8 +39,8 @@ const createTestCreateUser = (): CreateUser => {
       displayName: user.profile.displayName || "",
       description: user.profile.description || "",
       avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
-      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png"
-    }
+      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png",
+    },
   };
 };
 
@@ -55,8 +54,8 @@ const createTestUpdateUser = (id: string): UpdateUser => {
       displayName: "更新されたユーザー名",
       description: "更新された説明文",
       avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
-      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png"
-    }
+      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png",
+    },
   };
 };
 
@@ -81,10 +80,10 @@ afterAll(async () => {
 test("新規ユーザーを作成するとユーザーが正常に作成されること", async () => {
   // 準備
   const testUser = createTestCreateUser();
-  
+
   // 実行
   const result = await userRepository.create(testUser);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedUser) => {
@@ -99,18 +98,18 @@ test("既存ユーザーを更新するとユーザー情報が正常に更新�
   // 準備 - 最初のユーザーを作成
   const createData = createTestCreateUser();
   const createResult = await userRepository.create(createData);
-  
+
   let userId = "";
   createResult.map((user) => {
     userId = user.id;
   });
-  
+
   // 更新用のユーザー情報
   const updateData = createTestUpdateUser(userId);
-  
+
   // 実行
   const result = await userRepository.update(updateData);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedUser) => {
@@ -126,15 +125,15 @@ test("存在するIDでユーザーを検索するとユーザーが取得でき
   // 準備
   const createData = createTestCreateUser();
   const createResult = await userRepository.create(createData);
-  
+
   let userId = "";
   createResult.map((user) => {
     userId = user.id;
   });
-  
+
   // 実行
   const result = await userRepository.findById(userId);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
@@ -150,10 +149,10 @@ test("存在するIDでユーザーを検索するとユーザーが取得でき
 test("存在しないIDでユーザーを検索するとnullが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
-  
+
   // 実行
   const result = await userRepository.findById(nonExistentId);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
@@ -165,10 +164,10 @@ test("存在するDIDでユーザーを検索するとユーザーが取得で�
   // 準備
   const createData = createTestCreateUser();
   const createResult = await userRepository.create(createData);
-  
+
   // 実行
   const result = await userRepository.findByDid(createData.did);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
@@ -183,10 +182,10 @@ test("存在するDIDでユーザーを検索するとユーザーが取得で�
 test("存在しないDIDでユーザーを検索するとnullが返されること", async () => {
   // 準備
   const nonExistentDid = "did:example:nonexistent";
-  
+
   // 実行
   const result = await userRepository.findByDid(nonExistentDid);
-  
+
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
@@ -198,18 +197,18 @@ test("ユーザーを削除すると該当ユーザーが削除されること",
   // 準備
   const createData = createTestCreateUser();
   const createResult = await userRepository.create(createData);
-  
+
   let userId = "";
   createResult.map((user) => {
     userId = user.id;
   });
-  
+
   // 実行
   const deleteResult = await userRepository.delete(userId);
-  
+
   // 検証
   expect(deleteResult.isOk()).toBe(true);
-  
+
   // 削除されたことを確認
   const findResult = await userRepository.findById(userId);
   expect(findResult.isOk()).toBe(true);
@@ -222,17 +221,17 @@ test("重複するDIDでユーザーを作成すると失敗すること", async
   // 準備 - 最初のユーザーを作成
   const createData = createTestCreateUser();
   await userRepository.create(createData);
-  
+
   // 同じDIDで別のユーザーを作成
   const duplicateData = createTestCreateUser();
   duplicateData.did = createData.did;
-  
+
   // 実行
   const result = await userRepository.create(duplicateData);
-  
+
   // 検証
   expect(result.isErr()).toBe(true);
   result.mapErr((error) => {
     expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
   });
-}); 
+});

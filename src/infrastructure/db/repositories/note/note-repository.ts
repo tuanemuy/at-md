@@ -2,7 +2,12 @@ import { and, eq, like, sql } from "drizzle-orm";
 import { type Result, err, ok } from "@/lib/result";
 import type { Note } from "@/domain/note/models";
 import { noteSchema } from "@/domain/note/models/note";
-import type { NoteRepository, CreateNote, UpdateNote, PaginationParams } from "@/domain/note/repositories";
+import type {
+  NoteRepository,
+  CreateNote,
+  UpdateNote,
+  PaginationParams,
+} from "@/domain/note/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   type PgDatabase,
@@ -24,10 +29,7 @@ export class DrizzleNoteRepository implements NoteRepository {
     try {
       const result = await this.db.transaction(async (tx) => {
         // ノートの保存
-        const [savedNote] = await tx
-          .insert(notes)
-          .values(note)
-          .returning();
+        const [savedNote] = await tx.insert(notes).values(note).returning();
 
         if (!savedNote) {
           throw new Error("Failed to parse note data");
@@ -113,9 +115,7 @@ export class DrizzleNoteRepository implements NoteRepository {
         }
 
         // 既存のタグ関連付けをクリア
-        await tx
-          .delete(noteTags)
-          .where(eq(noteTags.noteId, updatedNote.id));
+        await tx.delete(noteTags).where(eq(noteTags.noteId, updatedNote.id));
 
         // ノートとタグの関連付けを保存
         if (note.tags.length > 0) {
@@ -235,7 +235,7 @@ export class DrizzleNoteRepository implements NoteRepository {
    */
   async findByBookId(
     bookId: string,
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
   ): Promise<Result<Note[], RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
@@ -275,7 +275,7 @@ export class DrizzleNoteRepository implements NoteRepository {
             }
 
             return parsed.data;
-          })
+          }),
         );
 
         return notesWithTags;
@@ -299,7 +299,7 @@ export class DrizzleNoteRepository implements NoteRepository {
    */
   async findByTag(
     tagId: string,
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
   ): Promise<Result<Note[], RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
@@ -354,7 +354,7 @@ export class DrizzleNoteRepository implements NoteRepository {
             }
 
             return parsed.data;
-          })
+          }),
         );
 
         return noteResults;
@@ -379,7 +379,7 @@ export class DrizzleNoteRepository implements NoteRepository {
   async search(
     bookId: string,
     query: string,
-    pagination?: PaginationParams
+    pagination?: PaginationParams,
   ): Promise<Result<Note[], RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
@@ -396,8 +396,8 @@ export class DrizzleNoteRepository implements NoteRepository {
           .where(
             and(
               eq(notes.bookId, bookId),
-              sql`(${notes.title} ILIKE ${searchQuery} OR ${notes.body} ILIKE ${searchQuery})`
-            )
+              sql`(${notes.title} ILIKE ${searchQuery} OR ${notes.body} ILIKE ${searchQuery})`,
+            ),
           )
           .limit(limit)
           .offset(offset);
@@ -425,7 +425,7 @@ export class DrizzleNoteRepository implements NoteRepository {
             }
 
             return parsed.data;
-          })
+          }),
         );
 
         return notesWithTags;
@@ -462,4 +462,4 @@ export class DrizzleNoteRepository implements NoteRepository {
       );
     }
   }
-} 
+}

@@ -1,2 +1,2 @@
-export * from './user-repository';
-export * from './github-connection-repository'; 
+export * from "./user-repository";
+export * from "./github-connection-repository";

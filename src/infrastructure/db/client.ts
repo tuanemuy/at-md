@@ -26,7 +26,7 @@ export function isDatabaseError(value: unknown): value is DatabaseError {
 
 /**
  * データベースエラーコードをリポジトリエラーコードに変換する
- * 
+ *
  * PostgreSQLのエラーコードについて：
  * - クラス 08: 接続例外
  * - クラス 22: データ例外
@@ -35,7 +35,7 @@ export function isDatabaseError(value: unknown): value is DatabaseError {
  * - クラス 40: トランザクションのロールバック
  * - クラス 42: 構文エラーまたはアクセス規則違反
  * - クラス 58: 外部データラッパーのエラー（システムエラー）
- * 
+ *
  * @param code PostgreSQLエラーコード
  * @returns 対応するリポジトリエラーコード
  */

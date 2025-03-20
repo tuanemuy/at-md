@@ -1,1 +1,1 @@
-export * from './github-installation'; 
+export * from "./github-installation";

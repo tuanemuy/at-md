@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 import { type Result, err, ok } from "@/lib/result";
 import type { User } from "@/domain/account/models";
 import { userSchema } from "@/domain/account/models";
-import type { UserRepository, CreateUser, UpdateUser } from "@/domain/account/repositories";
+import type {
+  UserRepository,
+  CreateUser,
+  UpdateUser,
+} from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   type PgDatabase,
@@ -23,10 +27,7 @@ export class DrizzleUserRepository implements UserRepository {
   async create(user: CreateUser): Promise<Result<User, RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
-        const [savedUser] = await tx
-          .insert(users)
-          .values(user)
-          .returning();
+        const [savedUser] = await tx.insert(users).values(user).returning();
 
         if (!savedUser) {
           throw new Error("Failed to save user");
@@ -36,7 +37,7 @@ export class DrizzleUserRepository implements UserRepository {
           .insert(profiles)
           .values({
             userId: savedUser.id,
-            ...user.profile
+            ...user.profile,
           })
           .returning();
 
@@ -82,10 +83,7 @@ export class DrizzleUserRepository implements UserRepository {
 
       if (!updatedUser) {
         return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "User not found",
-          ),
+          new RepositoryError(RepositoryErrorCode.DATA_ERROR, "User not found"),
         );
       }
 

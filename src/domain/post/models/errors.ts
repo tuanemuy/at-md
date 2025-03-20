@@ -11,14 +11,14 @@ export const PostErrorCode = {
   POST_FAILED: "post_failed",
   POST_NOT_FOUND: "post_not_found",
   INVALID_POST_CONTENT: "invalid_post_content",
-  
+
   // エンゲージメント関連
   ENGAGEMENT_FETCH_FAILED: "engagement_fetch_failed",
   INVALID_ENGAGEMENT_DATA: "invalid_engagement_data",
-  
+
   // 認証関連
   UNAUTHORIZED: "unauthorized",
-  AUTHENTICATION_FAILED: "authentication_failed"
+  AUTHENTICATION_FAILED: "authentication_failed",
 } as const;
 
 export type PostErrorCode = (typeof PostErrorCode)[keyof typeof PostErrorCode];
@@ -30,8 +30,8 @@ export class PostError extends AnyError {
   constructor(
     public code: PostErrorCode,
     public message: string,
-    public cause?: Error | unknown
+    public cause?: Error | unknown,
   ) {
     super(code, message, cause);
   }
-} 
+}
