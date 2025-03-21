@@ -53,15 +53,17 @@
   - アカウント管理コンテキスト
     - UserRepository（Drizzle ORM使用）
     - GitHubConnectionRepository（Drizzle ORM使用）
+  - ノート管理コンテキスト
+    - NoteRepository（Drizzle ORM使用）
+    - BookRepository（Drizzle ORM使用）
+    - TagRepository（Drizzle ORM使用）
+  - 投稿管理コンテキスト
+    - PostRepository（Drizzle ORM使用）
 
 ## 次のステップ
 
 ### Phase 3: インフラストラクチャ層の実装（続き）
-1. リポジトリの実装
-   - ノート管理コンテキスト（NoteRepository, BookRepository, TagRepository）
-   - 投稿管理コンテキスト（PostRepository）
-
-2. 外部サービス連携
+1. 外部サービス連携
    - Bluesky認証
    - GitHub連携
    - セッション管理

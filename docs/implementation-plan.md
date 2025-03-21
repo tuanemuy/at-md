@@ -92,12 +92,12 @@
 - [x] アカウント管理リポジトリの実装
   - [x] UserRepository
   - [x] GitHubConnectionRepository
-- [ ] ノート管理リポジトリの実装
-  - [ ] NoteRepository
-  - [ ] BookRepository
-  - [ ] TagRepository
-- [ ] 投稿管理リポジトリの実装
-  - [ ] PostRepository
+- [x] ノート管理リポジトリの実装
+  - [x] NoteRepository
+  - [x] BookRepository
+  - [x] TagRepository
+- [x] 投稿管理リポジトリの実装
+  - [x] PostRepository
 
 ### ステップ3.4 外部サービス連携
 
