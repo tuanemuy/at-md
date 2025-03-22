@@ -17,7 +17,6 @@
 - バリデーション: Zod（モデル全般）, @hono/zod-validator（APIリクエスト）
 - RPC: Server Actions, hono/client
 - データベース: PostgreSQL, Drizzle ORM
-- セッション管理: iron-session
 - 外部システム連携:
   - GitHub Apps（octkit）
   - GitHub API（octkit）
@@ -158,15 +157,10 @@ src/
 │   │       ├── post/         # 投稿関連リポジトリ実装
 │   │       └── __tests__/    # リポジトリのテスト
 │   │           └── setup.ts  # テスト用のインメモリデータベースクライアント
-│   └── api/                  # 外部API
-│       ├── github/           # GitHub API
-│       │   ├── client.ts     # GitHub APIクライアント
-│       │   └── services/     # GitHub API関連サービス実装
-│       │       └── __tests__/  # GitHub API関連サービスのテスト
-│       └── bluesky/          # Bluesky API
-│           ├── client.ts     # Bluesky APIクライアント
-│           └── services/     # Bluesky API関連サービス実装
-│               └── __tests__/  # Bluesky API関連サービスのテスト
+│   ├── github/               # GitHub API関連サービス実装
+│   │   └── __tests__/        # GitHub API関連サービスのテスト
+│   └── bluesky/              # Bluesky API関連サービス実装
+│       └── __tests__/        # Bluesky API関連サービスのテスト
 ├── lib/                      # ユーティリティ
 │   ├── logger.ts             # ロガー
 │   └── __tests__/            # ユーティリティのテスト

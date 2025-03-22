@@ -40,7 +40,7 @@ test("必要な環境変数がある場合に有効な設定を返すこと", ()
     GITHUB_PRIVATE_KEY: "private-key",
     GITHUB_CLIENT_ID: "client-id",
     GITHUB_CLIENT_SECRET: "client-secret",
-    BLUESKY_SERVICE_URL: "https://bsky.social",
+    PUBLIC_URL: "https://example.com",
   });
 
   // 設定をロード
@@ -52,6 +52,7 @@ test("必要な環境変数がある場合に有効な設定を返すこと", ()
     logging: {
       level: "debug",
     },
+    publicUrl: "https://example.com",
     database: {
       url: "postgresql://user:password@localhost:5432/test",
     },
@@ -61,9 +62,6 @@ test("必要な環境変数がある場合に有効な設定を返すこと", ()
         privateKey: "private-key",
         clientId: "client-id",
         clientSecret: "client-secret",
-      },
-      bluesky: {
-        serviceUrl: "https://bsky.social",
       },
     },
   });
@@ -79,7 +77,7 @@ test("必須の環境変数が不足している場合にエラーをスロー�
     GITHUB_PRIVATE_KEY: "private-key",
     GITHUB_CLIENT_ID: "client-id",
     GITHUB_CLIENT_SECRET: "client-secret",
-    BLUESKY_SERVICE_URL: "https://bsky.social",
+    PUBLIC_URL: "https://example.com",
   });
 
   // 設定ロードでエラーが発生することを検証
@@ -98,7 +96,7 @@ test("環境変数の検証が正しく行われること", () => {
     GITHUB_PRIVATE_KEY: "private-key",
     GITHUB_CLIENT_ID: "client-id",
     GITHUB_CLIENT_SECRET: "client-secret",
-    BLUESKY_SERVICE_URL: "https://bsky.social",
+    PUBLIC_URL: "https://example.com",
   });
 
   // 設定ロードでZodエラーが発生することを検証
@@ -116,7 +114,6 @@ test("デフォルト値が適用されること", () => {
     GITHUB_PRIVATE_KEY: "private-key",
     GITHUB_CLIENT_ID: "client-id",
     GITHUB_CLIENT_SECRET: "client-secret",
-    // BLUESKY_SERVICE_URLを省略（デフォルト値が使用される）
   });
 
   // 設定をロード
@@ -125,5 +122,5 @@ test("デフォルト値が適用されること", () => {
   // デフォルト値が適用されていることを検証
   expect(config.environment).toEqual("development"); // デフォルト値
   expect(config.logging.level).toEqual("info"); // デフォルト値
-  expect(config.api.bluesky.serviceUrl).toEqual("https://bsky.social"); // デフォルト値
+  expect(config.publicUrl).toEqual("http://localhost:3000"); // デフォルト値
 });

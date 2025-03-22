@@ -4,6 +4,7 @@
 import type { Result } from "neverthrow";
 import type { ExternalServiceError } from "@/domain/types/error";
 import type { Profile, Session } from "../models";
+import type { RequestContext } from "@/lib/cookie";
 
 /**
  * 認証オプション
@@ -21,7 +22,7 @@ export interface BlueskyAuthProvider {
    */
   authorize(
     handle: string,
-    options: AuthorizeOptions,
+    context: RequestContext,
   ): Promise<Result<URL, ExternalServiceError>>;
 
   /**
@@ -29,10 +30,14 @@ export interface BlueskyAuthProvider {
    */
   callback(
     params: URLSearchParams,
+    context: RequestContext,
   ): Promise<Result<Session, ExternalServiceError>>;
 
   /**
    * ユーザープロフィールを取得する
    */
-  getUserProfile(did: string): Promise<Result<Profile, ExternalServiceError>>;
+  getUserProfile(
+    did: string,
+    context: RequestContext,
+  ): Promise<Result<Profile, ExternalServiceError>>;
 }

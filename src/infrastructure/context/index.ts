@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import type { Logger } from "@/lib/logger";
+import type { BlueskyAuthProvider } from "@/domain/account/adapters";
 
 // アプリケーションの設定
 export interface AppConfig {
@@ -7,6 +8,7 @@ export interface AppConfig {
   logging: {
     level: string;
   };
+  publicUrl: string;
   database: {
     url: string;
   };
@@ -17,9 +19,6 @@ export interface AppConfig {
       clientId: string;
       clientSecret: string;
     };
-    bluesky: {
-      serviceUrl: string;
-    };
   };
 }
 
@@ -27,8 +26,11 @@ export interface AppConfig {
 // 後で実装するためにとりあえず空のRecord型を定義
 export type Repositories = Record<string, never>;
 
-// 後で実装するためにとりあえず空のRecord型を定義
-export type ApiClients = Record<string, never>;
+// APIクライアントのインターフェース
+export interface ApiClients {
+  blueskyAuthProvider?: BlueskyAuthProvider;
+  // 他のAPIクライアントをここに追加
+}
 
 // アプリケーションコンテキスト
 export interface AppContext {

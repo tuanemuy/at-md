@@ -54,9 +54,6 @@ export type Profile = z.infer<typeof profileSchema>;
 ```typescript
 export const sessionSchema = z.object({
   did: z.string().nonempty(),
-  accessToken: z.string().nonempty(),
-  refreshToken: z.string().optional(),
-  expiresAt: dateSchema
 });
 export type Session = z.infer<typeof sessionSchema>;
 ```
@@ -136,15 +133,6 @@ export interface GitHubAppProvider {
 ```
 
 #### セッション管理アダプター
-
-```typescript
-export interface SessionManager {
-  createSession(session: Session): Promise<Result<void, AccountError>>;
-  validateSession(token: string): Promise<Result<Session, AccountError>>;
-  refreshSession(token: string): Promise<Result<Session, AccountError>>;
-  revokeSession(token: string): Promise<Result<void, AccountError>>;
-}
-```
 
 ### リポジトリインターフェース
 

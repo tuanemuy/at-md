@@ -36,10 +36,7 @@
   - displayName, description, avatarUrl, bannerUrl
   - ユーザープロフィール
 - [Session](../domain-types/account.md#Session)
-  - did, accessToken, refreshToken, expiresAt
-  - ユーザーの認証状態を表す不変な値
-  - アクセストークンによって同一性が決定される
-  - 有効期限が切れた場合は新しいセッションに置き換える
+  - did
 
 ### DTOs
 
@@ -62,14 +59,6 @@
 #### GitHub連携アダプター: [GitHubAppProvider](../domain-types/account.md#github連携アダプター)
 
 - `getInstallations(accessToken: string): Promise<Result<GitHubInstallation[], ExternalServiceError>>`
-
-#### セッション管理アダプター: [SessionManager](../domain-types/account.md#セッション管理アダプター)
-
-- `createSession(session: Session): Promise<Result<void, AccountError>>`
-- `validateSession(token: string): Promise<Result<Session, AccountError>>`
-- `refreshSession(token: string): Promise<Result<Session, AccountError>>`
-- `revokeSession(token: string): Promise<Result<void, AccountError>>`
-
 ## アプリケーション層
 
 ### ユースケース

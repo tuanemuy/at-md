@@ -54,6 +54,7 @@ export const ExternalServiceErrorCode = {
   SERVICE_UNAVAILABLE: "service_unavailable",
   RATE_LIMITED: "rate_limited",
   AUTHENTICATION_FAILED: "authentication_failed",
+  PROFILE_RETRIEVAL_FAILED: "profile_retrieval_failed",
   UNEXPECTED_ERROR: "unexpected_error",
 } as const;
 export type ExternalServiceErrorCode =

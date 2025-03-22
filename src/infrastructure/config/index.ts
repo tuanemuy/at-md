@@ -10,6 +10,8 @@ const envSchema = z.object({
     .default("development"),
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 
+  PUBLIC_URL: z.string().url().default("http://localhost:3000"),
+
   // データベース設定
   DATABASE_URL: z.string().min(1),
 
@@ -18,9 +20,6 @@ const envSchema = z.object({
   GITHUB_PRIVATE_KEY: z.string().min(1),
   GITHUB_CLIENT_ID: z.string().min(1),
   GITHUB_CLIENT_SECRET: z.string().min(1),
-
-  // Bluesky API設定
-  BLUESKY_SERVICE_URL: z.string().url().default("https://bsky.social"),
 });
 
 // 環境変数からAppConfigを作成
@@ -34,6 +33,7 @@ export const loadConfig = (): AppConfig => {
       logging: {
         level: env.LOG_LEVEL,
       },
+      publicUrl: env.PUBLIC_URL,
       database: {
         url: env.DATABASE_URL,
       },
@@ -43,9 +43,6 @@ export const loadConfig = (): AppConfig => {
           privateKey: env.GITHUB_PRIVATE_KEY,
           clientId: env.GITHUB_CLIENT_ID,
           clientSecret: env.GITHUB_CLIENT_SECRET,
-        },
-        bluesky: {
-          serviceUrl: env.BLUESKY_SERVICE_URL,
         },
       },
     };
