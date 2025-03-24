@@ -3,8 +3,6 @@ import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import type { Tag } from "@/domain/note/models/tag";
 import type { CreateNote, UpdateNote } from "@/domain/note/repositories";
 import { RepositoryErrorCode } from "@/domain/types/error";
-import { users } from "../../../schema/account";
-import { books, noteTags, notes, tags } from "../../../schema/note";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
@@ -14,6 +12,8 @@ import {
   getTestDatabase,
   setupTestDatabase,
 } from "../../../__test__/setup";
+import { users } from "../../../schema/account";
+import { books, noteTags, notes, tags } from "../../../schema/note";
 import { DrizzleBookRepository } from "../book-repository";
 import { DrizzleNoteRepository } from "../note-repository";
 import { DrizzleTagRepository } from "../tag-repository";

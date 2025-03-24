@@ -19,6 +19,28 @@ export const userSchema = z.object({
 export type User = z.infer<typeof userSchema>;
 ```
 
+#### AuthSession
+
+```typescript
+export const authSessionSchema = z.object({
+  id: idSchema,
+  key: z.string().noempty(),
+  session: z.string().noempty()
+});
+export type AuthSession = z.infer<typeof authSessionSchema>;
+```
+
+#### AuthState
+
+```typescript
+export const authStateSchema = z.object({
+  id: idSchema,
+  key: z.string().noempty(),
+  state: z.string().noempty()
+});
+export type AuthState = z.infer<authStateSchema>;
+```
+
 #### GitHub接続情報
 
 ```typescript
@@ -27,8 +49,6 @@ export const gitHubConnectionSchema = z.object({
   userId: idSchema,
   accessToken: z.string().nonempty(),
   refreshToken: z.string().optional(),
-  expiresAt: dateSchema.optional(),
-  scope: z.array(z.string()).default([]),
   createdAt: dateSchema,
   updatedAt: dateSchema
 });
@@ -47,15 +67,6 @@ export const profileSchema = z.object({
   bannerUrl: z.string().url().nullable()
 });
 export type Profile = z.infer<typeof profileSchema>;
-```
-
-#### Session
-
-```typescript
-export const sessionSchema = z.object({
-  did: z.string().nonempty(),
-});
-export type Session = z.infer<typeof sessionSchema>;
 ```
 
 ### エラー
@@ -94,6 +105,15 @@ export interface AccountError extends AnyError {
 
 ### DTOs
 
+#### Session
+
+```typescript
+export const sessionSchema = z.object({
+  did: z.string().nonempty(),
+});
+export type Session = z.infer<typeof sessionSchema>;
+```
+
 #### GitHubInstallation
 
 ```typescript
@@ -115,8 +135,9 @@ export type GitHubInstallation = z.infer<typeof gitHubInstallationSchema>;
 ```typescript
 export interface BlueskyAuthProvider {
   authorize(handle: string, options: AuthorizeOptions): Promise<Result<URL, ExternalServiceError>>;
-  callback(params: URLSearchParams): Promise<Result<Session, ExternalServiceError>>;
+  callback(params: URLSearchParams): Promise<Result<OAuthSession, ExternalServiceError>>;
   getUserProfile(did: string): Promise<Result<Profile, ExternalServiceError>>;
+  getAgent(did: string): Promise<Result<Agent, ExternalServiceError>>;
 }
 
 export interface AuthorizeOptions {
@@ -138,14 +159,26 @@ export interface GitHubAppProvider {
 
 ```typescript
 export interface UserRepository {
-  save(user: User): Promise<Result<User, RepositoryError>>;
+  save(user: CreateUser): Promise<Result<User, RepositoryError>>;
   findById(id: string): Promise<Result<User, RepositoryError>>;
   findByDid(did: string): Promise<Result<User, RepositoryError>>;
   delete(id: string): Promise<Result<void, RepositoryError>>;
 }
 
+export interface AuthSessionRepository {
+  save(authSession: CreateAuthSession): Promise<Result<AuthSession, RepositoryError>>;
+  findByKey(key: string): Promise<Result<AuthSession, RepositoryError>>;
+  deleteByKey(key: string): Promise<Result<void, RepositoryError>>;
+}
+
+export interface AuthStateRepository {
+  save(authState: CreateAuthState): Promise<Result<AuthState, RepositoryError>>;
+  findByKey(key: string): Promise<Result<AuthState, RepositoryError>>;
+  deleteByKey(key: string): Promise<Result<void, RepositoryError>>;
+}
+
 export interface GitHubConnectionRepository {
-  save(connection: GitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
+  save(connection: CreateGitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
   findByUserId(userId: string): Promise<Result<GitHubConnection[], RepositoryError>>;
   delete(id: string): Promise<Result<void, RepositoryError>>;
 }

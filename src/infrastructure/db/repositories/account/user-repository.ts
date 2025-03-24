@@ -1,17 +1,17 @@
-import { eq } from "drizzle-orm";
-import { type Result, err, ok } from "@/lib/result";
 import type { User } from "@/domain/account/models";
 import { userSchema } from "@/domain/account/models";
 import type {
-  UserRepository,
   CreateUser,
   UpdateUser,
+  UserRepository,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import { type Result, err, ok } from "@/lib/result";
+import { eq } from "drizzle-orm";
 import {
   type PgDatabase,
-  isDatabaseError,
   codeToRepositoryErrorCode,
+  isDatabaseError,
 } from "../../client";
 import { profiles, users } from "../../schema/account";
 

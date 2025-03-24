@@ -1,10 +1,10 @@
+import type { RepositoryError } from "@/domain/types/error";
+import type { Result } from "neverthrow";
 /**
  * ユーザーリポジトリのインターフェース
  */
 import { z } from "zod";
-import type { Result } from "neverthrow";
 import type { User } from "../models";
-import type { RepositoryError } from "@/domain/types/error";
 
 /**
  * ユーザー作成時のZodスキーマ

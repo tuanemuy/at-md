@@ -1,8 +1,8 @@
+import type { ExternalServiceError } from "@/domain/types/error";
 /**
  * GitHub連携アダプターのインターフェース
  */
 import type { Result } from "neverthrow";
-import type { ExternalServiceError } from "@/domain/types/error";
 import type { GitHubRepository, GitHubWebhook } from "../dtos";
 
 /**
@@ -42,5 +42,5 @@ export interface GitHubContentProvider {
     accessToken: string,
     owner: string,
     repo: string,
-  ): Promise<Result<GitHubWebhook, ExternalServiceError>>;
+  ): Promise<Result<number, ExternalServiceError>>;
 }

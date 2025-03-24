@@ -2,7 +2,6 @@ import type { Book } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import type { CreateBook, UpdateBook } from "@/domain/note/repositories";
 import { RepositoryErrorCode } from "@/domain/types/error";
-import { users } from "../../../schema/account";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
@@ -12,6 +11,7 @@ import {
   getTestDatabase,
   setupTestDatabase,
 } from "../../../__test__/setup";
+import { users } from "../../../schema/account";
 import { DrizzleBookRepository } from "../book-repository";
 
 // テスト用のデータベース

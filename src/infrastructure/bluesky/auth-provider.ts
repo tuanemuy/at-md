@@ -1,62 +1,53 @@
-/**
- * Bluesky認証アダプターの実装 - 公式APIライブラリを直接使用
- */
-import { ok, err, type Result } from "@/lib/result";
-import {
-  NodeOAuthClient,
-  type NodeSavedSession,
-  type NodeSavedState,
-} from "@atproto/oauth-client-node";
-import { Agent } from "@atproto/api";
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
 import { type Profile, profileSchema } from "@/domain/account/models/profile";
-import type { Session } from "@/domain/account/models/session";
+import type {
+  AuthSessionRepository,
+  AuthStateRepository,
+} from "@/domain/account/repositories";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { logger } from "@/lib/logger";
+/**
+ * Bluesky認証アダプターの実装 - 公式APIライブラリを直接使用
+ */
+import { type Result, err, ok } from "@/lib/result";
+import { Agent } from "@atproto/api";
 import {
-  parseCookies,
-  setCookie,
-  clearCookie,
-  type RequestContext,
-} from "@/lib/cookie";
-
-const stateMaxAge = 60 * 60;
-const sessionMaxAge = 60 * 60 * 24 * 30;
+  NodeOAuthClient,
+  type NodeSavedSession,
+  type NodeSavedState,
+  type OAuthSession,
+} from "@atproto/oauth-client-node";
 
 /**
  * Bluesky認証アダプターの実装クラス
  */
 export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
-  private readonly publicUrl: string;
+  private readonly oauthClient: NodeOAuthClient;
 
   /**
    * コンストラクタ
    */
-  constructor(config: {
-    publicUrl: string;
+  constructor(params: {
+    config: {
+      publicUrl: string;
+    };
+    deps: {
+      authSessionRepository: AuthSessionRepository;
+      authStateRepository: AuthStateRepository;
+    };
   }) {
-    this.publicUrl = config.publicUrl;
-  }
+    const stateStore = createStateStore(params.deps.authStateRepository);
+    const sessionStore = createSessionStore(params.deps.authSessionRepository);
 
-  /**
-   * OAuthクライアントの作成
-   * @returns Result<NodeOAuthClient, ExternalServiceError>
-   */
-  private createOAuthClient(context: RequestContext) {
-    // ストアの作成
-    const stateStore = createStateStore(context);
-    const sessionStore = createSessionStore(context);
-
-    // OAuthクライアントをコンストラクタから直接生成
-    const client = new NodeOAuthClient({
+    this.oauthClient = new NodeOAuthClient({
       clientMetadata: {
         client_name: "@md",
-        client_id: `${this.publicUrl}/api/auth/client-metadata.json`,
-        client_uri: this.publicUrl,
-        redirect_uris: [`${this.publicUrl}/api/auth/callback`],
+        client_id: `${params.config.publicUrl}/api/auth/client-metadata.json`,
+        client_uri: params.config.publicUrl,
+        redirect_uris: [`${params.config.publicUrl}/api/auth/callback`],
         scope: "atproto transition:generic",
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],
@@ -67,23 +58,57 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
       stateStore,
       sessionStore,
     });
+  }
 
-    return client;
+  /**
+   * OAuthセッションを取得する
+   * @param did ユーザーのDID
+   * @returns Result<OAuthSession, ExternalServiceError>
+   */
+  async getOAuthSession(
+    did: string,
+  ): Promise<Result<OAuthSession, ExternalServiceError>> {
+    try {
+      // セッションを復元
+      const session = await this.oauthClient.restore(did);
+
+      if (!session) {
+        logger.error("Failed to restore OAuth session", { did });
+        return err(
+          new ExternalServiceError(
+            "BlueskyAuth",
+            ExternalServiceErrorCode.AUTHENTICATION_FAILED,
+            "Session not found or expired",
+          ),
+        );
+      }
+
+      logger.info("Successfully restored OAuth session", { did });
+      return ok(session);
+    } catch (error) {
+      logger.error("Failed to get OAuth session", {
+        error: error instanceof Error ? error.message : String(error),
+        did,
+      });
+
+      return err(
+        new ExternalServiceError(
+          "BlueskyAuth",
+          ExternalServiceErrorCode.AUTHENTICATION_FAILED,
+          "Failed to get OAuth session",
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
   }
 
   /**
    * Blueskyの認証URLを取得する
    */
-  async authorize(
-    handle: string,
-    context: RequestContext,
-  ): Promise<Result<URL, ExternalServiceError>> {
+  async authorize(handle: string): Promise<Result<URL, ExternalServiceError>> {
     try {
-      // OAuthクライアントの取得
-      const clientResult = this.createOAuthClient(context);
-
       // 認証URLを生成
-      const url = await clientResult.authorize(handle, {
+      const url = await this.oauthClient.authorize(handle, {
         scope: "'atproto transition:generic'",
       });
 
@@ -114,25 +139,16 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
    */
   async callback(
     params: URLSearchParams,
-    context: RequestContext,
-  ): Promise<Result<Session, ExternalServiceError>> {
+  ): Promise<Result<OAuthSession, ExternalServiceError>> {
     try {
-      // OAuthクライアントの取得
-      const clientResult = this.createOAuthClient(context);
-
       // コードを交換してセッションを取得
-      const { session } = await clientResult.callback(params);
-
-      // アプリケーションの期待するSession型に変換
-      const appSession: Session = {
-        did: session.did,
-      };
+      const { session } = await this.oauthClient.callback(params);
 
       logger.info("Successfully retrieved Bluesky session", {
-        did: appSession.did,
+        did: session.did,
       });
 
-      return ok(appSession);
+      return ok(session);
     } catch (error) {
       logger.error("Failed to retrieve Bluesky session", {
         error: error instanceof Error ? error.message : String(error),
@@ -154,26 +170,38 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
    */
   async getUserProfile(
     did: string,
-    context: RequestContext,
   ): Promise<Result<Profile, ExternalServiceError>> {
-    try {
-      const clientResult = this.createOAuthClient(context);
-      const session = await clientResult.restore(did);
-      
-      // sessionがnullの場合はエラーを返す
-      if (!session) {
-        throw new Error('Session not found or expired');
-      }
-      
-      const agent = new Agent(session);
+    const oauthSessionResult = await this.getOAuthSession(did);
 
-      const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
+    if (oauthSessionResult.isErr()) {
+      return err(oauthSessionResult.error);
+    }
+
+    const agent = new Agent(oauthSessionResult.value);
+
+    try {
+      const response = await agent.com.atproto.repo.getRecord({
         repo: agent.assertDid,
         collection: "app.bsky.actor.profile",
         rkey: "self",
       });
 
-      const profile = profileSchema.parse(profileRecord.value);
+      if (!response.success) {
+        return err(
+          new ExternalServiceError(
+            "Bluesky",
+            ExternalServiceErrorCode.REQUEST_FAILED,
+            "Failed to get profile",
+          ),
+        );
+      }
+
+      const profile = profileSchema.parse({
+        displayName: response.data.value.displayName,
+        description: response.data.value.description,
+        avatarUrl: response.data.value.avatar,
+        bannerUrl: response.data.value.banner,
+      });
 
       logger.info("Successfully retrieved Bluesky profile", {
         did,
@@ -200,69 +228,111 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
 }
 
 /**
- * Cookieベースのステートストアを作成する
+ * データベースベースのステートストアを作成する
  */
-const createStateStore = (context: RequestContext) => {
-  const { req, res } = context;
-
+const createStateStore = (authStateRepository: AuthStateRepository) => {
   return {
     set: async (key: string, state: NodeSavedState): Promise<void> => {
-      setCookie(res, `bluesky_state_${key}`, JSON.stringify(state), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: stateMaxAge,
-        path: "/",
+      const result = await authStateRepository.create({
+        key,
+        state: JSON.stringify(state),
       });
+
+      if (result.isErr()) {
+        logger.error("Failed to save auth state", {
+          key,
+          error: result.error,
+        });
+        throw new Error("Failed to save auth state");
+      }
     },
 
     get: async (key: string): Promise<NodeSavedState | undefined> => {
-      const cookies = parseCookies(req);
-      const cookieValue = cookies[`bluesky_state_${key}`];
-      if (!cookieValue) return undefined;
+      const result = await authStateRepository.findByKey(key);
+
+      if (result.isErr()) {
+        logger.error("Failed to get auth state", {
+          key,
+          error: result.error,
+        });
+        return undefined;
+      }
+
+      const authState = result.value;
+      if (!authState) return undefined;
 
       try {
-        return JSON.parse(cookieValue);
+        return JSON.parse(authState.state);
       } catch (e) {
+        logger.error("Failed to parse auth state", { key });
         return undefined;
       }
     },
 
     del: async (key: string): Promise<void> => {
-      clearCookie(res, `bluesky_state_${key}`);
+      const result = await authStateRepository.deleteByKey(key);
+
+      if (result.isErr()) {
+        logger.error("Failed to delete auth state", {
+          key,
+          error: result.error,
+        });
+      }
     },
   };
 };
 
 /**
- * Cookieベースのセッションストアを作成する
+ * データベースベースのセッションストアを作成する
  */
-const createSessionStore = (context: RequestContext) => {
-  const { req, res } = context;
-
+const createSessionStore = (authSessionRepository: AuthSessionRepository) => {
   return {
     set: async (sub: string, session: NodeSavedSession): Promise<void> => {
-      setCookie(res, `bluesky_session_${sub}`, JSON.stringify(session), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: sessionMaxAge,
-        path: "/",
+      const result = await authSessionRepository.create({
+        key: sub,
+        session: JSON.stringify(session),
       });
+
+      if (result.isErr()) {
+        logger.error("Failed to save auth session", {
+          sub,
+          error: result.error,
+        });
+        throw new Error("Failed to save auth session");
+      }
     },
 
     get: async (sub: string): Promise<NodeSavedSession | undefined> => {
-      const cookies = parseCookies(req);
-      const cookieValue = cookies[`bluesky_session_${sub}`];
-      if (!cookieValue) return undefined;
+      const result = await authSessionRepository.findByKey(sub);
+
+      if (result.isErr()) {
+        logger.error("Failed to get auth session", {
+          sub,
+          error: result.error,
+        });
+        return undefined;
+      }
+
+      const authSession = result.value;
+      if (!authSession) return undefined;
 
       try {
-        return JSON.parse(cookieValue);
+        return JSON.parse(authSession.session);
       } catch (e) {
+        logger.error("Failed to parse auth session", { sub });
         return undefined;
       }
     },
 
     del: async (sub: string): Promise<void> => {
-      clearCookie(res, `bluesky_session_${sub}`);
+      const result = await authSessionRepository.deleteByKey(sub);
+
+      if (result.isErr()) {
+        logger.error("Failed to delete auth session", {
+          sub,
+          error: result.error,
+        });
+      }
     },
   };
 };

@@ -1,6 +1,12 @@
+import type { BlueskyAuthProvider } from "@/domain/account/adapters";
+import { DefaultBlueskyAuthProvider } from "@/infrastructure/bluesky/auth-provider";
+import { db } from "@/infrastructure/db/client";
+import {
+  type Repositories as DbRepositories,
+  createRepositories,
+} from "@/infrastructure/db/repositories";
 import { logger } from "@/lib/logger";
 import type { Logger } from "@/lib/logger";
-import type { BlueskyAuthProvider } from "@/domain/account/adapters";
 
 // アプリケーションの設定
 export interface AppConfig {
@@ -22,13 +28,12 @@ export interface AppConfig {
   };
 }
 
-// リポジトリとAPIクライアントのインターフェース
-// 後で実装するためにとりあえず空のRecord型を定義
-export type Repositories = Record<string, never>;
+// リポジトリのインターフェース
+export type Repositories = DbRepositories;
 
 // APIクライアントのインターフェース
 export interface ApiClients {
-  blueskyAuthProvider?: BlueskyAuthProvider;
+  blueskyAuthProvider: BlueskyAuthProvider;
   // 他のAPIクライアントをここに追加
 }
 
@@ -44,9 +49,23 @@ export interface AppContext {
 export const createAppContext = (config: AppConfig): AppContext => {
   // グローバルシングルトンとしてロガーを使用
 
-  // リポジトリとAPIクライアントは後で実装
-  const repositories: Repositories = {};
-  const apiClients: ApiClients = {};
+  // リポジトリを作成
+  const repositories = createRepositories(db);
+
+  // BlueskyAuthProviderを作成
+  const blueskyAuthProvider = new DefaultBlueskyAuthProvider({
+    config: { publicUrl: config.publicUrl },
+    deps: {
+      authSessionRepository:
+        repositories.accountRepositories.authSessionRepository,
+      authStateRepository: repositories.accountRepositories.authStateRepository,
+    },
+  });
+
+  // APIクライアントを初期化
+  const apiClients: ApiClients = {
+    blueskyAuthProvider,
+  };
 
   return {
     config,

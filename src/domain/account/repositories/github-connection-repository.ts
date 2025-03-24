@@ -1,10 +1,10 @@
+import type { RepositoryError } from "@/domain/types/error";
+import type { Result } from "neverthrow";
 /**
  * GitHub連携情報リポジトリのインターフェース
  */
 import { z } from "zod";
-import type { Result } from "neverthrow";
 import type { GitHubConnection } from "../models";
-import type { RepositoryError } from "@/domain/types/error";
 
 /**
  * GitHub連携情報作成時のZodスキーマ
@@ -13,8 +13,6 @@ export const createGitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().nonempty(),
-  expiresAt: z.date(),
-  scope: z.string().nonempty(),
 });
 
 /**
@@ -25,8 +23,6 @@ export const updateGitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().nonempty(),
-  expiresAt: z.date(),
-  scope: z.string().nonempty(),
 });
 
 /**

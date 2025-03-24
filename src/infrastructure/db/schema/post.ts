@@ -1,8 +1,8 @@
-import { pgTable, text, uuid, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { v7 as uuidv7 } from "uuid";
 import { users } from "./account";
 import { notes } from "./note";
-import { v7 as uuidv7 } from "uuid";
 
 // 投稿テーブル
 export const posts = pgTable("posts", {

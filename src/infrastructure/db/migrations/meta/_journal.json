@@ -15,6 +15,20 @@
       "when": 1742412748250,
       "tag": "0001_harsh_steel_serpent",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1742713606204,
+      "tag": "0002_lowly_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1742746129692,
+      "tag": "0003_flowery_texas_twister",
+      "breakpoints": true
     }
   ]
 }

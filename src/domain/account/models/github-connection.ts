@@ -11,8 +11,6 @@ export const gitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().optional(),
-  expiresAt: z.date().optional(),
-  scope: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

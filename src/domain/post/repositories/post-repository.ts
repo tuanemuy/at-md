@@ -1,11 +1,11 @@
+import type { RepositoryError } from "@/domain/types/error";
+import type { Result } from "neverthrow";
 /**
  * 投稿リポジトリのインターフェース
  */
 import { z } from "zod";
-import type { Result } from "neverthrow";
 import type { Post } from "../models";
 import { PostStatus } from "../models/post";
-import type { RepositoryError } from "@/domain/types/error";
 
 /**
  * 投稿作成時のZodスキーマ

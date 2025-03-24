@@ -1,8 +1,8 @@
+import type { ExternalServiceError } from "@/domain/types/error";
 /**
  * GitHub連携アダプターのインターフェース
  */
-import type { Result } from "neverthrow";
-import type { ExternalServiceError } from "@/domain/types/error";
+import type { Result } from "@/lib/result";
 import type { GitHubInstallation } from "../dtos";
 
 /**
@@ -24,8 +24,6 @@ export interface GitHubAppProvider {
       {
         accessToken: string;
         refreshToken?: string;
-        expiresAt?: Date;
-        scope: string[];
       },
       ExternalServiceError
     >

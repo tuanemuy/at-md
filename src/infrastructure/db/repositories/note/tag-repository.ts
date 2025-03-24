@@ -1,19 +1,19 @@
-import { eq } from "drizzle-orm";
-import { type Result, err, ok } from "@/lib/result";
 import type { Tag } from "@/domain/note/models";
 import { tagSchema } from "@/domain/note/models/tag";
 import type {
-  TagRepository,
   CreateTag,
+  TagRepository,
   UpdateTag,
 } from "@/domain/note/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import { type Result, err, ok } from "@/lib/result";
+import { eq } from "drizzle-orm";
 import {
   type PgDatabase,
-  isDatabaseError,
   codeToRepositoryErrorCode,
+  isDatabaseError,
 } from "../../client";
-import { tags, notes, noteTags } from "../../schema/note";
+import { noteTags, notes, tags } from "../../schema/note";
 
 /**
  * TagRepositoryの実装

@@ -1,5 +1,3 @@
-import { and, eq } from "drizzle-orm";
-import { type Result, err, ok } from "@/lib/result";
 import type { Book } from "@/domain/note/models";
 import { bookSchema } from "@/domain/note/models/book";
 import type {
@@ -8,12 +6,14 @@ import type {
 } from "@/domain/note/repositories/book-repository";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import { type Result, err, ok } from "@/lib/result";
+import { and, eq } from "drizzle-orm";
 import {
   type PgDatabase,
-  isDatabaseError,
   codeToRepositoryErrorCode,
+  isDatabaseError,
 } from "../../client";
-import { books, bookDetails, syncStatuses } from "../../schema/note";
+import { bookDetails, books, syncStatuses } from "../../schema/note";
 
 /**
  * BookRepositoryの実装

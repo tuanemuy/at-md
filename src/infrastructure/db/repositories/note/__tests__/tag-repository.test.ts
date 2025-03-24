@@ -1,19 +1,19 @@
-import { expect, test, beforeEach, beforeAll, afterAll } from "vitest";
+import type { Tag } from "@/domain/note/models";
+import { NoteScope } from "@/domain/note/models/note";
+import type { CreateTag, UpdateTag } from "@/domain/note/repositories";
+import { RepositoryErrorCode } from "@/domain/types/error";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
-import type { Tag } from "@/domain/note/models";
-import type { CreateTag, UpdateTag } from "@/domain/note/repositories";
-import { DrizzleTagRepository } from "../tag-repository";
-import { RepositoryErrorCode } from "@/domain/types/error";
+import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
 import {
-  setupTestDatabase,
   cleanupTestDatabase,
   closeTestDatabase,
   getTestDatabase,
+  setupTestDatabase,
 } from "../../../__test__/setup";
 import { users } from "../../../schema/account";
-import { notes, noteTags, books } from "../../../schema/note";
-import { NoteScope } from "@/domain/note/models/note";
+import { books, noteTags, notes } from "../../../schema/note";
+import { DrizzleTagRepository } from "../tag-repository";
 
 // テスト用のデータベース
 let client: PGlite;

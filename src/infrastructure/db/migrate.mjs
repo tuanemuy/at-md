@@ -1,7 +1,7 @@
 import path from "node:path";
 import "dotenv/config";
-import { drizzle } from "drizzle-orm/pglite";
 import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 
 const db = drizzle(new PGlite(process.env.DATABASE_URL || undefined));

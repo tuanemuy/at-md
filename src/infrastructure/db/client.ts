@@ -1,6 +1,6 @@
-import { drizzle } from "drizzle-orm/pglite";
-import { PGlite } from "@electric-sql/pglite";
 import { RepositoryErrorCode } from "@/domain/types/error";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "./schema";
 
 export type PgDatabase = ReturnType<typeof drizzle<typeof schema>>;

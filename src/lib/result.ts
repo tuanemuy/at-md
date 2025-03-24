@@ -1,10 +1,10 @@
 import {
   type Result,
   ResultAsync,
-  ok,
   err,
   fromPromise,
   fromThrowable,
+  ok,
 } from "neverthrow";
 
 /**

@@ -27,6 +27,10 @@
 
 - ユーザー: [User](../domain-types/account.md#ユーザー)
   - id, DID, profile, createdAt, updatedAt
+- AuthSession: [AuthSession](../domain-types/account.md#AuthSession)
+  - id, key, session
+- AuthState: [AuthState](../domain-types/account.md#AuthState)
+  - id, key, state
 - GitHub連携情報: [GitHubConnection](../domain-types/account.md#github連携情報)
   - id, userId, accessToken, refreshToken, expiresAt, scope, createdAt, updatedAt
 
@@ -35,17 +39,19 @@
 - [Profile](../domain-types/account.md#Profile)
   - displayName, description, avatarUrl, bannerUrl
   - ユーザープロフィール
-- [Session](../domain-types/account.md#Session)
-  - did
 
 ### DTOs
 
+- [Session](../domain-types/account.md#Session)
+  - did
 - [GitHubInstallation](../domain-types/account.md#GitHubInstallation)
   - GitHubアプリのインストール情報
 
 ### リポジトリ
 
-- ユーザーリポジトリ: [UserRepository](../domain-types/account.md#ユーザーリポジトリ)
+- ユーザーリポジトリ: [UserRepository](../domain-types/account.md#リポジトリインターフェース)
+- AuthSessionリポジトリ: [AuthSessionRepository](../domain-types/account.md#リポジトリインターフェース)
+- AuthStateリポジトリ: [AuthStateRepository](../domain-types/account.md#リポジトリインターフェース)
 - GitHub連携リポジトリ: [GitHubConnectionRepository](../domain-types/account.md#リポジトリインターフェース)
 
 ### アダプターインターフェース
@@ -53,8 +59,9 @@
 #### Bluesky OAuthアダプター: [BlueskyAuthProvider](../domain-types/account.md#bluesky認証アダプター)
 
 - `authorize(handle: string, options: AuthorizeOptions): Promise<Result<URL, ExternalServiceError>>`
-- `callback(params: URLSearchParams): Promise<Result<Session, ExternalServiceError>>`
+- `callback(params: URLSearchParams): Promise<Result<OAuthSession, ExternalServiceError>>`
 - `getUserProfile(did: string): Promise<Result<UserProfile, ExternalServiceError>>`
+- `getAgent(did: string): Promise<Result<Agent, ExternalServiceError>>`
 
 #### GitHub連携アダプター: [GitHubAppProvider](../domain-types/account.md#github連携アダプター)
 

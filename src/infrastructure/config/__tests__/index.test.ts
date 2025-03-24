@@ -1,4 +1,4 @@
-import { expect, test, vi, beforeEach } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import { loadConfig } from "../../config";
 
 // スナップショットを保存する

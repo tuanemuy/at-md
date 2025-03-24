@@ -10,9 +10,6 @@ export const gitHubRepositorySchema = z.object({
   owner: z.string().nonempty(),
   name: z.string().nonempty(),
   fullName: z.string().nonempty(),
-  description: z.string().nullable(),
-  private: z.boolean(),
-  url: z.string().url(),
 });
 
 /**

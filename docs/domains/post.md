@@ -36,8 +36,8 @@
 
 #### Blueskyアダプター: [BlueskyPostProvider](../domain-types/post.md#blueskyアダプター)
 
-- `createPost(repo: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>`
-- `getEngagement(uri: string): Promise<Result<Engagement, ExternalServiceError>>`
+- `createPost(did: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>`
+- `getEngagement(did: DID, uri: string): Promise<Result<Engagement, ExternalServiceError>>`
 
 ## アプリケーション層
 

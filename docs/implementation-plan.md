@@ -106,8 +106,6 @@
 - [ ] GitHub連携アダプターの実装
   - [ ] GitHubAppProvider
   - [ ] GitHubContentProvider
-- [ ] セッション管理アダプターの実装
-  - [ ] SessionManager（JWTベース）
 - [ ] Bluesky投稿アダプターの実装
   - [ ] BlueskyPostProvider
 

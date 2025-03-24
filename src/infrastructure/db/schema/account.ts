@@ -1,11 +1,11 @@
+import { relations } from "drizzle-orm";
 import {
   pgTable,
-  text,
-  uuid,
-  timestamp,
   primaryKey,
+  text,
+  timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 
 // ユーザーテーブル
@@ -41,8 +41,28 @@ export const githubConnections = pgTable("github_connections", {
     .references(() => users.id, { onDelete: "cascade" }),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
-  expiresAt: timestamp("expires_at"),
-  scope: text("scope").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 認証セッションテーブル
+export const authSessions = pgTable("auth_sessions", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  key: text("key").notNull().unique(),
+  session: text("session").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 認証ステートテーブル
+export const authStates = pgTable("auth_states", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv7()),
+  key: text("key").notNull().unique(),
+  state: text("state").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

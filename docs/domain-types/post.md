@@ -82,8 +82,8 @@ export interface PostError extends AnyError {
 
 ```typescript
 export interface BlueskyPostProvider {
-  createPost(repo: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>;
-  getEngagement(uri: string): Promise<Result<Engagement, ExternalServiceError>>;
+  createPost(did: DID, text: string): Promise<Result<BlueskyPost, ExternalServiceError>>;
+  getEngagement(did: DID, uri: string): Promise<Result<Engagement, ExternalServiceError>>;
 }
 
 export interface BlueskyPost {
@@ -96,7 +96,7 @@ export interface BlueskyPost {
 
 ```typescript
 export interface PostRepository {
-  save(post: Post): Promise<Result<Post, RepositoryError>>;
+  save(post: CreatePost): Promise<Result<Post, RepositoryError>>;
   findById(id: string): Promise<Result<Post, RepositoryError>>;
   findByNoteId(noteId: string): Promise<Result<Post, RepositoryError>>;
   findByUserId(userId: string): Promise<Result<Post[], RepositoryError>>;

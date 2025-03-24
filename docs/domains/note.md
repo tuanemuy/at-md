@@ -56,10 +56,10 @@
 
 #### GitHub連携アダプター: [GitHubContentProvider](../domain-types/note.md#github連携アダプター)
 
-- `listRepositories(): Promise<Result<GitHubRepository[], ExternalServiceError>>`
-- `getContent(owner: string, repo: string, path: string): Promise<Result<string, ExternalServiceError>>`
-- `listPaths(owner: string, repo: string): Promise<Result<string[], ExternalServiceError>>`
-- `setupWebhook(owner: string, repo: string): Promise<Result<GitHubWebhook, ExternalServiceError>>`
+- `listRepositories(accessToken: string): Promise<Result<GitHubRepository[], ExternalServiceError>>`
+- `getContent(accessToken: string, owner: string, repo: string, path: string): Promise<Result<string, ExternalServiceError>>`
+- `listPaths(accessToken: string, owner: string, repo: string): Promise<Result<string[], ExternalServiceError>>`
+- `setupWebhook(accessToken: string, owner: string, repo: string): Promise<Result<number, ExternalServiceError>>`
 
 ## アプリケーション層
 

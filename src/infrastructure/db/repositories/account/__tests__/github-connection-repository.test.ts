@@ -1,20 +1,20 @@
-import { expect, test, beforeEach, beforeAll, afterAll } from "vitest";
-import { PGlite } from "@electric-sql/pglite";
-import { v7 as uuidv7 } from "uuid";
 import type { GitHubConnection } from "@/domain/account/models";
 import type {
   CreateGitHubConnection,
   UpdateGitHubConnection,
 } from "@/domain/account/repositories";
-import { DrizzleGitHubConnectionRepository } from "../github-connection-repository";
 import { RepositoryErrorCode } from "@/domain/types/error";
+import { PGlite } from "@electric-sql/pglite";
+import { v7 as uuidv7 } from "uuid";
+import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
 import {
-  setupTestDatabase,
   cleanupTestDatabase,
   closeTestDatabase,
   getTestDatabase,
+  setupTestDatabase,
 } from "../../../__test__/setup";
 import { users } from "../../../schema/account";
+import { DrizzleGitHubConnectionRepository } from "../github-connection-repository";
 
 // テスト用のデータベース
 let client: PGlite;
@@ -31,8 +31,6 @@ const createTestConnection = (
   userId,
   accessToken: `gho_${uuidv7()}`,
   refreshToken: `ghr_${uuidv7()}`,
-  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24時間後
-  scope: "repo user",
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -43,8 +41,6 @@ const createTestCreateConnection = (
   userId,
   accessToken: `gho_${uuidv7()}`,
   refreshToken: `ghr_${uuidv7()}`,
-  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24時間後
-  scope: "repo user", // 文字列に修正
 });
 
 const createTestUpdateConnection = (
@@ -55,8 +51,6 @@ const createTestUpdateConnection = (
   userId,
   accessToken: `gho_${uuidv7()}`,
   refreshToken: `ghr_${uuidv7()}`,
-  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24時間後
-  scope: "repo user notifications", // 文字列に修正
 });
 
 // テストの前に一度だけDBをセットアップ
@@ -100,8 +94,6 @@ test("新規GitHub連携情報を作成すると連携情報が正常に作成�
     expect(savedConnection.userId).toBe(testConnection.userId);
     expect(savedConnection.accessToken).toBe(testConnection.accessToken);
     expect(savedConnection.refreshToken).toBe(testConnection.refreshToken);
-    expect(savedConnection.expiresAt).toBeInstanceOf(Date);
-    expect(savedConnection.scope).toEqual(testConnection.scope);
     expect(savedConnection.createdAt).toBeInstanceOf(Date);
     expect(savedConnection.updatedAt).toBeInstanceOf(Date);
   });
@@ -126,8 +118,6 @@ test("既存のGitHub連携情報を更新すると情報が正常に更新さ�
     userId: testUserId,
     accessToken: `gho_${uuidv7()}`,
     refreshToken: `ghr_${uuidv7()}`,
-    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48時間後
-    scope: "repo user notifications",
   };
 
   // 実行
@@ -139,8 +129,6 @@ test("既存のGitHub連携情報を更新すると情報が正常に更新さ�
     expect(savedConnection.id).toBe(connectionId);
     expect(savedConnection.accessToken).toBe(updateConnection.accessToken);
     expect(savedConnection.refreshToken).toBe(updateConnection.refreshToken);
-    expect(savedConnection.expiresAt).toBeInstanceOf(Date);
-    expect(savedConnection.scope).toEqual(updateConnection.scope);
     expect(savedConnection.createdAt).toBeInstanceOf(Date);
     expect(savedConnection.updatedAt).toBeInstanceOf(Date);
   });
@@ -169,7 +157,6 @@ test("存在するIDでGitHub連携情報を検索すると連携情報が取得
       expect(connection.id).toBe(connectionId);
       expect(connection.userId).toBe(createConnection.userId);
       expect(connection.accessToken).toBe(createConnection.accessToken);
-      expect(connection.scope).toEqual(createConnection.scope);
     }
   });
 });

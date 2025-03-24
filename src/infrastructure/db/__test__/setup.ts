@@ -1,7 +1,7 @@
 import path from "node:path";
+import type { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import type { PGlite } from "@electric-sql/pglite";
 import * as schema from "../schema";
 
 /**
@@ -43,6 +43,8 @@ export async function cleanupTestDatabase(client: PGlite): Promise<void> {
   await client.query("TRUNCATE TABLE github_connections CASCADE");
   await client.query("TRUNCATE TABLE profiles CASCADE");
   await client.query("TRUNCATE TABLE users CASCADE");
+  await client.query("TRUNCATE TABLE auth_sessions CASCADE");
+  await client.query("TRUNCATE TABLE auth_states CASCADE");
 
   // 外部キー制約を再度有効化
   await client.query("SET session_replication_role = 'origin'");

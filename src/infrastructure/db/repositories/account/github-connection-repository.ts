@@ -1,17 +1,17 @@
-import { eq } from "drizzle-orm";
-import { type Result, err, ok } from "@/lib/result";
 import type { GitHubConnection } from "@/domain/account/models";
 import { gitHubConnectionSchema } from "@/domain/account/models";
 import type {
-  GitHubConnectionRepository,
   CreateGitHubConnection,
+  GitHubConnectionRepository,
   UpdateGitHubConnection,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import { type Result, err, ok } from "@/lib/result";
+import { eq } from "drizzle-orm";
 import {
   type PgDatabase,
-  isDatabaseError,
   codeToRepositoryErrorCode,
+  isDatabaseError,
 } from "../../client";
 import { githubConnections } from "../../schema/account";
 

@@ -121,10 +121,10 @@ export interface NoteError extends AnyError {
 
 ```typescript
 export interface GitHubContentProvider {
-  listRepositories(): Promise<Result<GitHubRepository[], ExternalServiceError>>;
-  getContent(owner: string, repo: string, path: string): Promise<Result<string, ExternalServiceError>>;
-  listPaths(owner: string, repo: string): Promise<Result<string[], ExternalServiceError>>;
-  setupWebhook(owner: string, repo: string): Promise<Result<GitHubWebhook, ExternalServiceError>>;
+  listRepositories(accessToken: string): Promise<Result<GitHubRepository[], ExternalServiceError>>;
+  getContent(accessToken: string, owner: string, repo: string, path: string): Promise<Result<string, ExternalServiceError>>;
+  listPaths(accessToken: string, owner: string, repo: string): Promise<Result<string[], ExternalServiceError>>;
+  setupWebhook(accessToken: string, owner: string, repo: string): Promise<Result<number, ExternalServiceError>>;
 }
 ```
 
@@ -132,7 +132,7 @@ export interface GitHubContentProvider {
 
 ```typescript
 export interface NoteRepository {
-  save(note: Note): Promise<Result<Note, RepositoryError>>;
+  save(note: CreateNote): Promise<Result<Note, RepositoryError>>;
   findById(id: string): Promise<Result<Note, RepositoryError>>;
   findByBookId(bookId: string): Promise<Result<Note[], RepositoryError>>;
   findByTag(tagId: string): Promise<Result<Note[], RepositoryError>>;
@@ -141,14 +141,14 @@ export interface NoteRepository {
 }
 
 export interface BookRepository {
-  save(book: Book): Promise<Result<Book, RepositoryError>>;
+  save(book: CreateBook): Promise<Result<Book, RepositoryError>>;
   findById(id: string): Promise<Result<Book, RepositoryError>>;
   findByUserId(userId: string): Promise<Result<Book[], RepositoryError>>;
   delete(id: string): Promise<Result<void, RepositoryError>>;
 }
 
 export interface TagRepository {
-  save(tag: Tag): Promise<Result<Tag, RepositoryError>>;
+  save(tag: CreateTag): Promise<Result<Tag, RepositoryError>>;
   findById(id: string): Promise<Result<Tag, RepositoryError>>;
   findByBookId(bookId: string): Promise<Result<Tag[], RepositoryError>>;
   delete(id: string): Promise<Result<void, RepositoryError>>;
