@@ -1,11 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { v7 as uuidv7 } from "uuid";
 
 // ユーザーテーブル
@@ -38,6 +32,7 @@ export const githubConnections = pgTable("github_connections", {
     .$defaultFn(() => uuidv7()),
   userId: uuid("user_id")
     .notNull()
+    .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
@@ -68,12 +63,15 @@ export const authStates = pgTable("auth_states", {
 });
 
 // リレーションの定義
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ one }) => ({
   profile: one(profiles, {
     fields: [users.id],
     references: [profiles.userId],
   }),
-  githubConnections: many(githubConnections),
+  githubConnection: one(githubConnections, {
+    fields: [users.id],
+    references: [githubConnections.userId],
+  }),
 }));
 
 export const profilesRelations = relations(profiles, ({ one }) => ({

@@ -12,10 +12,10 @@ import type { User } from "../models";
 export const createUserSchema = z.object({
   did: z.string().nonempty(),
   profile: z.object({
-    displayName: z.string().nonempty(),
-    description: z.string().nonempty(),
-    avatarUrl: z.string().url(),
-    bannerUrl: z.string().url(),
+    displayName: z.string().nonempty().nullable(),
+    description: z.string().nonempty().nullable(),
+    avatarUrl: z.string().url().nullable(),
+    bannerUrl: z.string().url().nullable(),
   }),
 });
 
@@ -26,10 +26,10 @@ export const updateUserSchema = z.object({
   id: z.string().uuid(),
   did: z.string().nonempty(),
   profile: z.object({
-    displayName: z.string().nonempty(),
-    description: z.string().nonempty(),
-    avatarUrl: z.string().url(),
-    bannerUrl: z.string().url(),
+    displayName: z.string().nonempty().nullable(),
+    description: z.string().nonempty().nullable(),
+    avatarUrl: z.string().url().nullable(),
+    bannerUrl: z.string().url().nullable(),
   }),
 });
 
@@ -60,12 +60,12 @@ export interface UserRepository {
   /**
    * 指定したIDのユーザーを取得する
    */
-  findById(id: string): Promise<Result<User | null, RepositoryError>>;
+  findById(id: string): Promise<Result<User, RepositoryError>>;
 
   /**
    * 指定したDIDのユーザーを取得する
    */
-  findByDid(did: string): Promise<Result<User | null, RepositoryError>>;
+  findByDid(did: string): Promise<Result<User, RepositoryError>>;
 
   /**
    * 指定したIDのユーザーを削除する

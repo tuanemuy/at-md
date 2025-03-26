@@ -36,25 +36,24 @@ const createTestCreateUser = (): CreateUser => {
   return {
     did: user.did,
     profile: {
-      displayName: user.profile.displayName || "",
-      description: user.profile.description || "",
-      avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
-      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png",
+      displayName: user.profile.displayName,
+      description: user.profile.description,
+      avatarUrl: user.profile.avatarUrl,
+      bannerUrl: user.profile.bannerUrl,
     },
   };
 };
 
 // テスト用のUpdateUserデータ
-const createTestUpdateUser = (id: string): UpdateUser => {
-  const user = createTestUser();
+const createTestUpdateUser = (id: string, did: string): UpdateUser => {
   return {
     id,
-    did: user.did,
+    did,
     profile: {
       displayName: "更新されたユーザー名",
       description: "更新された説明文",
-      avatarUrl: user.profile.avatarUrl || "https://example.com/avatar.png",
-      bannerUrl: user.profile.bannerUrl || "https://example.com/banner.png",
+      avatarUrl: "https://example.com/avatar-updated.png",
+      bannerUrl: "https://example.com/banner-updated.png",
     },
   };
 };
@@ -94,18 +93,40 @@ test("新規ユーザーを作成するとユーザーが正常に作成され�
   });
 });
 
+test("プロフィールの一部がnullの新規ユーザーを作成できること", async () => {
+  // 準備
+  const testUser = createTestCreateUser();
+  testUser.profile.description = null;
+  testUser.profile.avatarUrl = null;
+
+  // 実行
+  const result = await userRepository.create(testUser);
+
+  // 検証
+  expect(result.isOk()).toBe(true);
+  result.map((savedUser) => {
+    expect(savedUser.did).toBe(testUser.did);
+    expect(savedUser.profile.displayName).toBe(testUser.profile.displayName);
+    expect(savedUser.profile.description).toBeNull();
+    expect(savedUser.profile.avatarUrl).toBeNull();
+    expect(savedUser.profile.bannerUrl).toBe(testUser.profile.bannerUrl);
+  });
+});
+
 test("既存ユーザーを更新するとユーザー情報が正常に更新されること", async () => {
   // 準備 - 最初のユーザーを作成
   const createData = createTestCreateUser();
   const createResult = await userRepository.create(createData);
 
   let userId = "";
+  let userDid = "";
   createResult.map((user) => {
     userId = user.id;
+    userDid = user.did;
   });
 
   // 更新用のユーザー情報
-  const updateData = createTestUpdateUser(userId);
+  const updateData = createTestUpdateUser(userId, userDid);
 
   // 実行
   const result = await userRepository.update(updateData);
@@ -114,8 +135,11 @@ test("既存ユーザーを更新するとユーザー情報が正常に更新�
   expect(result.isOk()).toBe(true);
   result.map((savedUser) => {
     expect(savedUser.id).toBe(userId);
+    expect(savedUser.did).toBe(userDid);
     expect(savedUser.profile.displayName).toBe(updateData.profile.displayName);
     expect(savedUser.profile.description).toBe(updateData.profile.description);
+    expect(savedUser.profile.avatarUrl).toBe(updateData.profile.avatarUrl);
+    expect(savedUser.profile.bannerUrl).toBe(updateData.profile.bannerUrl);
     expect(savedUser.createdAt).toBeInstanceOf(Date);
     expect(savedUser.updatedAt).toBeInstanceOf(Date);
   });
@@ -137,16 +161,18 @@ test("存在するIDでユーザーを検索するとユーザーが取得でき
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
-    expect(user).not.toBeNull();
-    if (user) {
-      expect(user.id).toBe(userId);
-      expect(user.did).toBe(createData.did);
-      expect(user.profile).toEqual(createData.profile);
-    }
+    expect(user.id).toBe(userId);
+    expect(user.did).toBe(createData.did);
+    expect(user.profile.displayName).toBe(createData.profile.displayName);
+    expect(user.profile.description).toBe(createData.profile.description);
+    expect(user.profile.avatarUrl).toBe(createData.profile.avatarUrl);
+    expect(user.profile.bannerUrl).toBe(createData.profile.bannerUrl);
+    expect(user.createdAt).toBeInstanceOf(Date);
+    expect(user.updatedAt).toBeInstanceOf(Date);
   });
 });
 
-test("存在しないIDでユーザーを検索するとnullが返されること", async () => {
+test("存在しないIDでユーザーを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
 
@@ -154,16 +180,16 @@ test("存在しないIDでユーザーを検索するとnullが返されるこ�
   const result = await userRepository.findById(nonExistentId);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((user) => {
-    expect(user).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
 test("存在するDIDでユーザーを検索するとユーザーが取得できること", async () => {
   // 準備
   const createData = createTestCreateUser();
-  const createResult = await userRepository.create(createData);
+  await userRepository.create(createData);
 
   // 実行
   const result = await userRepository.findByDid(createData.did);
@@ -171,15 +197,17 @@ test("存在するDIDでユーザーを検索するとユーザーが取得で�
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((user) => {
-    expect(user).not.toBeNull();
-    if (user) {
-      expect(user.did).toBe(createData.did);
-      expect(user.profile).toEqual(createData.profile);
-    }
+    expect(user.did).toBe(createData.did);
+    expect(user.profile.displayName).toBe(createData.profile.displayName);
+    expect(user.profile.description).toBe(createData.profile.description);
+    expect(user.profile.avatarUrl).toBe(createData.profile.avatarUrl);
+    expect(user.profile.bannerUrl).toBe(createData.profile.bannerUrl);
+    expect(user.createdAt).toBeInstanceOf(Date);
+    expect(user.updatedAt).toBeInstanceOf(Date);
   });
 });
 
-test("存在しないDIDでユーザーを検索するとnullが返されること", async () => {
+test("存在しないDIDでユーザーを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentDid = "did:example:nonexistent";
 
@@ -187,9 +215,9 @@ test("存在しないDIDでユーザーを検索するとnullが返されるこ�
   const result = await userRepository.findByDid(nonExistentDid);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((user) => {
-    expect(user).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -211,9 +239,9 @@ test("ユーザーを削除すると該当ユーザーが削除されること",
 
   // 削除されたことを確認
   const findResult = await userRepository.findById(userId);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((user) => {
-    expect(user).toBeNull();
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 

@@ -42,7 +42,7 @@
 
 ### DTOs
 
-- [Session](../domain-types/account.md#Session)
+- [SessionData](../domain-types/account.md#SessionData)
   - did
 - [GitHubInstallation](../domain-types/account.md#GitHubInstallation)
   - GitHubアプリのインストール情報
@@ -56,6 +56,12 @@
 
 ### アダプターインターフェース
 
+#### セッションマネージャーアダプター: [SessionManager](../domain-types/account.md#セッションマネージャーアダプター)
+
+- `set(context: RequestContext, data: SessionData): Promise<Result<void, ExternalServiceError>>`
+- `get(context: RequestContext): Promise<Result<SessionData, ExternalServiceError>>`
+- `remove(context: RequestContext): Promise<Result<void, ExternalServiceError>>`
+
 #### Bluesky OAuthアダプター: [BlueskyAuthProvider](../domain-types/account.md#bluesky認証アダプター)
 
 - `authorize(handle: string, options: AuthorizeOptions): Promise<Result<URL, ExternalServiceError>>`
@@ -65,7 +71,9 @@
 
 #### GitHub連携アダプター: [GitHubAppProvider](../domain-types/account.md#github連携アダプター)
 
+- `getAccessToken(code: string): Promise<Result<{ accessToken: string; refreshToken?: string }, ExternalServiceError>>`
 - `getInstallations(accessToken: string): Promise<Result<GitHubInstallation[], ExternalServiceError>>`
+
 ## アプリケーション層
 
 ### ユースケース
@@ -83,30 +91,22 @@
 - 実装: [HandleBlueskyAuthCallbackUseCase](../domain-types/account.md#bluesky認証のコールバックを処理する)
 - 入力: [HandleBlueskyAuthCallbackInput](../domain-types/account.md#bluesky認証のコールバックを処理する)
   - params: URLSearchParams
-- 出力: Result<Session, AccountError>
+- 出力: Result<SessionData, AccountError>
 - 処理: セッションを作成する。必要に応じてアカウントを作成
 
 #### セッションを検証する
 
 - 実装: [ValidateSessionUseCase](../domain-types/account.md#セッションを検証する)
 - 入力: [ValidateSessionInput](../domain-types/account.md#セッションを検証する)
-  - token: string
-- 出力: Result<Session, AccountError>
+  - context: RequestContext
+- 出力: Result<SessionData, AccountError>
 - 処理: アクセストークンの有効性を検証
-
-#### セッションを更新する
-
-- 実装: [RefreshSessionUseCase](../domain-types/account.md#セッションを更新する)
-- 入力: [RefreshSessionInput](../domain-types/account.md#セッションを更新する)
-  - token: string
-- 出力: Result<Session, AccountError>
-- 処理: 新しいセッションを作成して返却
 
 #### ログアウトする
 
 - 実装: [LogoutUseCase](../domain-types/account.md#ログアウトする)
 - 入力: [LogoutInput](../domain-types/account.md#ログアウトする)
-  - token: string
+  - context: RequestContext
 - 出力: Result<void, AccountError>
 - 処理: セッションを無効化
 

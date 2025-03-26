@@ -69,7 +69,7 @@ export interface BookRepository {
   /**
    * 指定したIDのブックを取得する
    */
-  findById(id: string): Promise<Result<Book | null, RepositoryError>>;
+  findById(id: string): Promise<Result<Book, RepositoryError>>;
 
   /**
    * 指定したユーザーIDのブック一覧を取得する
@@ -82,7 +82,7 @@ export interface BookRepository {
   findByOwnerAndRepo(
     owner: string,
     repo: string,
-  ): Promise<Result<Book | null, RepositoryError>>;
+  ): Promise<Result<Book, RepositoryError>>;
 
   /**
    * 指定したIDのブックを削除する

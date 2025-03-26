@@ -1,7 +1,5 @@
 import type { Tag } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
-import type { CreateTag, UpdateTag } from "@/domain/note/repositories";
-import { RepositoryErrorCode } from "@/domain/types/error";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
 import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
@@ -12,7 +10,7 @@ import {
   setupTestDatabase,
 } from "../../../__test__/setup";
 import { users } from "../../../schema/account";
-import { books, noteTags, notes } from "../../../schema/note";
+import { books, noteTags, notes, tags } from "../../../schema/note";
 import { DrizzleTagRepository } from "../tag-repository";
 
 // テスト用のデータベース
@@ -23,25 +21,12 @@ let testBookId: string;
 let testNoteId: string;
 
 // テスト用のタグデータを作成する関数
-const createTestTag = (): Tag => ({
+const createTestTag = (bookId: string): Tag => ({
   id: uuidv7(),
+  bookId,
   name: `タグ-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),
   updatedAt: new Date(),
-});
-
-// テスト用のCreateTagデータを作成する関数
-const createTestCreateTag = (): CreateTag => {
-  const tag = createTestTag();
-  return {
-    name: tag.name,
-  };
-};
-
-// テスト用のUpdateTagデータを作成する関数
-const createTestUpdateTag = (id: string): UpdateTag => ({
-  id,
-  name: `更新された${Math.floor(Math.random() * 1000)}`,
 });
 
 // テストの前に一度だけDBをセットアップ
@@ -99,113 +84,24 @@ afterAll(async () => {
   await closeTestDatabase(client);
 });
 
-test("新規タグを作成するとタグが正常に作成されること", async () => {
-  // 準備
-  const testTag = createTestCreateTag();
-
-  // 実行
-  const result = await tagRepository.create(testTag);
-
-  // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((savedTag) => {
-    expect(savedTag.name).toBe(testTag.name);
-    expect(savedTag.createdAt).toBeInstanceOf(Date);
-    expect(savedTag.updatedAt).toBeInstanceOf(Date);
-  });
-});
-
-test("既存タグを更新するとタグ情報が正常に更新されること", async () => {
-  // 準備 - 最初のタグを作成
-  const createData = createTestCreateTag();
-  const createResult = await tagRepository.create(createData);
-
-  let tagId = "";
-  createResult.map((tag) => {
-    tagId = tag.id;
-  });
-
-  // 更新用のタグ情報
-  const updateData = createTestUpdateTag(tagId);
-
-  // 実行
-  const result = await tagRepository.update(updateData);
-
-  // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((savedTag) => {
-    expect(savedTag.id).toBe(tagId);
-    expect(savedTag.name).toBe(updateData.name);
-    expect(savedTag.createdAt).toBeInstanceOf(Date);
-    expect(savedTag.updatedAt).toBeInstanceOf(Date);
-  });
-});
-
-test("存在するIDでタグを検索するとタグが取得できること", async () => {
-  // 準備
-  const createData = createTestCreateTag();
-  const createResult = await tagRepository.create(createData);
-
-  let tagId = "";
-  createResult.map((tag) => {
-    tagId = tag.id;
-  });
-
-  // 実行
-  const result = await tagRepository.findById(tagId);
-
-  // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((tag) => {
-    expect(tag).not.toBeNull();
-    if (tag) {
-      expect(tag.id).toBe(tagId);
-      expect(tag.name).toBe(createData.name);
-      expect(tag.createdAt).toBeInstanceOf(Date);
-      expect(tag.updatedAt).toBeInstanceOf(Date);
-    }
-  });
-});
-
-test("存在しないIDでタグを検索するとnullが返されること", async () => {
-  // 準備
-  const nonExistentId = uuidv7();
-
-  // 実行
-  const result = await tagRepository.findById(nonExistentId);
-
-  // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((tag) => {
-    expect(tag).toBeNull();
-  });
-});
-
 test("指定したノートIDのタグ一覧を取得できること", async () => {
   // 準備 - 複数のタグを作成
-  const tags = await Promise.all([
-    tagRepository.create(createTestCreateTag()),
-    tagRepository.create(createTestCreateTag()),
-    tagRepository.create(createTestCreateTag()),
-  ]);
+  const db = getTestDatabase(client);
+  const testTags = [
+    createTestTag(testBookId),
+    createTestTag(testBookId),
+    createTestTag(testBookId),
+  ];
+
+  // タグをデータベースに保存
+  await db.insert(tags).values(testTags);
 
   // タグとノートを関連付ける
-  const db = getTestDatabase(client);
-  const tagIds: string[] = [];
-
-  // Result型からタグIDを取り出す
-  for (const tagResult of tags) {
-    tagResult.map((tag) => {
-      tagIds.push(tag.id);
-    });
-  }
-
-  // すべてのタグを関連付ける（Promise.allで待つ）
   await Promise.all(
-    tagIds.map((tagId) =>
+    testTags.map((tag) =>
       db.insert(noteTags).values({
         noteId: testNoteId,
-        tagId: tagId,
+        tagId: tag.id,
       }),
     ),
   );
@@ -216,10 +112,11 @@ test("指定したノートIDのタグ一覧を取得できること", async () 
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((foundTags) => {
-    expect(foundTags.length).toBe(tagIds.length);
+    expect(foundTags.length).toBe(testTags.length);
     // 各タグがタグスキーマに準拠していることを確認
     for (const tag of foundTags) {
       expect(tag.id).toBeDefined();
+      expect(tag.bookId).toBe(testBookId);
       expect(tag.name).toBeDefined();
       expect(tag.createdAt).toBeInstanceOf(Date);
       expect(tag.updatedAt).toBeInstanceOf(Date);
@@ -241,101 +138,31 @@ test("存在しないノートIDのタグ一覧を取得すると空配列が返
   });
 });
 
-test("タグを削除すると該当タグが削除されること", async () => {
+test("未使用のタグを削除できること", async () => {
   // 準備
-  const createData = createTestCreateTag();
-  const createResult = await tagRepository.create(createData);
-
-  let tagId = "";
-  createResult.map((tag) => {
-    tagId = tag.id;
-  });
-
-  // 実行
-  const deleteResult = await tagRepository.delete(tagId);
-
-  // 検証
-  expect(deleteResult.isOk()).toBe(true);
-
-  // 削除されたことを確認
-  const findResult = await tagRepository.findById(tagId);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((tag) => {
-    expect(tag).toBeNull();
-  });
-});
-
-test("バリデーションエラーとなるデータでタグを作成するとエラーが返されること", async () => {
-  // 準備 - 不正なデータ（nameが空）
-  const invalidTag = {
-    name: "", // 空の名前
-  };
-
-  // 実行
-  const result = await tagRepository.create(invalidTag as CreateTag);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.message).toContain("Failed to parse tag data");
-  });
-});
-
-test("重複するタグ名で作成するとユニーク制約違反で失敗すること", async () => {
-  // 準備 - 最初のタグを保存
-  const tagName = `テストタグ-${Math.floor(Math.random() * 1000)}`;
-  const firstTag = {
-    name: tagName,
-  };
-  await tagRepository.create(firstTag);
-
-  // 同じ名前で別のタグを作成
-  const duplicateTag = {
-    name: tagName,
-  };
-
-  // 実行
-  const result = await tagRepository.create(duplicateTag);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
-  });
-});
-
-test("ノートタグ関連付けテーブルを介してノートとタグの関係が維持されること", async () => {
-  // 準備 - タグを作成
-  const createResult = await tagRepository.create(createTestCreateTag());
-  let tagId = "";
-  createResult.map((tag) => {
-    tagId = tag.id;
-  });
-
-  // ノートとタグを関連付ける
   const db = getTestDatabase(client);
+
+  // 使用されているタグと使用されていないタグを作成
+  const usedTag = createTestTag(testBookId);
+  const unusedTag = createTestTag(testBookId);
+
+  // タグをデータベースに保存
+  await db.insert(tags).values([usedTag, unusedTag]);
+
+  // usedTagのみノートと関連付ける
   await db.insert(noteTags).values({
     noteId: testNoteId,
-    tagId: tagId,
+    tagId: usedTag.id,
   });
 
-  // 実行 - ノートに関連付けられたタグを取得
-  const findResult = await tagRepository.findByNoteId(testNoteId);
+  // 実行
+  const result = await tagRepository.deleteUnused();
 
   // 検証
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((tags) => {
-    expect(tags.length).toBe(1);
-    expect(tags[0].id).toBe(tagId);
-  });
+  expect(result.isOk()).toBe(true);
 
-  // タグを削除した場合、関連付けも削除されることを確認
-  await tagRepository.delete(tagId);
-
-  // 再度ノートに関連付けられたタグを取得
-  const afterDeleteResult = await tagRepository.findByNoteId(testNoteId);
-  expect(afterDeleteResult.isOk()).toBe(true);
-  afterDeleteResult.map((tags) => {
-    expect(tags.length).toBe(0); // タグが削除されたので関連付けもなくなっている
-  });
+  // 使用されているタグは残っているが、未使用のタグは削除されていることを確認
+  const remainingTags = await db.select().from(tags);
+  expect(remainingTags.length).toBe(1);
+  expect(remainingTags[0].id).toBe(usedTag.id);
 });

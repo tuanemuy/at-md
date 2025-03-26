@@ -161,18 +161,16 @@ test("存在するIDでブックを検索するとブックが取得できるこ
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((book) => {
-    expect(book).not.toBeNull();
-    if (book) {
-      expect(book.id).toBe(bookId);
-      expect(book.userId).toBe(createData.userId);
-      expect(book.owner).toBe(createData.owner);
-      expect(book.repo).toBe(createData.repo);
-      expect(book.details).toEqual(createData.details);
-    }
+    expect(book.id).toBe(bookId);
+    expect(book.userId).toBe(createData.userId);
+    expect(book.owner).toBe(createData.owner);
+    expect(book.repo).toBe(createData.repo);
+    expect(book.details.name).toEqual(createData.details.name);
+    expect(book.details.description).toEqual(createData.details.description);
   });
 });
 
-test("存在しないIDでブックを検索するとnullが返されること", async () => {
+test("存在しないIDでブックを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
 
@@ -180,9 +178,9 @@ test("存在しないIDでブックを検索するとnullが返されること",
   const result = await bookRepository.findById(nonExistentId);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((book) => {
-    expect(book).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -241,11 +239,26 @@ test("指定したオーナーとリポジトリ名のブックを取得でき�
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((book) => {
-    expect(book).not.toBeNull();
-    if (book) {
-      expect(book.owner).toBe(createData.owner);
-      expect(book.repo).toBe(createData.repo);
-    }
+    expect(book.owner).toBe(createData.owner);
+    expect(book.repo).toBe(createData.repo);
+  });
+});
+
+test("存在しないオーナーとリポジトリ名でブックを検索するとNOT_FOUNDエラーが返されること", async () => {
+  // 準備
+  const nonExistentOwner = "non-existent-owner";
+  const nonExistentRepo = "non-existent-repo";
+
+  // 実行
+  const result = await bookRepository.findByOwnerAndRepo(
+    nonExistentOwner,
+    nonExistentRepo,
+  );
+
+  // 検証
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -268,9 +281,9 @@ test("ブックを削除すると該当ブックが削除されること", async
 
   // 削除されたことを確認
   const findResult = await bookRepository.findById(bookId);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((book) => {
-    expect(book).toBeNull();
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 

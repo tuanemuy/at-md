@@ -75,48 +75,34 @@ export class DrizzleUserRepository implements UserRepository {
    */
   async update(user: UpdateUser): Promise<Result<User, RepositoryError>> {
     try {
-      const [updatedUser] = await this.db
-        .update(users)
-        .set(user)
-        .where(eq(users.id, user.id))
-        .returning();
+      const result = await this.db.transaction(async (tx) => {
+        const [updatedUser] = await tx
+          .update(users)
+          .set(user)
+          .where(eq(users.id, user.id))
+          .returning();
 
-      if (!updatedUser) {
-        return err(
-          new RepositoryError(RepositoryErrorCode.DATA_ERROR, "User not found"),
-        );
-      }
+        if (!updatedUser) {
+          throw new Error("Failed to update user");
+        }
 
-      const [updatedProfile] = await this.db
-        .update(profiles)
-        .set(user.profile)
-        .where(eq(profiles.userId, user.id))
-        .returning();
+        const [updatedProfile] = await tx
+          .update(profiles)
+          .set(user.profile)
+          .where(eq(profiles.userId, user.id))
+          .returning();
 
-      if (!updatedProfile) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Profile not found",
-          ),
-        );
-      }
+        if (!updatedProfile) {
+          throw new Error("Failed to update profile");
+        }
 
-      const parsed = userSchema.safeParse({
-        ...updatedUser,
-        profile: updatedProfile,
+        return {
+          ...updatedUser,
+          profile: updatedProfile,
+        };
       });
 
-      if (!parsed.success) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Failed to parse user data",
-          ),
-        );
-      }
-
-      return ok(parsed.data);
+      return ok(result);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
@@ -132,36 +118,36 @@ export class DrizzleUserRepository implements UserRepository {
   /**
    * 指定したIDのユーザーを取得する
    */
-  async findById(id: string): Promise<Result<User | null, RepositoryError>> {
+  async findById(id: string): Promise<Result<User, RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
-        const userResult = await tx
+        const [user] = await tx
           .select()
           .from(users)
           .where(eq(users.id, id))
           .limit(1);
 
-        if (userResult.length === 0) return null;
+        if (!user) return null;
 
-        const profileResult = await tx
+        const [profile] = await tx
           .select()
           .from(profiles)
-          .where(eq(profiles.userId, userResult[0].id))
+          .where(eq(profiles.userId, user.id))
           .limit(1);
 
-        if (profileResult.length === 0) return null;
+        if (!profile) return null;
 
-        const parsed = userSchema.safeParse({
-          ...userResult[0],
-          profile: profileResult[0],
-        });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse user data");
-        }
-
-        return parsed.data;
+        return {
+          ...user,
+          profile,
+        };
       });
+
+      if (!result) {
+        return err(
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "User not found"),
+        );
+      }
 
       return ok(result);
     } catch (error) {
@@ -179,38 +165,28 @@ export class DrizzleUserRepository implements UserRepository {
   /**
    * 指定したDIDのユーザーを取得する
    */
-  async findByDid(did: string): Promise<Result<User | null, RepositoryError>> {
+  async findByDid(did: string): Promise<Result<User, RepositoryError>> {
     try {
-      const result = await this.db.transaction(async (tx) => {
-        const userResult = await tx
-          .select()
-          .from(users)
-          .where(eq(users.did, did))
-          .limit(1);
+      const [user] = await this.db
+        .select({
+          user: users,
+          profile: profiles,
+        })
+        .from(users)
+        .innerJoin(profiles, eq(users.id, profiles.userId))
+        .where(eq(users.did, did))
+        .limit(1);
 
-        if (userResult.length === 0) return null;
+      if (!user) {
+        return err(
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "User not found"),
+        );
+      }
 
-        const profileResult = await tx
-          .select()
-          .from(profiles)
-          .where(eq(profiles.userId, userResult[0].id))
-          .limit(1);
-
-        if (profileResult.length === 0) return null;
-
-        const parsed = userSchema.safeParse({
-          ...userResult[0],
-          profile: profileResult[0],
-        });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse user data");
-        }
-
-        return parsed.data;
+      return ok({
+        ...user.user,
+        profile: user.profile,
       });
-
-      return ok(result);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(

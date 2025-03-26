@@ -99,26 +99,58 @@ test("新規GitHub連携情報を作成すると連携情報が正常に作成�
   });
 });
 
-test("既存のGitHub連携情報を更新すると情報が正常に更新されること", async () => {
-  // 準備 - 最初の連携情報を保存
+test("既存のユーザーIDでGitHub連携情報を作成すると情報が更新されること", async () => {
+  // 準備 - 最初の連携情報を作成
   const createConnection = createTestCreateConnection();
   const createResult =
     await githubConnectionRepository.create(createConnection);
   expect(createResult.isOk()).toBe(true);
 
-  // IDを取得
+  // 同じユーザーIDで新しい連携情報を作成
+  const newConnection = createTestCreateConnection(createConnection.userId);
+
+  // 実行
+  const result = await githubConnectionRepository.create(newConnection);
+
+  // 検証
+  expect(result.isOk()).toBe(true);
+  result.map((savedConnection) => {
+    expect(savedConnection.userId).toBe(newConnection.userId);
+    expect(savedConnection.accessToken).toBe(newConnection.accessToken);
+    expect(savedConnection.refreshToken).toBe(newConnection.refreshToken);
+  });
+});
+
+test("refreshTokenがnullの新規GitHub連携情報を作成できること", async () => {
+  // 準備
+  const testConnection = createTestCreateConnection();
+  testConnection.refreshToken = null;
+
+  // 実行
+  const result = await githubConnectionRepository.create(testConnection);
+
+  // 検証
+  expect(result.isOk()).toBe(true);
+  result.map((savedConnection) => {
+    expect(savedConnection.userId).toBe(testConnection.userId);
+    expect(savedConnection.accessToken).toBe(testConnection.accessToken);
+    expect(savedConnection.refreshToken).toBeNull();
+  });
+});
+
+test("既存のGitHub連携情報を更新すると情報が正常に更新されること", async () => {
+  // 準備 - 最初の連携情報を作成
+  const createConnection = createTestCreateConnection();
+  const createResult =
+    await githubConnectionRepository.create(createConnection);
+
   let connectionId = "";
   createResult.map((connection) => {
     connectionId = connection.id;
   });
 
   // 更新用の連携情報
-  const updateConnection: UpdateGitHubConnection = {
-    id: connectionId,
-    userId: testUserId,
-    accessToken: `gho_${uuidv7()}`,
-    refreshToken: `ghr_${uuidv7()}`,
-  };
+  const updateConnection = createTestUpdateConnection(connectionId);
 
   // 実行
   const result = await githubConnectionRepository.update(updateConnection);
@@ -139,7 +171,6 @@ test("存在するIDでGitHub連携情報を検索すると連携情報が取得
   const createConnection = createTestCreateConnection();
   const createResult =
     await githubConnectionRepository.create(createConnection);
-  expect(createResult.isOk()).toBe(true);
 
   let connectionId = "";
   createResult.map((connection) => {
@@ -152,16 +183,13 @@ test("存在するIDでGitHub連携情報を検索すると連携情報が取得
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((connection) => {
-    expect(connection).not.toBeNull();
-    if (connection) {
-      expect(connection.id).toBe(connectionId);
-      expect(connection.userId).toBe(createConnection.userId);
-      expect(connection.accessToken).toBe(createConnection.accessToken);
-    }
+    expect(connection.id).toBe(connectionId);
+    expect(connection.userId).toBe(createConnection.userId);
+    expect(connection.accessToken).toBe(createConnection.accessToken);
   });
 });
 
-test("存在しないIDでGitHub連携情報を検索するとnullが返されること", async () => {
+test("存在しないIDでGitHub連携情報を検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
 
@@ -169,35 +197,31 @@ test("存在しないIDでGitHub連携情報を検索するとnullが返され�
   const result = await githubConnectionRepository.findById(nonExistentId);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((connection) => {
-    expect(connection).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
-test("ユーザーIDで複数のGitHub連携情報を検索すると該当する連携情報一覧が取得できること", async () => {
-  // 準備 - 複数の連携情報を保存
-  const connection1 = createTestCreateConnection();
-  const connection2 = createTestCreateConnection();
-
-  const createResult1 = await githubConnectionRepository.create(connection1);
-  const createResult2 = await githubConnectionRepository.create(connection2);
+test("存在するユーザーIDでGitHub連携情報を検索すると連携情報が取得できること", async () => {
+  // 準備
+  const createConnection = createTestCreateConnection();
+  await githubConnectionRepository.create(createConnection);
 
   // 実行
-  const result = await githubConnectionRepository.findByUserId(testUserId);
+  const result = await githubConnectionRepository.findByUserId(
+    createConnection.userId,
+  );
 
   // 検証
   expect(result.isOk()).toBe(true);
-  result.map((connections) => {
-    expect(connections.length).toBe(2);
-
-    for (const connection of connections) {
-      expect(connection.userId).toBe(testUserId);
-    }
+  result.map((connection) => {
+    expect(connection.userId).toBe(createConnection.userId);
+    expect(connection.accessToken).toBe(createConnection.accessToken);
   });
 });
 
-test("存在しないユーザーIDでGitHub連携情報を検索すると空配列が返されること", async () => {
+test("存在しないユーザーIDでGitHub連携情報を検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentUserId = uuidv7();
 
@@ -206,9 +230,9 @@ test("存在しないユーザーIDでGitHub連携情報を検索すると空配
     await githubConnectionRepository.findByUserId(nonExistentUserId);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((connections) => {
-    expect(connections).toEqual([]);
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -217,7 +241,6 @@ test("GitHub連携情報を削除すると該当連携情報が削除される�
   const createConnection = createTestCreateConnection();
   const createResult =
     await githubConnectionRepository.create(createConnection);
-  expect(createResult.isOk()).toBe(true);
 
   let connectionId = "";
   createResult.map((connection) => {
@@ -232,9 +255,32 @@ test("GitHub連携情報を削除すると該当連携情報が削除される�
 
   // 削除されたことを確認
   const findResult = await githubConnectionRepository.findById(connectionId);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((connection) => {
-    expect(connection).toBeNull();
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
+  });
+});
+
+test("ユーザーIDに紐づくGitHub連携情報を削除すると該当連携情報が削除されること", async () => {
+  // 準備
+  const createConnection = createTestCreateConnection();
+  await githubConnectionRepository.create(createConnection);
+
+  // 実行
+  const deleteResult = await githubConnectionRepository.deleteByUserId(
+    createConnection.userId,
+  );
+
+  // 検証
+  expect(deleteResult.isOk()).toBe(true);
+
+  // 削除されたことを確認
+  const findResult = await githubConnectionRepository.findByUserId(
+    createConnection.userId,
+  );
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 

@@ -76,6 +76,26 @@ test("新規AuthSessionを作成するとセッションが正常に作成され
   });
 });
 
+test("既存のキーでAuthSessionを作成すると情報が更新されること", async () => {
+  // 準備 - 最初のセッションを作成
+  const testSession = createTestCreateAuthSession();
+  await authSessionRepository.create(testSession);
+
+  // 同じキーで新しいセッションを作成
+  const newSession = createTestCreateAuthSession();
+  newSession.key = testSession.key;
+
+  // 実行
+  const result = await authSessionRepository.create(newSession);
+
+  // 検証
+  expect(result.isOk()).toBe(true);
+  result.map((savedSession) => {
+    expect(savedSession.key).toBe(newSession.key);
+    expect(savedSession.session).toBe(newSession.session);
+  });
+});
+
 test("存在するキーでAuthSessionを検索するとセッションが取得できること", async () => {
   // 準備
   const testSession = createTestCreateAuthSession();
@@ -87,15 +107,12 @@ test("存在するキーでAuthSessionを検索するとセッションが取得
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((session) => {
-    expect(session).not.toBeNull();
-    if (session) {
-      expect(session.key).toBe(testSession.key);
-      expect(session.session).toBe(testSession.session);
-    }
+    expect(session.key).toBe(testSession.key);
+    expect(session.session).toBe(testSession.session);
   });
 });
 
-test("存在しないキーでAuthSessionを検索するとnullが返されること", async () => {
+test("存在しないキーでAuthSessionを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentKey = generateId(16);
 
@@ -103,9 +120,9 @@ test("存在しないキーでAuthSessionを検索するとnullが返される�
   const result = await authSessionRepository.findByKey(nonExistentKey);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((session) => {
-    expect(session).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -122,27 +139,8 @@ test("AuthSessionを削除すると該当セッションが削除されること
 
   // 削除されたことを確認
   const findResult = await authSessionRepository.findByKey(testSession.key);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((session) => {
-    expect(session).toBeNull();
-  });
-});
-
-test("重複するキーでAuthSessionを作成すると失敗すること", async () => {
-  // 準備 - 最初のセッションを作成
-  const testSession = createTestCreateAuthSession();
-  await authSessionRepository.create(testSession);
-
-  // 同じキーで別のセッションを作成
-  const duplicateData = createTestCreateAuthSession();
-  duplicateData.key = testSession.key;
-
-  // 実行
-  const result = await authSessionRepository.create(duplicateData);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });

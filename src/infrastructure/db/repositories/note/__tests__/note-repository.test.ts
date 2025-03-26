@@ -48,8 +48,9 @@ const createTestBook = () => ({
 });
 
 // テスト用のタグデータ
-const createTestTag = (): Tag => ({
+const createTestTag = (bookId: string): Tag => ({
   id: uuidv7(),
+  bookId,
   name: `テストタグ-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -72,7 +73,7 @@ const createTestNote = (bookId: string, tags: Tag[] = []): Note => ({
 // テスト用のCreateNoteデータ
 const createTestCreateNote = (
   bookId: string,
-  tags: { name: string }[] = [],
+  tagNames: string[] = [],
 ): CreateNote => ({
   userId: testUserId,
   bookId,
@@ -80,14 +81,14 @@ const createTestCreateNote = (
   title: "テストノート",
   body: "# テストノート\n\nこれはテスト用のノートです。",
   scope: NoteScope.PUBLIC,
-  tags,
+  tags: tagNames,
 });
 
 // テスト用のUpdateNoteデータ
 const createTestUpdateNote = (
   id: string,
   bookId: string,
-  tags: { name: string }[] = [],
+  tagNames: string[] = [],
 ): UpdateNote => ({
   id,
   userId: testUserId,
@@ -96,7 +97,7 @@ const createTestUpdateNote = (
   title: "更新されたノート",
   body: "# 更新されたノート\n\nこのノートは更新されました。",
   scope: NoteScope.PUBLIC,
-  tags,
+  tags: tagNames,
 });
 
 beforeAll(async () => {
@@ -158,11 +159,11 @@ test("新規ノートを作成するとノートが正常に作成されるこ�
 
 test("タグ付きの新規ノートを作成するとノートとタグが正常に作成されること", async () => {
   // 準備
-  const tags = [
-    { name: `タグ1-${Math.floor(Math.random() * 1000)}` },
-    { name: `タグ2-${Math.floor(Math.random() * 1000)}` },
+  const tagNames = [
+    `タグ1-${Math.floor(Math.random() * 1000)}`,
+    `タグ2-${Math.floor(Math.random() * 1000)}`,
   ];
-  const createData = createTestCreateNote(testBookId, tags);
+  const createData = createTestCreateNote(testBookId, tagNames);
 
   // 実行
   const result = await noteRepository.create(createData);
@@ -172,12 +173,12 @@ test("タグ付きの新規ノートを作成するとノートとタグが正�
   result.map((savedNote) => {
     expect(savedNote.userId).toBe(testUserId);
     expect(savedNote.bookId).toBe(testBookId);
-    expect(savedNote.tags.length).toBe(tags.length);
+    expect(savedNote.tags.length).toBe(tagNames.length);
 
     // タグの名前を検証
-    const tagNames = savedNote.tags.map((tag) => tag.name);
-    expect(tagNames).toContain(tags[0].name);
-    expect(tagNames).toContain(tags[1].name);
+    const savedTagNames = savedNote.tags.map((tag) => tag.name);
+    expect(savedTagNames).toContain(tagNames[0]);
+    expect(savedTagNames).toContain(tagNames[1]);
   });
 });
 
@@ -210,10 +211,8 @@ test("既存ノートを更新するとノート情報が正常に更新され�
 
 test("ノートのタグを更新するとタグ情報が正常に更新されること", async () => {
   // 準備 - 最初のノートを作成
-  const initialTags = [
-    { name: `初期タグ-${Math.floor(Math.random() * 1000)}` },
-  ];
-  const createData = createTestCreateNote(testBookId, initialTags);
+  const initialTagNames = [`初期タグ-${Math.floor(Math.random() * 1000)}`];
+  const createData = createTestCreateNote(testBookId, initialTagNames);
   const createResult = await noteRepository.create(createData);
 
   let noteId = "";
@@ -222,11 +221,11 @@ test("ノートのタグを更新するとタグ情報が正常に更新され�
   });
 
   // 更新用のタグ情報
-  const updatedTags = [
-    { name: `更新タグ1-${Math.floor(Math.random() * 1000)}` },
-    { name: `更新タグ2-${Math.floor(Math.random() * 1000)}` },
+  const updatedTagNames = [
+    `更新タグ1-${Math.floor(Math.random() * 1000)}`,
+    `更新タグ2-${Math.floor(Math.random() * 1000)}`,
   ];
-  const updateData = createTestUpdateNote(noteId, testBookId, updatedTags);
+  const updateData = createTestUpdateNote(noteId, testBookId, updatedTagNames);
 
   // 実行
   const result = await noteRepository.update(updateData);
@@ -234,13 +233,13 @@ test("ノートのタグを更新するとタグ情報が正常に更新され�
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((savedNote) => {
-    expect(savedNote.tags.length).toBe(updatedTags.length);
+    expect(savedNote.tags.length).toBe(updatedTagNames.length);
 
     // タグの名前を検証
-    const tagNames = savedNote.tags.map((tag) => tag.name);
-    expect(tagNames).toContain(updatedTags[0].name);
-    expect(tagNames).toContain(updatedTags[1].name);
-    expect(tagNames).not.toContain(initialTags[0].name);
+    const savedTagNames = savedNote.tags.map((tag) => tag.name);
+    expect(savedTagNames).toContain(updatedTagNames[0]);
+    expect(savedTagNames).toContain(updatedTagNames[1]);
+    expect(savedTagNames).not.toContain(initialTagNames[0]);
   });
 });
 
@@ -260,16 +259,13 @@ test("存在するIDでノートを検索するとノートが取得できるこ
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((note) => {
-    expect(note).not.toBeNull();
-    if (note) {
-      expect(note.id).toBe(noteId);
-      expect(note.title).toBe(createData.title);
-      expect(note.body).toBe(createData.body);
-    }
+    expect(note.id).toBe(noteId);
+    expect(note.title).toBe(createData.title);
+    expect(note.body).toBe(createData.body);
   });
 });
 
-test("存在しないIDでノートを検索するとnullが返されること", async () => {
+test("存在しないIDでノートを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentId = uuidv7();
 
@@ -277,9 +273,9 @@ test("存在しないIDでノートを検索するとnullが返されること",
   const result = await noteRepository.findById(nonExistentId);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((note) => {
-    expect(note).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -310,11 +306,12 @@ test("指定したブックIDのノート一覧を取得できること", async 
 
   // 検証
   expect(result.isOk()).toBe(true);
-  result.map((notes) => {
-    expect(notes.length).toBe(2);
+  result.map((data) => {
+    expect(data.items.length).toBe(2);
+    expect(data.count).toBe(2);
 
     // すべてのノートが指定したブックIDに属していることを確認
-    for (const note of notes) {
+    for (const note of data.items) {
       expect(note.bookId).toBe(testBookId);
     }
   });
@@ -324,14 +321,17 @@ test("指定したタグIDのノート一覧を取得できること", async () 
   // 準備
   // タグを作成
   const tagName = `検索用タグ-${Math.floor(Math.random() * 1000)}`;
-  const tagCreateResult = await tagRepository.create({ name: tagName });
+  const [savedTag] = await db
+    .insert(tags)
+    .values({
+      id: uuidv7(),
+      bookId: testBookId,
+      name: tagName,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
 
-  let tagId = "";
-  tagCreateResult.map((tag) => {
-    tagId = tag.id;
-  });
-
-  // タグを直接DBに関連付ける方法を使用
   // まずノートを作成
   const note1CreateData = createTestCreateNote(testBookId);
   const note1Result = await noteRepository.create(note1CreateData);
@@ -357,25 +357,26 @@ test("指定したタグIDのノート一覧を取得できること", async () 
   // 直接note_tagsテーブルにレコードを挿入して、タグとノートを関連付ける
   await db.insert(noteTags).values({
     noteId: note1Id,
-    tagId: tagId,
+    tagId: savedTag.id,
   });
 
   await db.insert(noteTags).values({
     noteId: note2Id,
-    tagId: tagId,
+    tagId: savedTag.id,
   });
 
   // 実行
-  const result = await noteRepository.findByTag(tagId);
+  const result = await noteRepository.findByTag(testBookId, savedTag.id);
 
   // 検証
   expect(result.isOk()).toBe(true);
-  result.map((notes) => {
+  result.map((data) => {
     // タグが関連付けられたノートが2つあることを確認
-    expect(notes.length).toBe(2);
+    expect(data.items.length).toBe(2);
+    expect(data.count).toBe(2);
 
     // IDを抽出
-    const noteIds = notes.map((n) => n.id);
+    const noteIds = data.items.map((n) => n.id);
 
     // 作成したノートのIDが含まれていることを確認
     expect(noteIds).toContain(note1Id);
@@ -406,12 +407,13 @@ test("キーワードでノートを検索できること", async () => {
 
   // 検証
   expect(result.isOk()).toBe(true);
-  result.map((notes) => {
-    expect(notes.length).toBe(2);
+  result.map((data) => {
+    expect(data.items.length).toBe(2);
+    expect(data.count).toBe(2);
 
     // キーワードを含むノートが検索結果に含まれているか確認
-    const titles = notes.map((note) => note.title);
-    const bodies = notes.map((note) => note.body);
+    const titles = data.items.map((note) => note.title);
+    const bodies = data.items.map((note) => note.body);
 
     expect(
       titles.some((title) => title.includes(uniqueWord)) ||
@@ -440,9 +442,9 @@ test("ノートを削除すると該当ノートが削除されること", async
   const findResult = await noteRepository.findById(noteId);
 
   // 検証 - 削除確認
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((note) => {
-    expect(note).toBeNull();
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -458,21 +460,6 @@ test("存在しないブックIDでノートを作成すると失敗すること
   expect(result.isErr()).toBe(true);
   result.mapErr((error) => {
     expect(error.code).toBe(RepositoryErrorCode.CONSTRAINT_VIOLATION);
-  });
-});
-
-test("不正なパスでノートを作成すると失敗すること", async () => {
-  // 準備 - 不正なパス（空文字）
-  const createData = createTestCreateNote(testBookId);
-  createData.path = "";
-
-  // 実行
-  const result = await noteRepository.create(createData);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.message).toContain("Failed to parse note data");
   });
 });
 
@@ -507,8 +494,4 @@ test("存在しないノートの更新は失敗すること", async () => {
 
   // 検証
   expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    // 実際のエラーメッセージに合わせて修正
-    expect(error.message).toContain("Failed to parse note data");
-  });
 });

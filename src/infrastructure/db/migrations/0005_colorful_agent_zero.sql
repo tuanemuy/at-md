@@ -1,0 +1,1 @@
+ALTER TABLE "github_connections" ADD CONSTRAINT "github_connections_user_id_unique" UNIQUE("user_id");

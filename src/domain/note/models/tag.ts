@@ -8,6 +8,7 @@ import { z } from "zod";
  */
 export const tagSchema = z.object({
   id: z.string().uuid(),
+  bookId: z.string().uuid(),
   name: z.string().nonempty(),
   createdAt: z.date(),
   updatedAt: z.date(),

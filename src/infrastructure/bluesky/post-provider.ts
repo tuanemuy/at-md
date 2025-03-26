@@ -1,4 +1,4 @@
-import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import type { NodeOAuthClient } from "@atproto/oauth-client-node";
 import type { BlueskyPostProvider } from "@/domain/post/adapters/bluesky-post-provider";
 import {
   type BlueskyPost,
@@ -14,39 +14,39 @@ import {
   ExternalServiceErrorCode,
   ValidationError,
 } from "@/domain/types/error";
+import type {
+  AuthSessionRepository,
+  AuthStateRepository,
+} from "@/domain/account/repositories";
 import { type Result, err, ok } from "@/lib/result";
-import { Agent, AppBskyFeedDefs } from "@atproto/api";
+import { AppBskyFeedDefs } from "@atproto/api";
+import { getOAuthClient, getAgent } from "./client";
 
 export class DefaultBlueskyPostProvider implements BlueskyPostProvider {
-  private readonly authProvider: BlueskyAuthProvider;
+  private readonly oauthClient: NodeOAuthClient;
 
   constructor(params: {
+    config: {
+      publicUrl: string;
+    };
     deps: {
-      authProvider: BlueskyAuthProvider;
+      authSessionRepository: AuthSessionRepository;
+      authStateRepository: AuthStateRepository;
     };
   }) {
-    this.authProvider = params.deps.authProvider;
+    this.oauthClient = getOAuthClient(params);
   }
 
   async createPost(
     did: DID,
     text: string,
   ): Promise<Result<BlueskyPost, ExternalServiceError>> {
-    const sessionResult = await this.authProvider.getOAuthSession(did);
-
-    if (sessionResult.isErr()) {
-      return err(
-        new ExternalServiceError(
-          "Bluesky",
-          ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-          "Failed to get session",
-        ),
-      );
+    const result = await getAgent(this.oauthClient, did);
+    if (result.isErr()) {
+      return err(result.error);
     }
+    const agent = result.value;
 
-    const agent = new Agent(sessionResult.value);
-
-    // 投稿を作成
     try {
       const response = await agent.com.atproto.repo.createRecord({
         repo: did,
@@ -91,19 +91,12 @@ export class DefaultBlueskyPostProvider implements BlueskyPostProvider {
     did: DID,
     uri: string,
   ): Promise<Result<Engagement, ExternalServiceError>> {
-    const sessionResult = await this.authProvider.getOAuthSession(did);
-
-    if (sessionResult.isErr()) {
-      return err(
-        new ExternalServiceError(
-          "Bluesky",
-          ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-          "Authentication required to get engagement",
-        ),
-      );
+    const result = await getAgent(this.oauthClient, did);
+    if (result.isErr()) {
+      return err(result.error);
     }
+    const agent = result.value;
 
-    const agent = new Agent(sessionResult.value);
     try {
       const response = await agent.getPostThread({
         uri,

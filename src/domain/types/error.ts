@@ -37,6 +37,9 @@ export const RepositoryErrorCode = {
   UNIQUE_VIOLATION: "unique_violation",
   CONSTRAINT_VIOLATION: "constraint_violation",
 
+  // データが見つからない
+  NOT_FOUND: "not_found",
+
   // その他
   UNKNOWN_ERROR: "unknown_error",
 } as const;

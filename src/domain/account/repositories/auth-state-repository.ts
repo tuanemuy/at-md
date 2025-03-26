@@ -33,7 +33,7 @@ export interface AuthStateRepository {
   /**
    * 指定したキーのAuthStateを取得する
    */
-  findByKey(key: string): Promise<Result<AuthState | null, RepositoryError>>;
+  findByKey(key: string): Promise<Result<AuthState, RepositoryError>>;
 
   /**
    * 指定したキーのAuthStateを削除する

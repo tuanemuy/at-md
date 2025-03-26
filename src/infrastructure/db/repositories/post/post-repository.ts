@@ -1,5 +1,4 @@
 import type { Post } from "@/domain/post/models";
-import { postSchema } from "@/domain/post/models/post";
 import type {
   CreatePost,
   PostRepository,
@@ -7,7 +6,7 @@ import type {
 } from "@/domain/post/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { type Result, err, ok } from "@/lib/result";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   type PgDatabase,
   codeToRepositoryErrorCode,
@@ -29,29 +28,16 @@ export class DrizzlePostRepository implements PostRepository {
       const [savedPost] = await this.db.insert(posts).values(post).returning();
 
       if (!savedPost) {
-        throw new Error("Failed to create post");
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.UNKNOWN_ERROR,
+            "Failed to create post",
+          ),
+        );
       }
 
-      const parsed = postSchema.safeParse({
-        id: savedPost.id,
-        userId: savedPost.userId,
-        noteId: savedPost.noteId,
-        postUri: savedPost.postUri || undefined,
-        postCid: savedPost.postCid || undefined,
-        status: savedPost.status,
-        errorMessage: savedPost.errorMessage || undefined,
-        createdAt: savedPost.createdAt,
-        updatedAt: savedPost.updatedAt,
-      });
-      if (!parsed.success) {
-        throw new Error("Failed to parse post data");
-      }
-
-      return ok(parsed.data);
+      return ok(savedPost);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -76,30 +62,12 @@ export class DrizzlePostRepository implements PostRepository {
 
       if (!updatedPost) {
         return err(
-          new RepositoryError(RepositoryErrorCode.DATA_ERROR, "Post not found"),
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Post not found"),
         );
       }
 
-      const parsed = postSchema.safeParse({
-        id: updatedPost.id,
-        userId: updatedPost.userId,
-        noteId: updatedPost.noteId,
-        postUri: updatedPost.postUri || undefined,
-        postCid: updatedPost.postCid || undefined,
-        status: updatedPost.status,
-        errorMessage: updatedPost.errorMessage || undefined,
-        createdAt: updatedPost.createdAt,
-        updatedAt: updatedPost.updatedAt,
-      });
-      if (!parsed.success) {
-        throw new Error("Failed to parse post data");
-      }
-
-      return ok(parsed.data);
+      return ok(updatedPost);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -114,7 +82,7 @@ export class DrizzlePostRepository implements PostRepository {
   /**
    * 指定したIDの投稿を取得する
    */
-  async findById(id: string): Promise<Result<Post | null, RepositoryError>> {
+  async findById(id: string): Promise<Result<Post, RepositoryError>> {
     try {
       const [post] = await this.db
         .select()
@@ -122,28 +90,14 @@ export class DrizzlePostRepository implements PostRepository {
         .where(eq(posts.id, id))
         .limit(1);
 
-      if (!post) return ok(null);
-
-      const parsed = postSchema.safeParse({
-        id: post.id,
-        userId: post.userId,
-        noteId: post.noteId,
-        postUri: post.postUri || undefined,
-        postCid: post.postCid || undefined,
-        status: post.status,
-        errorMessage: post.errorMessage || undefined,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-      });
-      if (!parsed.success) {
-        throw new Error("Failed to parse post data");
+      if (!post) {
+        return err(
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Post not found"),
+        );
       }
 
-      return ok(parsed.data);
+      return ok(post);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -158,9 +112,7 @@ export class DrizzlePostRepository implements PostRepository {
   /**
    * 指定したノートIDの投稿を取得する
    */
-  async findByNoteId(
-    noteId: string,
-  ): Promise<Result<Post | null, RepositoryError>> {
+  async findByNoteId(noteId: string): Promise<Result<Post, RepositoryError>> {
     try {
       const [post] = await this.db
         .select()
@@ -168,28 +120,14 @@ export class DrizzlePostRepository implements PostRepository {
         .where(eq(posts.noteId, noteId))
         .limit(1);
 
-      if (!post) return ok(null);
-
-      const parsed = postSchema.safeParse({
-        id: post.id,
-        userId: post.userId,
-        noteId: post.noteId,
-        postUri: post.postUri || undefined,
-        postCid: post.postCid || undefined,
-        status: post.status,
-        errorMessage: post.errorMessage || undefined,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt,
-      });
-      if (!parsed.success) {
-        throw new Error("Failed to parse post data");
+      if (!post) {
+        return err(
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Post not found"),
+        );
       }
 
-      return ok(parsed.data);
+      return ok(post);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -211,29 +149,8 @@ export class DrizzlePostRepository implements PostRepository {
         .from(posts)
         .where(eq(posts.userId, userId));
 
-      const parsedPosts = postResults.map((post) => {
-        const parsed = postSchema.safeParse({
-          id: post.id,
-          userId: post.userId,
-          noteId: post.noteId,
-          postUri: post.postUri || undefined,
-          postCid: post.postCid || undefined,
-          status: post.status,
-          errorMessage: post.errorMessage || undefined,
-          createdAt: post.createdAt,
-          updatedAt: post.updatedAt,
-        });
-        if (!parsed.success) {
-          throw new Error("Failed to parse post data");
-        }
-        return parsed.data;
-      });
-
-      return ok(parsedPosts);
+      return ok(postResults);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(

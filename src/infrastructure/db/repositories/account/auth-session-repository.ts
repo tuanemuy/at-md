@@ -30,29 +30,22 @@ export class DrizzleAuthSessionRepository implements AuthSessionRepository {
       const [savedAuthSession] = await this.db
         .insert(authSessions)
         .values(authSession)
+        .onConflictDoUpdate({
+          target: authSessions.key,
+          set: { session: authSession.session },
+        })
         .returning();
 
       if (!savedAuthSession) {
         return err(
           new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
+            RepositoryErrorCode.UNKNOWN_ERROR,
             "Failed to create auth session",
           ),
         );
       }
 
-      const parsed = authSessionSchema.safeParse(savedAuthSession);
-
-      if (!parsed.success) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Failed to parse auth session data",
-          ),
-        );
-      }
-
-      return ok(parsed.data);
+      return ok(savedAuthSession);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
@@ -68,32 +61,24 @@ export class DrizzleAuthSessionRepository implements AuthSessionRepository {
   /**
    * 指定したキーのAuthSessionを取得する
    */
-  async findByKey(
-    key: string,
-  ): Promise<Result<AuthSession | null, RepositoryError>> {
+  async findByKey(key: string): Promise<Result<AuthSession, RepositoryError>> {
     try {
-      const result = await this.db
+      const [authSession] = await this.db
         .select()
         .from(authSessions)
         .where(eq(authSessions.key, key))
         .limit(1);
 
-      if (result.length === 0) {
-        return ok(null);
-      }
-
-      const parsed = authSessionSchema.safeParse(result[0]);
-
-      if (!parsed.success) {
+      if (!authSession) {
         return err(
           new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Failed to parse auth session data",
+            RepositoryErrorCode.NOT_FOUND,
+            "Auth session not found",
           ),
         );
       }
 
-      return ok(parsed.data);
+      return ok(authSession);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(

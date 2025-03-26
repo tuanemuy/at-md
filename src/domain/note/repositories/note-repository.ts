@@ -1,8 +1,6 @@
-import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
-/**
- * ノートリポジトリのインターフェース
- */
+import type { Result } from "@/lib/result";
+import type { RepositoryError } from "../../types/error";
+import type { Pagination } from "../../types/pagination";
 import { z } from "zod";
 import type { Note } from "../models";
 import { noteScopeSchema } from "../models/note";
@@ -17,13 +15,7 @@ export const createNoteSchema = z.object({
   title: z.string().nonempty(),
   body: z.string(),
   scope: noteScopeSchema,
-  tags: z
-    .array(
-      z.object({
-        name: z.string().nonempty(),
-      }),
-    )
-    .default([]),
+  tags: z.array(z.string().nonempty()).default([]),
 });
 
 /**
@@ -37,13 +29,7 @@ export const updateNoteSchema = z.object({
   title: z.string().nonempty(),
   body: z.string(),
   scope: noteScopeSchema,
-  tags: z
-    .array(
-      z.object({
-        name: z.string().nonempty(),
-      }),
-    )
-    .default([]),
+  tags: z.array(z.string().nonempty()).default([]),
 });
 
 /**
@@ -55,14 +41,6 @@ export type CreateNote = z.infer<typeof createNoteSchema>;
  * ノート更新時の型定義
  */
 export type UpdateNote = z.infer<typeof updateNoteSchema>;
-
-/**
- * ページネーションパラメータ
- */
-export interface PaginationParams {
-  page: number;
-  limit: number;
-}
 
 /**
  * ノートリポジトリのインターフェース
@@ -81,23 +59,24 @@ export interface NoteRepository {
   /**
    * 指定したIDのノートを取得する
    */
-  findById(id: string): Promise<Result<Note | null, RepositoryError>>;
+  findById(id: string): Promise<Result<Note, RepositoryError>>;
 
   /**
    * 指定したブックIDのノート一覧を取得する
    */
   findByBookId(
     bookId: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>>;
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>>;
 
   /**
-   * 指定したタグIDのノート一覧を取得する
+   * 指定したブックID、タグIDのノート一覧を取得する
    */
   findByTag(
+    bookId: string,
     tagId: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>>;
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>>;
 
   /**
    * 指定した条件でノートを検索する
@@ -105,8 +84,8 @@ export interface NoteRepository {
   search(
     bookId: string,
     query: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>>;
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>>;
 
   /**
    * 指定したIDのノートを削除する

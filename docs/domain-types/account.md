@@ -105,13 +105,13 @@ export interface AccountError extends AnyError {
 
 ### DTOs
 
-#### Session
+#### SessionData
 
 ```typescript
-export const sessionSchema = z.object({
+export const sessionDataSchema = z.object({
   did: z.string().nonempty(),
 });
-export type Session = z.infer<typeof sessionSchema>;
+export type SessionData = z.infer<typeof sessionSchema>;
 ```
 
 #### GitHubInstallation
@@ -129,6 +129,16 @@ export type GitHubInstallation = z.infer<typeof gitHubInstallationSchema>;
 ```
 
 ### アダプターインターフェース
+
+#### セッションマネージャーアダプター
+
+```typescript
+export interface SessionManager {
+  set(context: RequestContext, data: SessionData): Promise<Result<void, ExternalServiceError>>;
+  get(context: RequestContext): Promise<Result<SessionData, ExternalServiceError>>;
+  remove(context: RequestContext): Promise<Result<void, ExternalServiceError>>;
+}
+```
 
 #### Bluesky認証アダプター
 
@@ -149,6 +159,7 @@ export interface AuthorizeOptions {
 
 ```typescript
 export interface GitHubAppProvider {
+  getAccessToken(code: string): Promise<Result<{ accessToken: string; refreshToken?: string }, ExternalServiceError>>;
   getInstallations(accessToken: string): Promise<Result<GitHubInstallation[], ExternalServiceError>>;
 }
 ```
@@ -181,6 +192,7 @@ export interface GitHubConnectionRepository {
   save(connection: CreateGitHubConnection): Promise<Result<GitHubConnection, RepositoryError>>;
   findByUserId(userId: string): Promise<Result<GitHubConnection[], RepositoryError>>;
   delete(id: string): Promise<Result<void, RepositoryError>>;
+  deleteByUserId(userId: string): Promise<Result<void, RepositoryError>>;
 }
 ```
 
@@ -206,7 +218,7 @@ export interface HandleBlueskyAuthCallbackInput {
 }
 
 export interface HandleBlueskyAuthCallbackUseCase {
-  execute(input: HandleBlueskyAuthCallbackInput): Promise<Result<Session, AccountError>>;
+  execute(input: HandleBlueskyAuthCallbackInput): Promise<Result<string, AccountError>>;
 }
 ```
 
@@ -214,23 +226,11 @@ export interface HandleBlueskyAuthCallbackUseCase {
 
 ```typescript
 export interface ValidateSessionInput {
-  token: string;
+  context: RequestContext;
 }
 
 export interface ValidateSessionUseCase {
-  execute(input: ValidateSessionInput): Promise<Result<Session, AccountError>>;
-}
-```
-
-#### セッションを更新する
-
-```typescript
-export interface RefreshSessionInput {
-  token: string;
-}
-
-export interface RefreshSessionUseCase {
-  execute(input: RefreshSessionInput): Promise<Result<Session, AccountError>>;
+  execute(input: ValidateSessionInput): Promise<Result<SessionData, AccountError>>;
 }
 ```
 
@@ -238,7 +238,7 @@ export interface RefreshSessionUseCase {
 
 ```typescript
 export interface LogoutInput {
-  token: string;
+  context: RequestContext;
 }
 
 export interface LogoutUseCase {

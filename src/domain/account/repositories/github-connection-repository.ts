@@ -12,7 +12,7 @@ import type { GitHubConnection } from "../models";
 export const createGitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
-  refreshToken: z.string().nonempty(),
+  refreshToken: z.string().nonempty().nullable(),
 });
 
 /**
@@ -22,7 +22,7 @@ export const updateGitHubConnectionSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
-  refreshToken: z.string().nonempty(),
+  refreshToken: z.string().nonempty().nullable(),
 });
 
 /**
@@ -62,14 +62,17 @@ export interface GitHubConnectionRepository {
    */
   findByUserId(
     userId: string,
-  ): Promise<Result<GitHubConnection[], RepositoryError>>;
+  ): Promise<Result<GitHubConnection, RepositoryError>>;
 
   /**
    * 指定したIDのGitHub連携情報を取得する
    */
-  findById(
-    id: string,
-  ): Promise<Result<GitHubConnection | null, RepositoryError>>;
+  findById(id: string): Promise<Result<GitHubConnection, RepositoryError>>;
+
+  /**
+   * 指定したユーザーIDのGitHub連携情報を削除する
+   */
+  deleteByUserId(userId: string): Promise<Result<void, RepositoryError>>;
 
   /**
    * 指定したIDのGitHub連携情報を削除する

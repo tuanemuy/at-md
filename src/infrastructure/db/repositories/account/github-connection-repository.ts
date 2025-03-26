@@ -33,26 +33,26 @@ export class DrizzleGitHubConnectionRepository
       const [savedConnection] = await this.db
         .insert(githubConnections)
         .values(connection)
+        .onConflictDoUpdate({
+          target: githubConnections.userId,
+          set: {
+            accessToken: connection.accessToken,
+            refreshToken: connection.refreshToken,
+          },
+        })
         .returning();
 
       if (!savedConnection) {
-        throw new Error("Failed to create GitHub connection");
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.UNKNOWN_ERROR,
+            "Failed to create GitHub connection",
+          ),
+        );
       }
 
-      const parsed = gitHubConnectionSchema.safeParse({
-        ...savedConnection,
-        scope: savedConnection.scope ? savedConnection.scope : "",
-      });
-
-      if (!parsed.success) {
-        throw new Error("Failed to parse GitHub connection data");
-      }
-
-      return ok(parsed.data);
+      return ok(savedConnection);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -80,26 +80,14 @@ export class DrizzleGitHubConnectionRepository
       if (!updatedConnection) {
         return err(
           new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
+            RepositoryErrorCode.NOT_FOUND,
             "GitHub connection not found",
           ),
         );
       }
 
-      const parsed = gitHubConnectionSchema.safeParse({
-        ...updatedConnection,
-        scope: updatedConnection.scope ? updatedConnection.scope : "",
-      });
-
-      if (!parsed.success) {
-        throw new Error("Failed to parse GitHub connection data");
-      }
-
-      return ok(parsed.data);
+      return ok(updatedConnection);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -116,29 +104,25 @@ export class DrizzleGitHubConnectionRepository
    */
   async findByUserId(
     userId: string,
-  ): Promise<Result<GitHubConnection[], RepositoryError>> {
+  ): Promise<Result<GitHubConnection, RepositoryError>> {
     try {
-      const connectionResults = await this.db
+      const [githubConnection] = await this.db
         .select()
         .from(githubConnections)
-        .where(eq(githubConnections.userId, userId));
+        .where(eq(githubConnections.userId, userId))
+        .limit(1);
 
-      const parsedConnections = connectionResults.map((connection) => {
-        const parsed = gitHubConnectionSchema.safeParse({
-          ...connection,
-          scope: connection.scope ? connection.scope : "",
-        });
-        if (!parsed.success) {
-          throw new Error("Failed to parse GitHub connection data");
-        }
-        return parsed.data;
-      });
-
-      return ok(parsedConnections);
-    } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
+      if (!githubConnection) {
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.NOT_FOUND,
+            "GitHub connection not found",
+          ),
+        );
       }
+
+      return ok(githubConnection);
+    } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
@@ -155,35 +139,51 @@ export class DrizzleGitHubConnectionRepository
    */
   async findById(
     id: string,
-  ): Promise<Result<GitHubConnection | null, RepositoryError>> {
+  ): Promise<Result<GitHubConnection, RepositoryError>> {
     try {
-      const [connection] = await this.db
+      const [githubConnection] = await this.db
         .select()
         .from(githubConnections)
         .where(eq(githubConnections.id, id))
         .limit(1);
 
-      if (!connection) return ok(null);
-
-      const parsed = gitHubConnectionSchema.safeParse({
-        ...connection,
-        scope: connection.scope ? connection.scope : "",
-      });
-
-      if (!parsed.success) {
-        throw new Error("Failed to parse GitHub connection data");
+      if (!githubConnection) {
+        return err(
+          new RepositoryError(
+            RepositoryErrorCode.NOT_FOUND,
+            "GitHub connection not found",
+          ),
+        );
       }
 
-      return ok(parsed.data);
+      return ok(githubConnection);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
           "Failed to find GitHub connection by ID",
+          error,
+        ),
+      );
+    }
+  }
+
+  /**
+   * 指定したIDのGitHub連携情報を削除する
+   */
+  async deleteByUserId(userId: string): Promise<Result<void, RepositoryError>> {
+    try {
+      await this.db
+        .delete(githubConnections)
+        .where(eq(githubConnections.userId, userId));
+      return ok(undefined);
+    } catch (error) {
+      const code = isDatabaseError(error) ? error.code : undefined;
+      return err(
+        new RepositoryError(
+          codeToRepositoryErrorCode(code),
+          "Failed to delete GitHub connection",
           error,
         ),
       );
@@ -200,9 +200,6 @@ export class DrizzleGitHubConnectionRepository
         .where(eq(githubConnections.id, id));
       return ok(undefined);
     } catch (error) {
-      if (error instanceof RepositoryError) {
-        return err(error);
-      }
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(

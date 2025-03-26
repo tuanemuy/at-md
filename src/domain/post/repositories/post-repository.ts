@@ -60,12 +60,12 @@ export interface PostRepository {
   /**
    * 指定したIDの投稿を取得する
    */
-  findById(id: string): Promise<Result<Post | null, RepositoryError>>;
+  findById(id: string): Promise<Result<Post, RepositoryError>>;
 
   /**
    * 指定したノートIDの投稿を取得する
    */
-  findByNoteId(noteId: string): Promise<Result<Post | null, RepositoryError>>;
+  findByNoteId(noteId: string): Promise<Result<Post, RepositoryError>>;
 
   /**
    * 指定したユーザーIDの投稿を取得する

@@ -17,6 +17,7 @@ export const AccountErrorCode = {
   SESSION_VALIDATION_FAILED: "session_validation_failed",
   SESSION_REFRESH_FAILED: "session_refresh_failed",
   SESSION_REVOCATION_FAILED: "session_revocation_failed",
+  SESSION_NOT_FOUND: "session_not_found",
 
   // GitHub連携関連
   GITHUB_CONNECTION_FAILED: "github_connection_failed",

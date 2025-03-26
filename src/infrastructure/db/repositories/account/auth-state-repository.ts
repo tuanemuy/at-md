@@ -30,29 +30,22 @@ export class DrizzleAuthStateRepository implements AuthStateRepository {
       const [savedAuthState] = await this.db
         .insert(authStates)
         .values(authState)
+        .onConflictDoUpdate({
+          target: authStates.key,
+          set: { state: authState.state },
+        })
         .returning();
 
       if (!savedAuthState) {
         return err(
           new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
+            RepositoryErrorCode.UNKNOWN_ERROR,
             "Failed to create auth state",
           ),
         );
       }
 
-      const parsed = authStateSchema.safeParse(savedAuthState);
-
-      if (!parsed.success) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Failed to parse auth state data",
-          ),
-        );
-      }
-
-      return ok(parsed.data);
+      return ok(savedAuthState);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
@@ -68,32 +61,24 @@ export class DrizzleAuthStateRepository implements AuthStateRepository {
   /**
    * 指定したキーのAuthStateを取得する
    */
-  async findByKey(
-    key: string,
-  ): Promise<Result<AuthState | null, RepositoryError>> {
+  async findByKey(key: string): Promise<Result<AuthState, RepositoryError>> {
     try {
-      const result = await this.db
+      const [authState] = await this.db
         .select()
         .from(authStates)
         .where(eq(authStates.key, key))
         .limit(1);
 
-      if (result.length === 0) {
-        return ok(null);
-      }
-
-      const parsed = authStateSchema.safeParse(result[0]);
-
-      if (!parsed.success) {
+      if (!authState) {
         return err(
           new RepositoryError(
-            RepositoryErrorCode.DATA_ERROR,
-            "Failed to parse auth state data",
+            RepositoryErrorCode.NOT_FOUND,
+            "Auth state not found",
           ),
         );
       }
 
-      return ok(parsed.data);
+      return ok(authState);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(

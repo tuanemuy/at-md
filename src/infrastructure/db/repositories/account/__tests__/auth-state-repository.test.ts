@@ -80,6 +80,26 @@ test("新規AuthStateを作成するとステートが正常に作成される�
   });
 });
 
+test("既存のキーでAuthStateを作成すると情報が更新されること", async () => {
+  // 準備 - 最初のステートを作成
+  const testState = createTestCreateAuthState();
+  await authStateRepository.create(testState);
+
+  // 同じキーで新しいステートを作成
+  const newState = createTestCreateAuthState();
+  newState.key = testState.key;
+
+  // 実行
+  const result = await authStateRepository.create(newState);
+
+  // 検証
+  expect(result.isOk()).toBe(true);
+  result.map((savedState) => {
+    expect(savedState.key).toBe(newState.key);
+    expect(savedState.state).toBe(newState.state);
+  });
+});
+
 test("存在するキーでAuthStateを検索するとステートが取得できること", async () => {
   // 準備
   const testState = createTestCreateAuthState();
@@ -91,15 +111,12 @@ test("存在するキーでAuthStateを検索するとステートが取得で�
   // 検証
   expect(result.isOk()).toBe(true);
   result.map((state) => {
-    expect(state).not.toBeNull();
-    if (state) {
-      expect(state.key).toBe(testState.key);
-      expect(state.state).toBe(testState.state);
-    }
+    expect(state.key).toBe(testState.key);
+    expect(state.state).toBe(testState.state);
   });
 });
 
-test("存在しないキーでAuthStateを検索するとnullが返されること", async () => {
+test("存在しないキーでAuthStateを検索するとNOT_FOUNDエラーが返されること", async () => {
   // 準備
   const nonExistentKey = generateId(16);
 
@@ -107,9 +124,9 @@ test("存在しないキーでAuthStateを検索するとnullが返されるこ�
   const result = await authStateRepository.findByKey(nonExistentKey);
 
   // 検証
-  expect(result.isOk()).toBe(true);
-  result.map((state) => {
-    expect(state).toBeNull();
+  expect(result.isErr()).toBe(true);
+  result.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });
 
@@ -126,27 +143,8 @@ test("AuthStateを削除すると該当ステートが削除されること", as
 
   // 削除されたことを確認
   const findResult = await authStateRepository.findByKey(testState.key);
-  expect(findResult.isOk()).toBe(true);
-  findResult.map((state) => {
-    expect(state).toBeNull();
-  });
-});
-
-test("重複するキーでAuthStateを作成すると失敗すること", async () => {
-  // 準備 - 最初のステートを作成
-  const testState = createTestCreateAuthState();
-  await authStateRepository.create(testState);
-
-  // 同じキーで別のステートを作成
-  const duplicateData = createTestCreateAuthState();
-  duplicateData.key = testState.key;
-
-  // 実行
-  const result = await authStateRepository.create(duplicateData);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
+  expect(findResult.isErr()).toBe(true);
+  findResult.mapErr((error) => {
+    expect(error.code).toBe(RepositoryErrorCode.NOT_FOUND);
   });
 });

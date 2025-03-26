@@ -101,13 +101,13 @@
 
 ### ステップ3.4 外部サービス連携
 
-- [ ] Bluesky認証アダプターの実装
-  - [ ] BlueskyAuthProvider
-- [ ] GitHub連携アダプターの実装
-  - [ ] GitHubAppProvider
-  - [ ] GitHubContentProvider
-- [ ] Bluesky投稿アダプターの実装
-  - [ ] BlueskyPostProvider
+- [x] Bluesky認証アダプターの実装
+  - [x] BlueskyAuthProvider
+- [x] GitHub連携アダプターの実装
+  - [x] GitHubAppProvider
+  - [x] GitHubContentProvider
+- [x] Bluesky投稿アダプターの実装
+  - [x] BlueskyPostProvider
 
 ## フェーズ4: アプリケーション層の実装
 

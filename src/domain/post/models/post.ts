@@ -25,10 +25,10 @@ export const postSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
   noteId: z.string().uuid(),
-  postUri: z.string().optional(),
-  postCid: z.string().optional(),
+  postUri: z.string().nonempty().nullable(),
+  postCid: z.string().nonempty().nullable(),
   status: postStatusSchema,
-  errorMessage: z.string().optional(),
+  errorMessage: z.string().nonempty().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

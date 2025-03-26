@@ -55,14 +55,21 @@ export const syncStatuses = pgTable("sync_statuses", {
 });
 
 // タグテーブル
-export const tags = pgTable("tags", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => uuidv7()),
-  name: text("name").notNull().unique(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const tags = pgTable(
+  "tags",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    bookId: uuid("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("book_name_idx").on(t.bookId, t.name)],
+);
 
 // ノートテーブル
 export const notes = pgTable(

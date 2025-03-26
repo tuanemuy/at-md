@@ -3,7 +3,7 @@ import type { ExternalServiceError } from "@/domain/types/error";
  * GitHub連携アダプターのインターフェース
  */
 import type { Result } from "neverthrow";
-import type { GitHubRepository, GitHubWebhook } from "../dtos";
+import type { GitHubRepository } from "../dtos";
 
 /**
  * GitHub連携アダプターのインターフェース

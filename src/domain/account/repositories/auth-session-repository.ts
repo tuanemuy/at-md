@@ -33,7 +33,7 @@ export interface AuthSessionRepository {
   /**
    * 指定したキーのAuthSessionを取得する
    */
-  findByKey(key: string): Promise<Result<AuthSession | null, RepositoryError>>;
+  findByKey(key: string): Promise<Result<AuthSession, RepositoryError>>;
 
   /**
    * 指定したキーのAuthSessionを削除する

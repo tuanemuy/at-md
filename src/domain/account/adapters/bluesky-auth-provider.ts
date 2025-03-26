@@ -3,7 +3,6 @@ import type { Result } from "@/lib/result";
 /**
  * Bluesky認証アダプターのインターフェース
  */
-import type { OAuthSession } from "@atproto/oauth-client-node";
 import type { Profile } from "../models";
 
 /**
@@ -23,11 +22,11 @@ export interface BlueskyAuthProvider {
   authorize(handle: string): Promise<Result<URL, ExternalServiceError>>;
 
   /**
-   * コールバックURLからセッション情報を取得する
+   * コールバックURLからセッションを作成する
    */
   callback(
     params: URLSearchParams,
-  ): Promise<Result<OAuthSession, ExternalServiceError>>;
+  ): Promise<Result<string, ExternalServiceError>>;
 
   /**
    * ユーザープロフィールを取得する
@@ -35,9 +34,7 @@ export interface BlueskyAuthProvider {
   getUserProfile(did: string): Promise<Result<Profile, ExternalServiceError>>;
 
   /**
-   * OAuthセッションを取得する
+   * セッションを検証する
    */
-  getOAuthSession(
-    did: string,
-  ): Promise<Result<OAuthSession, ExternalServiceError>>;
+  validateSession(did: string): Promise<Result<void, ExternalServiceError>>;
 }

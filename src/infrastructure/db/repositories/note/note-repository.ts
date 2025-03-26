@@ -1,14 +1,13 @@
-import type { Note } from "@/domain/note/models";
-import { noteSchema } from "@/domain/note/models/note";
+import type { Pagination } from "@/domain/types/pagination";
+import type { Note, Tag } from "@/domain/note/models";
 import type {
   CreateNote,
   NoteRepository,
-  PaginationParams,
   UpdateNote,
 } from "@/domain/note/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { type Result, err, ok } from "@/lib/result";
-import { and, eq, like, sql } from "drizzle-orm";
+import { and, or, eq, ilike, desc, count, sql, asc } from "drizzle-orm";
 import {
   type PgDatabase,
   codeToRepositoryErrorCode,
@@ -23,65 +22,61 @@ export class DrizzleNoteRepository implements NoteRepository {
   constructor(private readonly db: PgDatabase) {}
 
   /**
+   * ソート条件を安全に生成する
+   */
+  private getOrderBy(pagination?: Pagination) {
+    if (!pagination?.orderBy || !pagination?.order) {
+      return desc(notes.createdAt);
+    }
+
+    const order = pagination.order === "asc" ? asc : desc;
+    switch (pagination.orderBy) {
+      case "title":
+        return order(notes.title);
+      case "updatedAt":
+        return order(notes.updatedAt);
+      default:
+        return order(notes.createdAt);
+    }
+  }
+
+  /**
    * ノートを作成する
    */
   async create(note: CreateNote): Promise<Result<Note, RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
-        // ノートの保存
         const [savedNote] = await tx.insert(notes).values(note).returning();
 
         if (!savedNote) {
-          throw new Error("Failed to parse note data");
+          throw new Error("Failed to create note");
         }
 
-        // ノートとタグの関連付けを保存
+        let savedTags: Tag[] = [];
         if (note.tags.length > 0) {
-          // タグの保存と関連付け
-          for (const tag of note.tags) {
-            const [savedTag] = await tx
-              .insert(tags)
-              .values(tag)
-              .onConflictDoUpdate({
-                target: tags.id,
-                set: tag,
-              })
-              .returning();
+          savedTags = await tx
+            .insert(tags)
+            .values(
+              note.tags.map((name) => ({ bookId: savedNote.bookId, name })),
+            )
+            .onConflictDoUpdate({
+              target: [tags.bookId, tags.name],
+              set: { updatedAt: new Date() },
+            })
+            .returning();
 
-            if (!savedTag) {
-              throw new Error("Failed to parse note data");
-            }
-
-            // ノートとタグの関連付け
-            await tx
-              .insert(noteTags)
-              .values({
-                noteId: savedNote.id,
-                tagId: savedTag.id,
-              })
-              .onConflictDoNothing();
-          }
+          await tx.insert(noteTags).values(
+            savedTags.map((tag) => ({
+              noteId: savedNote.id,
+              tagId: tag.id,
+            })),
+          );
         }
 
-        // タグ情報を取得
-        const noteTagsResults = await tx
-          .select({
-            tag: tags,
-          })
-          .from(noteTags)
-          .innerJoin(tags, eq(noteTags.tagId, tags.id))
-          .where(eq(noteTags.noteId, savedNote.id));
-
-        const parsed = noteSchema.safeParse({
+        return {
           ...savedNote,
-          tags: noteTagsResults.map((result) => result.tag),
-        });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse note data");
-        }
-
-        return parsed.data;
+          tags: savedTags,
+        };
       });
 
       return ok(result);
@@ -90,7 +85,7 @@ export class DrizzleNoteRepository implements NoteRepository {
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to create note",
           error,
         ),
       );
@@ -103,7 +98,6 @@ export class DrizzleNoteRepository implements NoteRepository {
   async update(note: UpdateNote): Promise<Result<Note, RepositoryError>> {
     try {
       const result = await this.db.transaction(async (tx) => {
-        // ノートの更新
         const [updatedNote] = await tx
           .update(notes)
           .set(note)
@@ -111,59 +105,41 @@ export class DrizzleNoteRepository implements NoteRepository {
           .returning();
 
         if (!updatedNote) {
-          throw new Error("Failed to parse note data");
+          throw new Error("Failed to update note");
         }
 
-        // 既存のタグ関連付けをクリア
-        await tx.delete(noteTags).where(eq(noteTags.noteId, updatedNote.id));
+        const [_, savedTags] = await Promise.all([
+          tx.delete(noteTags).where(eq(noteTags.noteId, updatedNote.id)),
+          note.tags.length > 0
+            ? tx
+                .insert(tags)
+                .values(
+                  note.tags.map((name) => ({
+                    bookId: updatedNote.bookId,
+                    name,
+                  })),
+                )
+                .onConflictDoUpdate({
+                  target: [tags.bookId, tags.name],
+                  set: { updatedAt: new Date() },
+                })
+                .returning()
+            : Promise.resolve([]),
+        ]);
 
-        // ノートとタグの関連付けを保存
-        if (note.tags.length > 0) {
-          // タグの保存と関連付け
-          for (const tag of note.tags) {
-            const [savedTag] = await tx
-              .insert(tags)
-              .values(tag)
-              .onConflictDoUpdate({
-                target: tags.id,
-                set: tag,
-              })
-              .returning();
-
-            if (!savedTag) {
-              throw new Error("Failed to parse note data");
-            }
-
-            // ノートとタグの関連付け
-            await tx
-              .insert(noteTags)
-              .values({
-                noteId: updatedNote.id,
-                tagId: savedTag.id,
-              })
-              .onConflictDoNothing();
-          }
+        if (savedTags.length > 0) {
+          await tx.insert(noteTags).values(
+            savedTags.map((tag) => ({
+              noteId: updatedNote.id,
+              tagId: tag.id,
+            })),
+          );
         }
 
-        // タグ情報を取得
-        const noteTagsResults = await tx
-          .select({
-            tag: tags,
-          })
-          .from(noteTags)
-          .innerJoin(tags, eq(noteTags.tagId, tags.id))
-          .where(eq(noteTags.noteId, updatedNote.id));
-
-        const parsed = noteSchema.safeParse({
+        return {
           ...updatedNote,
-          tags: noteTagsResults.map((result) => result.tag),
-        });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse note data");
-        }
-
-        return parsed.data;
+          tags: savedTags,
+        };
       });
 
       return ok(result);
@@ -172,7 +148,7 @@ export class DrizzleNoteRepository implements NoteRepository {
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to update note",
           error,
         ),
       );
@@ -182,48 +158,37 @@ export class DrizzleNoteRepository implements NoteRepository {
   /**
    * 指定したIDのノートを取得する
    */
-  async findById(id: string): Promise<Result<Note | null, RepositoryError>> {
+  async findById(id: string): Promise<Result<Note, RepositoryError>> {
     try {
-      const result = await this.db.transaction(async (tx) => {
-        // ノート情報を取得
-        const noteResults = await tx
-          .select()
-          .from(notes)
-          .where(eq(notes.id, id))
-          .limit(1);
+      const selectedNotes = await this.db
+        .select({
+          note: notes,
+          noteTag: noteTags,
+          tag: tags,
+        })
+        .from(notes)
+        .where(eq(notes.id, id))
+        .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
+        .leftJoin(tags, eq(noteTags.tagId, tags.id));
 
-        if (noteResults.length === 0) return null;
+      if (selectedNotes.length === 0) {
+        return err(
+          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Note not found"),
+        );
+      }
 
-        const note = noteResults[0];
-
-        // タグ情報を取得
-        const noteTagsResults = await tx
-          .select({
-            tag: tags,
-          })
-          .from(noteTags)
-          .innerJoin(tags, eq(noteTags.tagId, tags.id))
-          .where(eq(noteTags.noteId, note.id));
-
-        const parsed = noteSchema.safeParse({
-          ...note,
-          tags: noteTagsResults.map((result) => result.tag),
-        });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse note data");
-        }
-
-        return parsed.data;
+      return ok({
+        ...selectedNotes[0].note,
+        tags: selectedNotes
+          .map((note) => note.tag)
+          .filter((tag): tag is Tag => tag !== null),
       });
-
-      return ok(result);
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to find note",
           error,
         ),
       );
@@ -235,59 +200,62 @@ export class DrizzleNoteRepository implements NoteRepository {
    */
   async findByBookId(
     bookId: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>> {
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    const offset = (page - 1) * limit;
     try {
-      const result = await this.db.transaction(async (tx) => {
-        // ページネーションパラメータの設定
-        const page = pagination?.page || 1;
-        const limit = pagination?.limit || 10;
-        const offset = (page - 1) * limit;
-
-        // ノート情報を取得
-        const noteResults = await tx
-          .select()
+      const sq = this.db.$with("sq").as(
+        this.db
+          .select({
+            id: notes.id,
+          })
           .from(notes)
           .where(eq(notes.bookId, bookId))
           .limit(limit)
-          .offset(offset);
+          .offset(offset),
+      );
+      const [selectedNotes, c] = await Promise.all([
+        this.db
+          .with(sq)
+          .select({
+            note: notes,
+            noteTag: noteTags,
+            tag: tags,
+          })
+          .from(sq)
+          .innerJoin(notes, eq(sq.id, notes.id))
+          .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
+          .leftJoin(tags, eq(noteTags.tagId, tags.id))
+          .orderBy(this.getOrderBy(pagination)),
+        this.db
+          .select({ value: count() })
+          .from(notes)
+          .where(eq(notes.bookId, bookId)),
+      ]);
 
-        if (noteResults.length === 0) return [];
+      const result = selectedNotes.reduce((acc, note) => {
+        const added = acc.find((n) => n.id === note.note.id);
+        if (added && note.tag) {
+          added.tags.push(note.tag);
+        } else {
+          acc.push({
+            ...note.note,
+            tags: note.tag ? [note.tag] : [],
+          });
+        }
+        return acc;
+      }, [] as Note[]);
 
-        // 各ノートのタグ情報を取得
-        const notesWithTags = await Promise.all(
-          noteResults.map(async (note) => {
-            const noteTagsResults = await tx
-              .select({
-                tag: tags,
-              })
-              .from(noteTags)
-              .innerJoin(tags, eq(noteTags.tagId, tags.id))
-              .where(eq(noteTags.noteId, note.id));
-
-            const parsed = noteSchema.safeParse({
-              ...note,
-              tags: noteTagsResults.map((result) => result.tag),
-            });
-
-            if (!parsed.success) {
-              throw new Error("Failed to parse note data");
-            }
-
-            return parsed.data;
-          }),
-        );
-
-        return notesWithTags;
-      });
-
-      return ok(result);
+      return ok({ items: result, count: c.at(0)?.value || -1 });
     } catch (error) {
+      console.error(error);
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to find notes by bookId",
           error,
         ),
       );
@@ -295,78 +263,58 @@ export class DrizzleNoteRepository implements NoteRepository {
   }
 
   /**
-   * 指定したタグIDのノート一覧を取得する
+   * 指定したブックID、タグIDのノート一覧を取得する
    */
   async findByTag(
+    bookId: string,
     tagId: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>> {
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    const offset = (page - 1) * limit;
     try {
-      const result = await this.db.transaction(async (tx) => {
-        // ページネーションパラメータの設定
-        const page = pagination?.page || 1;
-        const limit = pagination?.limit || 10;
-        const offset = (page - 1) * limit;
-
-        // タグに関連付けられたノートIDを取得
-        const noteIdsResults = await tx
+      const [selectedNotes, c] = await Promise.all([
+        this.db
           .select({
-            noteId: noteTags.noteId,
+            note: notes,
+            noteTag: noteTags,
+            tag: tags,
           })
-          .from(noteTags)
-          .where(eq(noteTags.tagId, tagId))
+          .from(notes)
+          .innerJoin(noteTags, eq(notes.id, noteTags.noteId))
+          .innerJoin(tags, eq(noteTags.tagId, tags.id))
+          .where(and(eq(notes.bookId, bookId), eq(noteTags.tagId, tagId)))
           .limit(limit)
-          .offset(offset);
+          .offset(offset)
+          .orderBy(this.getOrderBy(pagination)),
+        this.db
+          .select({ value: count() })
+          .from(notes)
+          .innerJoin(noteTags, eq(notes.id, noteTags.noteId))
+          .where(and(eq(notes.bookId, bookId), eq(noteTags.tagId, tagId))),
+      ]);
 
-        if (noteIdsResults.length === 0) return [];
+      const result = selectedNotes.reduce((acc, note) => {
+        const added = acc.find((n) => n.id === note.note.id);
+        if (added) {
+          added.tags.push(note.tag);
+        } else {
+          acc.push({
+            ...note.note,
+            tags: [note.tag],
+          });
+        }
+        return acc;
+      }, [] as Note[]);
 
-        const noteIds = noteIdsResults.map((result) => result.noteId);
-
-        // ノート情報を取得
-        const noteResults = await Promise.all(
-          noteIds.map(async (noteId) => {
-            const [note] = await tx
-              .select()
-              .from(notes)
-              .where(eq(notes.id, noteId))
-              .limit(1);
-
-            if (!note) {
-              throw new Error("Failed to parse note data");
-            }
-
-            // タグ情報を取得
-            const noteTagsResults = await tx
-              .select({
-                tag: tags,
-              })
-              .from(noteTags)
-              .innerJoin(tags, eq(noteTags.tagId, tags.id))
-              .where(eq(noteTags.noteId, note.id));
-
-            const parsed = noteSchema.safeParse({
-              ...note,
-              tags: noteTagsResults.map((result) => result.tag),
-            });
-
-            if (!parsed.success) {
-              throw new Error("Failed to parse note data");
-            }
-
-            return parsed.data;
-          }),
-        );
-
-        return noteResults;
-      });
-
-      return ok(result);
+      return ok({ items: result, count: c.at(0)?.value || -1 });
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to find notes by tag",
           error,
         ),
       );
@@ -374,70 +322,82 @@ export class DrizzleNoteRepository implements NoteRepository {
   }
 
   /**
-   * 指定した条件でノートを検索する
+   * 指定したブックIDのノートを文字列で検索する
    */
   async search(
     bookId: string,
     query: string,
-    pagination?: PaginationParams,
-  ): Promise<Result<Note[], RepositoryError>> {
+    pagination?: Pagination,
+  ): Promise<Result<{ items: Note[]; count: number }, RepositoryError>> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    const offset = (page - 1) * limit;
     try {
-      const result = await this.db.transaction(async (tx) => {
-        // ページネーションパラメータの設定
-        const page = pagination?.page || 1;
-        const limit = pagination?.limit || 10;
-        const offset = (page - 1) * limit;
-
-        // ノート情報を取得（タイトルまたは本文に検索クエリを含むものを検索）
-        const searchQuery = `%${query}%`;
-        const noteResults = await tx
-          .select()
+      const sq = this.db.$with("sq").as(
+        this.db
+          .select({
+            id: notes.id,
+          })
           .from(notes)
           .where(
             and(
               eq(notes.bookId, bookId),
-              sql`(${notes.title} ILIKE ${searchQuery} OR ${notes.body} ILIKE ${searchQuery})`,
+              or(
+                ilike(notes.title, `%${query}%`),
+                ilike(notes.body, `%${query}%`),
+              ),
             ),
           )
           .limit(limit)
-          .offset(offset);
+          .offset(offset),
+      );
+      const [selectedNotes, c] = await Promise.all([
+        this.db
+          .with(sq)
+          .select({
+            note: notes,
+            noteTag: noteTags,
+            tag: tags,
+          })
+          .from(sq)
+          .innerJoin(notes, eq(sq.id, notes.id))
+          .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
+          .leftJoin(tags, eq(noteTags.tagId, tags.id))
+          .orderBy(this.getOrderBy(pagination)),
+        this.db
+          .select({ value: count() })
+          .from(notes)
+          .where(
+            and(
+              eq(notes.bookId, bookId),
+              or(
+                ilike(notes.title, `%${query}%`),
+                ilike(notes.body, `%${query}%`),
+              ),
+            ),
+          ),
+      ]);
 
-        if (noteResults.length === 0) return [];
+      const result = selectedNotes.reduce((acc, note) => {
+        const added = acc.find((n) => n.id === note.note.id);
+        if (added && note.tag) {
+          added.tags.push(note.tag);
+        } else {
+          acc.push({
+            ...note.note,
+            tags: note.tag ? [note.tag] : [],
+          });
+        }
+        return acc;
+      }, [] as Note[]);
 
-        // 各ノートのタグ情報を取得
-        const notesWithTags = await Promise.all(
-          noteResults.map(async (note) => {
-            const noteTagsResults = await tx
-              .select({
-                tag: tags,
-              })
-              .from(noteTags)
-              .innerJoin(tags, eq(noteTags.tagId, tags.id))
-              .where(eq(noteTags.noteId, note.id));
-
-            const parsed = noteSchema.safeParse({
-              ...note,
-              tags: noteTagsResults.map((result) => result.tag),
-            });
-
-            if (!parsed.success) {
-              throw new Error("Failed to parse note data");
-            }
-
-            return parsed.data;
-          }),
-        );
-
-        return notesWithTags;
-      });
-
-      return ok(result);
+      return ok({ items: result, count: c.at(0)?.value || -1 });
     } catch (error) {
       const code = isDatabaseError(error) ? error.code : undefined;
       return err(
         new RepositoryError(
           codeToRepositoryErrorCode(code),
-          "Failed to parse note data",
+          "Failed to search notes",
           error,
         ),
       );
