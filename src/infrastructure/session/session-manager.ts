@@ -1,5 +1,5 @@
 import { getIronSession } from "iron-session";
-import { type Result, ok, err } from "@/lib/result";
+import { ResultAsync } from "@/lib/result";
 import type { RequestContext } from "@/domain/types/http";
 import {
   ExternalServiceError,
@@ -22,88 +22,74 @@ export class DefaultSessionManager implements SessionManager {
   /**
    * セッションにデータを保存する
    */
-  async set(
-    context: RequestContext,
-    data: SessionData,
-  ): Promise<Result<void, ExternalServiceError>> {
-    try {
-      const clientSession = await getIronSession<SessionData>(
-        context.req,
-        context.res,
-        {
-          cookieName: "sid",
-          password: this.secret,
-        },
-      );
-      clientSession.did = data.did;
-      await clientSession.save();
-      return ok();
-    } catch (error) {
-      return err(
+  set(context: RequestContext, data: SessionData) {
+    return ResultAsync.fromPromise(
+      getIronSession<SessionData>(context.req, context.res, {
+        cookieName: "sid",
+        password: this.secret,
+      }),
+      (error) =>
         new ExternalServiceError(
           "SessionManager",
           ExternalServiceErrorCode.REQUEST_FAILED,
           "Failed to save session data",
           error instanceof Error ? error : undefined,
         ),
+    )
+      .andTee((clientSession) => {
+        clientSession.did = data.did;
+      })
+      .andThen((clientSession) =>
+        ResultAsync.fromPromise(
+          clientSession.save(),
+          (error) =>
+            new ExternalServiceError(
+              "SessionManager",
+              ExternalServiceErrorCode.REQUEST_FAILED,
+              "Failed to save session data",
+              error instanceof Error ? error : undefined,
+            ),
+        ),
       );
-    }
   }
 
   /**
    * セッションからデータを取得する
    */
-  async get(
-    context: RequestContext,
-  ): Promise<Result<SessionData, ExternalServiceError>> {
-    try {
-      const clientSession = await getIronSession<SessionData>(
-        context.req,
-        context.res,
-        {
-          cookieName: "sid",
-          password: this.secret,
-        },
-      );
-      return ok(clientSession);
-    } catch (error) {
-      return err(
+  get(context: RequestContext) {
+    return ResultAsync.fromPromise(
+      getIronSession<SessionData>(context.req, context.res, {
+        cookieName: "sid",
+        password: this.secret,
+      }),
+      (error) =>
         new ExternalServiceError(
           "SessionManager",
           ExternalServiceErrorCode.REQUEST_FAILED,
           "Failed to save session data",
           error instanceof Error ? error : undefined,
         ),
-      );
-    }
+    ).map((clientSession) => clientSession);
   }
 
   /**
    * セッションからデータを削除する
    */
-  async remove(
-    context: RequestContext,
-  ): Promise<Result<void, ExternalServiceError>> {
-    try {
-      const clientSession = await getIronSession<SessionData>(
-        context.req,
-        context.res,
-        {
-          cookieName: "sid",
-          password: this.secret,
-        },
-      );
-      clientSession.destroy();
-      return ok();
-    } catch (error) {
-      return err(
+  remove(context: RequestContext) {
+    return ResultAsync.fromPromise(
+      getIronSession<SessionData>(context.req, context.res, {
+        cookieName: "sid",
+        password: this.secret,
+      }),
+      (error) =>
         new ExternalServiceError(
           "SessionManager",
           ExternalServiceErrorCode.REQUEST_FAILED,
           "Failed to save session data",
           error instanceof Error ? error : undefined,
         ),
-      );
-    }
+    ).map((clientSession) => {
+      clientSession.destroy();
+    });
   }
 }

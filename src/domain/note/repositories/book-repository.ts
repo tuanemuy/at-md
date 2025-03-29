@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * ブックリポジトリのインターフェース
  */
@@ -59,22 +59,22 @@ export interface BookRepository {
   /**
    * ブックを作成する
    */
-  create(book: CreateBook): Promise<Result<Book, RepositoryError>>;
+  create(book: CreateBook): ResultAsync<Book, RepositoryError>;
 
   /**
    * ブックを更新する
    */
-  update(book: UpdateBook): Promise<Result<Book, RepositoryError>>;
+  update(book: UpdateBook): ResultAsync<Book, RepositoryError>;
 
   /**
    * 指定したIDのブックを取得する
    */
-  findById(id: string): Promise<Result<Book, RepositoryError>>;
+  findById(id: string): ResultAsync<Book, RepositoryError>;
 
   /**
    * 指定したユーザーIDのブック一覧を取得する
    */
-  findByUserId(userId: string): Promise<Result<Book[], RepositoryError>>;
+  findByUserId(userId: string): ResultAsync<Book[], RepositoryError>;
 
   /**
    * 指定したオーナーとリポジトリのブックを取得する
@@ -82,10 +82,10 @@ export interface BookRepository {
   findByOwnerAndRepo(
     owner: string,
     repo: string,
-  ): Promise<Result<Book, RepositoryError>>;
+  ): ResultAsync<Book, RepositoryError>;
 
   /**
    * 指定したIDのブックを削除する
    */
-  delete(id: string): Promise<Result<void, RepositoryError>>;
+  delete(id: string): ResultAsync<void, RepositoryError>;
 }

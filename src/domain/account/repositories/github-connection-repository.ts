@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * GitHub連携情報リポジトリのインターフェース
  */
@@ -48,34 +48,34 @@ export interface GitHubConnectionRepository {
    */
   create(
     connection: CreateGitHubConnection,
-  ): Promise<Result<GitHubConnection, RepositoryError>>;
+  ): ResultAsync<GitHubConnection, RepositoryError>;
 
   /**
    * GitHub連携情報を更新する
    */
   update(
     connection: UpdateGitHubConnection,
-  ): Promise<Result<GitHubConnection, RepositoryError>>;
+  ): ResultAsync<GitHubConnection, RepositoryError>;
 
   /**
    * 指定したユーザーIDのGitHub連携情報を取得する
    */
   findByUserId(
     userId: string,
-  ): Promise<Result<GitHubConnection, RepositoryError>>;
+  ): ResultAsync<GitHubConnection, RepositoryError>;
 
   /**
    * 指定したIDのGitHub連携情報を取得する
    */
-  findById(id: string): Promise<Result<GitHubConnection, RepositoryError>>;
+  findById(id: string): ResultAsync<GitHubConnection, RepositoryError>;
 
   /**
    * 指定したユーザーIDのGitHub連携情報を削除する
    */
-  deleteByUserId(userId: string): Promise<Result<void, RepositoryError>>;
+  deleteByUserId(userId: string): ResultAsync<void, RepositoryError>;
 
   /**
    * 指定したIDのGitHub連携情報を削除する
    */
-  delete(id: string): Promise<Result<void, RepositoryError>>;
+  delete(id: string): ResultAsync<void, RepositoryError>;
 }

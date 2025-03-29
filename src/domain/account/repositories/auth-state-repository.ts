@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * AuthStateリポジトリのインターフェース
  */
@@ -28,15 +28,15 @@ export interface AuthStateRepository {
    */
   create(
     authState: CreateAuthState,
-  ): Promise<Result<AuthState, RepositoryError>>;
+  ): ResultAsync<AuthState, RepositoryError>;
 
   /**
    * 指定したキーのAuthStateを取得する
    */
-  findByKey(key: string): Promise<Result<AuthState, RepositoryError>>;
+  findByKey(key: string): ResultAsync<AuthState, RepositoryError>;
 
   /**
    * 指定したキーのAuthStateを削除する
    */
-  deleteByKey(key: string): Promise<Result<void, RepositoryError>>;
+  deleteByKey(key: string): ResultAsync<void, RepositoryError>;
 }

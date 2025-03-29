@@ -1,13 +1,9 @@
 import type { User } from "@/domain/account/models/user";
-import type { Book } from "@/domain/note/models/book";
-import type { Note } from "@/domain/note/models/note";
-import type { CreateNote } from "@/domain/note/repositories";
-import type { Post } from "@/domain/post/models/post";
+import type { CreateOrUpdateNote } from "@/domain/note/repositories";
 import type { PostStatus } from "@/domain/post/models/post";
 import type { CreatePost, UpdatePost } from "@/domain/post/repositories";
 import { RepositoryErrorCode } from "@/domain/types/error";
 import { users } from "@/infrastructure/db/schema/account";
-import { ok, type Result } from "@/lib/result";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
 import {
@@ -63,7 +59,10 @@ describe("DrizzlePostRepository", () => {
     },
   });
 
-  const createTestNote = (userId: string, bookId: string): CreateNote => ({
+  const createTestNote = (
+    userId: string,
+    bookId: string,
+  ): CreateOrUpdateNote => ({
     userId,
     bookId,
     path: "test-note.md",
@@ -121,7 +120,7 @@ describe("DrizzlePostRepository", () => {
     }
     const book = bookResult.value;
 
-    const noteResult = await noteRepository.create(
+    const noteResult = await noteRepository.createOrUpdate(
       createTestNote(user.id, book.id),
     );
     if (noteResult.isErr()) {

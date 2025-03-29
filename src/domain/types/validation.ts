@@ -26,10 +26,10 @@ export interface ValidationErrorDetail {
  * @param data Data to validate
  * @returns Validation result
  */
-export function validate<T>(
-  schema: z.ZodType<T>,
+export function validate<T extends z.ZodType>(
+  schema: T,
   data: unknown,
-): Result<T, ValidationError> {
+): Result<z.infer<T>, ValidationError> {
   const result = schema.safeParse(data);
 
   if (result.success) {

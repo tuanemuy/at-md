@@ -2,7 +2,7 @@ import type { ExternalServiceError } from "@/domain/types/error";
 /**
  * GitHub連携アダプターのインターフェース
  */
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 import type { GitHubRepository } from "../dtos";
 
 /**
@@ -14,7 +14,7 @@ export interface GitHubContentProvider {
    */
   listRepositories(
     accessToken: string,
-  ): Promise<Result<GitHubRepository[], ExternalServiceError>>;
+  ): ResultAsync<GitHubRepository[], ExternalServiceError>;
 
   /**
    * リポジトリの特定パスのコンテンツを取得する
@@ -24,7 +24,17 @@ export interface GitHubContentProvider {
     owner: string,
     repo: string,
     path: string,
-  ): Promise<Result<string, ExternalServiceError>>;
+  ): ResultAsync<string, ExternalServiceError>;
+
+  /**
+   * リポジトリの特定パスのコンテンツを取得する
+   */
+  getContentByInstallation(
+    installationId: number,
+    owner: string,
+    repo: string,
+    path: string,
+  ): ResultAsync<string, ExternalServiceError>;
 
   /**
    * リポジトリ内のパス一覧を取得する
@@ -33,7 +43,7 @@ export interface GitHubContentProvider {
     accessToken: string,
     owner: string,
     repo: string,
-  ): Promise<Result<string[], ExternalServiceError>>;
+  ): ResultAsync<string[], ExternalServiceError>;
 
   /**
    * Webhookを設定する
@@ -42,5 +52,5 @@ export interface GitHubContentProvider {
     accessToken: string,
     owner: string,
     repo: string,
-  ): Promise<Result<number, ExternalServiceError>>;
+  ): ResultAsync<number, ExternalServiceError>;
 }

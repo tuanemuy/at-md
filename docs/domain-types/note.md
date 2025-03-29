@@ -220,10 +220,27 @@ export interface DeleteBookUseCase {
 }
 ```
 
+#### GitHubのPushからノートを作成する
+
+```typescript
+export interface PushNotesInput {
+  userId: string;
+  owner: string;
+  repo: string;
+  installationId: number;
+  commits: GitHubCommit[];
+}
+
+export interface PushNotesUseCase {
+  execute(input: PushNotesInput): Promise<Result<Note[], NoteError>>;
+}
+```
+
 #### ノートを同期する
 
 ```typescript
 export interface SyncNotesInput {
+  userId: string;
   commits: GitHubCommit[];
 }
 

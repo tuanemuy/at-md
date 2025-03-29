@@ -1,18 +1,12 @@
-import type { GitHubConnection } from "@/domain/account/models";
-import { gitHubConnectionSchema } from "@/domain/account/models";
 import type {
   CreateGitHubConnection,
   GitHubConnectionRepository,
   UpdateGitHubConnection,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { type Result, err, ok } from "@/lib/result";
-import { eq } from "drizzle-orm";
-import {
-  type PgDatabase,
-  codeToRepositoryErrorCode,
-  isDatabaseError,
-} from "../../client";
+import { ResultAsync, err, ok } from "@/lib/result";
+import { eq, and } from "drizzle-orm";
+import { type PgDatabase, mapRepositoryError } from "../../client";
 import { githubConnections } from "../../schema/account";
 
 /**
@@ -26,188 +20,125 @@ export class DrizzleGitHubConnectionRepository
   /**
    * GitHub連携情報を作成する
    */
-  async create(
-    connection: CreateGitHubConnection,
-  ): Promise<Result<GitHubConnection, RepositoryError>> {
-    try {
-      const [savedConnection] = await this.db
+  create(connection: CreateGitHubConnection) {
+    return ResultAsync.fromPromise(
+      this.db
         .insert(githubConnections)
         .values(connection)
         .onConflictDoUpdate({
           target: githubConnections.userId,
-          set: {
-            accessToken: connection.accessToken,
-            refreshToken: connection.refreshToken,
-          },
+          set: connection,
         })
-        .returning();
-
-      if (!savedConnection) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.UNKNOWN_ERROR,
-            "Failed to create GitHub connection",
+        .returning(),
+      mapRepositoryError,
+    ).andThen(([savedConnection]) =>
+      savedConnection
+        ? ok(savedConnection)
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "Failed to create GitHub connection",
+            ),
           ),
-        );
-      }
-
-      return ok(savedConnection);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to create GitHub connection",
-          error,
-        ),
-      );
-    }
+    );
   }
 
   /**
    * GitHub連携情報を更新する
    */
-  async update(
-    connection: UpdateGitHubConnection,
-  ): Promise<Result<GitHubConnection, RepositoryError>> {
-    try {
-      const [updatedConnection] = await this.db
+  update(connection: UpdateGitHubConnection) {
+    return ResultAsync.fromPromise(
+      this.db
         .update(githubConnections)
-        .set(connection)
-        .where(eq(githubConnections.id, connection.id))
-        .returning();
-
-      if (!updatedConnection) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.NOT_FOUND,
-            "GitHub connection not found",
+        .set({
+          accessToken: connection.accessToken,
+          refreshToken: connection.refreshToken,
+        })
+        .where(
+          and(
+            eq(githubConnections.id, connection.id),
+            eq(githubConnections.userId, connection.userId),
           ),
-        );
-      }
-
-      return ok(updatedConnection);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to update GitHub connection",
-          error,
-        ),
-      );
-    }
+        )
+        .returning(),
+      mapRepositoryError,
+    ).andThen(([updatedConnection]) =>
+      updatedConnection
+        ? ok(updatedConnection)
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "GitHub connection not found",
+            ),
+          ),
+    );
   }
 
   /**
    * 指定したユーザーIDのGitHub連携情報を取得する
    */
-  async findByUserId(
-    userId: string,
-  ): Promise<Result<GitHubConnection, RepositoryError>> {
-    try {
-      const [githubConnection] = await this.db
+  findByUserId(userId: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select()
         .from(githubConnections)
         .where(eq(githubConnections.userId, userId))
-        .limit(1);
-
-      if (!githubConnection) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.NOT_FOUND,
-            "GitHub connection not found",
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([githubConnection]) =>
+      githubConnection
+        ? ok(githubConnection)
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "GitHub connection not found",
+            ),
           ),
-        );
-      }
-
-      return ok(githubConnection);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find GitHub connections by user ID",
-          error,
-        ),
-      );
-    }
+    );
   }
 
   /**
    * 指定したIDのGitHub連携情報を取得する
    */
-  async findById(
-    id: string,
-  ): Promise<Result<GitHubConnection, RepositoryError>> {
-    try {
-      const [githubConnection] = await this.db
+  findById(id: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select()
         .from(githubConnections)
         .where(eq(githubConnections.id, id))
-        .limit(1);
-
-      if (!githubConnection) {
-        return err(
-          new RepositoryError(
-            RepositoryErrorCode.NOT_FOUND,
-            "GitHub connection not found",
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([githubConnection]) =>
+      githubConnection
+        ? ok(githubConnection)
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "GitHub connection not found",
+            ),
           ),
-        );
-      }
-
-      return ok(githubConnection);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find GitHub connection by ID",
-          error,
-        ),
-      );
-    }
+    );
   }
 
   /**
    * 指定したIDのGitHub連携情報を削除する
    */
-  async deleteByUserId(userId: string): Promise<Result<void, RepositoryError>> {
-    try {
-      await this.db
+  deleteByUserId(userId: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .delete(githubConnections)
-        .where(eq(githubConnections.userId, userId));
-      return ok(undefined);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to delete GitHub connection",
-          error,
-        ),
-      );
-    }
+        .where(eq(githubConnections.userId, userId)),
+      mapRepositoryError,
+    ).map(() => {});
   }
 
   /**
    * 指定したIDのGitHub連携情報を削除する
    */
-  async delete(id: string): Promise<Result<void, RepositoryError>> {
-    try {
-      await this.db
-        .delete(githubConnections)
-        .where(eq(githubConnections.id, id));
-      return ok(undefined);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to delete GitHub connection",
-          error,
-        ),
-      );
-    }
+  delete(id: string) {
+    return ResultAsync.fromPromise(
+      this.db.delete(githubConnections).where(eq(githubConnections.id, id)),
+      mapRepositoryError,
+    ).map(() => {});
   }
 }

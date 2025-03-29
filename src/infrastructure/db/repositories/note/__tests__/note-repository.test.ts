@@ -1,7 +1,5 @@
-import { type Note, NoteScope } from "@/domain/note/models/note";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
-import type { Tag } from "@/domain/note/models/tag";
-import type { CreateNote, UpdateNote } from "@/domain/note/repositories";
+import { NoteScope } from "@/domain/note/models/note";
+import type { CreateOrUpdateNote } from "@/domain/note/repositories";
 import { RepositoryErrorCode } from "@/domain/types/error";
 import { PGlite } from "@electric-sql/pglite";
 import { v7 as uuidv7 } from "uuid";
@@ -13,7 +11,7 @@ import {
   setupTestDatabase,
 } from "../../../__test__/setup";
 import { users } from "../../../schema/account";
-import { books, noteTags, notes, tags } from "../../../schema/note";
+import { books, noteTags, tags } from "../../../schema/note";
 import { DrizzleBookRepository } from "../book-repository";
 import { DrizzleNoteRepository } from "../note-repository";
 import { DrizzleTagRepository } from "../tag-repository";
@@ -29,55 +27,17 @@ let db: ReturnType<typeof getTestDatabase>;
 let testUserId: string;
 let testBookId: string;
 
-// テスト用のブックデータ
-const createTestBook = () => ({
-  id: uuidv7(),
-  userId: testUserId,
-  owner: "testOwner",
-  repo: "testRepo",
-  details: {
-    name: "テストブック",
-    description: "これはテスト用のブックです。",
-  },
-  syncStatus: {
-    lastSyncedAt: new Date(),
-    status: SyncStatusCode.SYNCED,
-  },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
-
-// テスト用のタグデータ
-const createTestTag = (bookId: string): Tag => ({
-  id: uuidv7(),
-  bookId,
-  name: `テストタグ-${Math.floor(Math.random() * 1000)}`,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
-
-// テスト用のノートデータ
-const createTestNote = (bookId: string, tags: Tag[] = []): Note => ({
-  id: uuidv7(),
-  userId: testUserId,
-  bookId,
-  path: `test-path-${Math.floor(Math.random() * 1000)}.md`,
-  title: "テストノート",
-  body: "# テストノート\n\nこれはテスト用のノートです。",
-  scope: NoteScope.PUBLIC,
-  tags,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
+const generatePath = () => `test-path-${Math.floor(Math.random() * 1000)}.md`;
 
 // テスト用のCreateNoteデータ
 const createTestCreateNote = (
   bookId: string,
+  path: string,
   tagNames: string[] = [],
-): CreateNote => ({
+): CreateOrUpdateNote => ({
   userId: testUserId,
   bookId,
-  path: `test-path-${Math.floor(Math.random() * 1000)}.md`,
+  path,
   title: "テストノート",
   body: "# テストノート\n\nこれはテスト用のノートです。",
   scope: NoteScope.PUBLIC,
@@ -86,14 +46,13 @@ const createTestCreateNote = (
 
 // テスト用のUpdateNoteデータ
 const createTestUpdateNote = (
-  id: string,
   bookId: string,
+  path: string,
   tagNames: string[] = [],
-): UpdateNote => ({
-  id,
+): CreateOrUpdateNote => ({
   userId: testUserId,
   bookId,
-  path: `test-path-${Math.floor(Math.random() * 1000)}.md`,
+  path,
   title: "更新されたノート",
   body: "# 更新されたノート\n\nこのノートは更新されました。",
   scope: NoteScope.PUBLIC,
@@ -139,10 +98,10 @@ afterAll(async () => {
 
 test("新規ノートを作成するとノートが正常に作成されること", async () => {
   // 準備
-  const createData = createTestCreateNote(testBookId);
+  const createData = createTestCreateNote(testBookId, generatePath());
 
   // 実行
-  const result = await noteRepository.create(createData);
+  const result = await noteRepository.createOrUpdate(createData);
 
   // 検証
   expect(result.isOk()).toBe(true);
@@ -163,10 +122,10 @@ test("タグ付きの新規ノートを作成するとノートとタグが正�
     `タグ1-${Math.floor(Math.random() * 1000)}`,
     `タグ2-${Math.floor(Math.random() * 1000)}`,
   ];
-  const createData = createTestCreateNote(testBookId, tagNames);
+  const createData = createTestCreateNote(testBookId, generatePath(), tagNames);
 
   // 実行
-  const result = await noteRepository.create(createData);
+  const result = await noteRepository.createOrUpdate(createData);
 
   // 検証
   expect(result.isOk()).toBe(true);
@@ -182,21 +141,19 @@ test("タグ付きの新規ノートを作成するとノートとタグが正�
   });
 });
 
-test("既存ノートを更新するとノート情報が正常に更新されること", async () => {
+test("同じブックID、pathでノート情報が正常に更新されること", async () => {
+  const path = generatePath();
   // 準備 - 最初のノートを作成
-  const createData = createTestCreateNote(testBookId);
-  const createResult = await noteRepository.create(createData);
+  const createData = createTestCreateNote(testBookId, path);
+  const createResult = await noteRepository.createOrUpdate(createData);
 
-  let noteId = "";
-  createResult.map((note) => {
-    noteId = note.id;
-  });
+  const noteId = createResult.map((note) => note.id).unwrapOr("");
 
   // 更新用のノート情報
-  const updateData = createTestUpdateNote(noteId, testBookId);
+  const updateData = createTestUpdateNote(testBookId, path);
 
   // 実行
-  const result = await noteRepository.update(updateData);
+  const result = await noteRepository.createOrUpdate(updateData);
 
   // 検証
   expect(result.isOk()).toBe(true);
@@ -210,25 +167,21 @@ test("既存ノートを更新するとノート情報が正常に更新され�
 });
 
 test("ノートのタグを更新するとタグ情報が正常に更新されること", async () => {
+  const path = generatePath();
   // 準備 - 最初のノートを作成
   const initialTagNames = [`初期タグ-${Math.floor(Math.random() * 1000)}`];
-  const createData = createTestCreateNote(testBookId, initialTagNames);
-  const createResult = await noteRepository.create(createData);
-
-  let noteId = "";
-  createResult.map((note) => {
-    noteId = note.id;
-  });
+  const createData = createTestCreateNote(testBookId, path, initialTagNames);
+  await noteRepository.createOrUpdate(createData);
 
   // 更新用のタグ情報
   const updatedTagNames = [
     `更新タグ1-${Math.floor(Math.random() * 1000)}`,
     `更新タグ2-${Math.floor(Math.random() * 1000)}`,
   ];
-  const updateData = createTestUpdateNote(noteId, testBookId, updatedTagNames);
+  const updateData = createTestUpdateNote(testBookId, path, updatedTagNames);
 
   // 実行
-  const result = await noteRepository.update(updateData);
+  const result = await noteRepository.createOrUpdate(updateData);
 
   // 検証
   expect(result.isOk()).toBe(true);
@@ -245,13 +198,10 @@ test("ノートのタグを更新するとタグ情報が正常に更新され�
 
 test("存在するIDでノートを検索するとノートが取得できること", async () => {
   // 準備
-  const createData = createTestCreateNote(testBookId);
-  const createResult = await noteRepository.create(createData);
+  const createData = createTestCreateNote(testBookId, generatePath());
+  const createResult = await noteRepository.createOrUpdate(createData);
 
-  let noteId = "";
-  createResult.map((note) => {
-    noteId = note.id;
-  });
+  const noteId = createResult.map((note) => note.id).unwrapOr("");
 
   // 実行
   const result = await noteRepository.findById(noteId);
@@ -280,9 +230,13 @@ test("存在しないIDでノートを検索するとNOT_FOUNDエラーが返さ
 });
 
 test("指定したブックIDのノート一覧を取得できること", async () => {
+  const path1 = generatePath();
+  const path2 = generatePath();
+  const path3 = generatePath();
+
   // 準備
-  const note1 = createTestCreateNote(testBookId);
-  const note2 = createTestCreateNote(testBookId);
+  const note1 = createTestCreateNote(testBookId, path1);
+  const note2 = createTestCreateNote(testBookId, path2);
 
   // 別のブック用のノート
   const otherBookId = uuidv7();
@@ -294,12 +248,12 @@ test("指定したブックIDのノート一覧を取得できること", async 
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  const otherNote = createTestCreateNote(otherBookId);
+  const otherNote = createTestCreateNote(otherBookId, path3);
 
   // ノートを保存
-  await noteRepository.create(note1);
-  await noteRepository.create(note2);
-  await noteRepository.create(otherNote);
+  await noteRepository.createOrUpdate(note1);
+  await noteRepository.createOrUpdate(note2);
+  await noteRepository.createOrUpdate(otherNote);
 
   // 実行
   const result = await noteRepository.findByBookId(testBookId);
@@ -332,9 +286,13 @@ test("指定したタグIDのノート一覧を取得できること", async () 
     })
     .returning();
 
+  const path1 = generatePath();
+  const path2 = generatePath();
+  const path3 = generatePath();
+
   // まずノートを作成
-  const note1CreateData = createTestCreateNote(testBookId);
-  const note1Result = await noteRepository.create(note1CreateData);
+  const note1CreateData = createTestCreateNote(testBookId, path1);
+  const note1Result = await noteRepository.createOrUpdate(note1CreateData);
 
   let note1Id = "";
   note1Result.map((n) => {
@@ -342,8 +300,8 @@ test("指定したタグIDのノート一覧を取得できること", async () 
   });
 
   // 2つ目のノートも作成
-  const note2CreateData = createTestCreateNote(testBookId);
-  const note2Result = await noteRepository.create(note2CreateData);
+  const note2CreateData = createTestCreateNote(testBookId, path2);
+  const note2Result = await noteRepository.createOrUpdate(note2CreateData);
 
   let note2Id = "";
   note2Result.map((n) => {
@@ -351,8 +309,8 @@ test("指定したタグIDのノート一覧を取得できること", async () 
   });
 
   // タグなしノートも作成
-  const otherNoteData = createTestCreateNote(testBookId);
-  await noteRepository.create(otherNoteData);
+  const otherNoteData = createTestCreateNote(testBookId, path3);
+  await noteRepository.createOrUpdate(otherNoteData);
 
   // 直接note_tagsテーブルにレコードを挿入して、タグとノートを関連付ける
   await db.insert(noteTags).values({
@@ -386,21 +344,24 @@ test("指定したタグIDのノート一覧を取得できること", async () 
 
 test("キーワードでノートを検索できること", async () => {
   // 準備
+  const path1 = generatePath();
+  const path2 = generatePath();
+  const path3 = generatePath();
   const uniqueWord = `unique${Math.floor(Math.random() * 1000)}`;
 
   // 検索キーワードを含むノート
-  const note1 = createTestCreateNote(testBookId);
+  const note1 = createTestCreateNote(testBookId, path1);
   note1.title = `タイトルに${uniqueWord}を含むノート`;
 
-  const note2 = createTestCreateNote(testBookId);
+  const note2 = createTestCreateNote(testBookId, path2);
   note2.body = `# テスト\n\nこの本文には${uniqueWord}というキーワードが含まれています。`;
 
   // 検索キーワードを含まないノート
-  const otherNote = createTestCreateNote(testBookId);
+  const otherNote = createTestCreateNote(testBookId, path3);
 
-  await noteRepository.create(note1);
-  await noteRepository.create(note2);
-  await noteRepository.create(otherNote);
+  await noteRepository.createOrUpdate(note1);
+  await noteRepository.createOrUpdate(note2);
+  await noteRepository.createOrUpdate(otherNote);
 
   // 実行
   const result = await noteRepository.search(testBookId, uniqueWord);
@@ -424,13 +385,10 @@ test("キーワードでノートを検索できること", async () => {
 
 test("ノートを削除すると該当ノートが削除されること", async () => {
   // 準備
-  const createData = createTestCreateNote(testBookId);
-  const createResult = await noteRepository.create(createData);
+  const createData = createTestCreateNote(testBookId, generatePath());
+  const createResult = await noteRepository.createOrUpdate(createData);
 
-  let noteId = "";
-  createResult.map((note) => {
-    noteId = note.id;
-  });
+  const noteId = createResult.map((note) => note.id).unwrapOr("");
 
   // 実行 - 削除
   const deleteResult = await noteRepository.delete(noteId);
@@ -451,47 +409,14 @@ test("ノートを削除すると該当ノートが削除されること", async
 test("存在しないブックIDでノートを作成すると失敗すること", async () => {
   // 準備 - 存在しないブックID
   const nonExistentBookId = uuidv7();
-  const createData = createTestCreateNote(nonExistentBookId);
+  const createData = createTestCreateNote(nonExistentBookId, generatePath());
 
   // 実行
-  const result = await noteRepository.create(createData);
+  const result = await noteRepository.createOrUpdate(createData);
 
   // 検証
   expect(result.isErr()).toBe(true);
   result.mapErr((error) => {
     expect(error.code).toBe(RepositoryErrorCode.CONSTRAINT_VIOLATION);
   });
-});
-
-test("同じブック内で重複するパスでノートを作成すると失敗すること", async () => {
-  // 準備 - 最初のノートを作成
-  const duplicatePath = `duplicate-path-${Math.floor(Math.random() * 1000)}.md`;
-  const createData1 = createTestCreateNote(testBookId);
-  createData1.path = duplicatePath;
-  await noteRepository.create(createData1);
-
-  // 重複するパスで2つ目のノートを作成
-  const createData2 = createTestCreateNote(testBookId);
-  createData2.path = duplicatePath;
-
-  // 実行
-  const result = await noteRepository.create(createData2);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
-  result.mapErr((error) => {
-    expect(error.code).toBe(RepositoryErrorCode.UNIQUE_VIOLATION);
-  });
-});
-
-test("存在しないノートの更新は失敗すること", async () => {
-  // 準備 - 存在しないノートID
-  const nonExistentId = uuidv7();
-  const updateData = createTestUpdateNote(nonExistentId, testBookId);
-
-  // 実行
-  const result = await noteRepository.update(updateData);
-
-  // 検証
-  expect(result.isErr()).toBe(true);
 });

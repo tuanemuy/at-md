@@ -1,5 +1,5 @@
 import { Agent } from "@atproto/api";
-import { type Result, err, ok } from "@/lib/result";
+import { type Result, ResultAsync, err, ok } from "@/lib/result";
 import { logger } from "@/lib/logger";
 import {
   ExternalServiceError,
@@ -15,24 +15,20 @@ import {
   type NodeSavedState,
 } from "@atproto/oauth-client-node";
 
-export async function getAgent(
-  oauthClient: NodeOAuthClient,
-  did: string,
-): Promise<Result<Agent, ExternalServiceError>> {
-  try {
-    const session = await oauthClient.restore(did);
-    return ok(new Agent(session));
-  } catch (error) {
-    return err(
-      new ExternalServiceError(
-        "BlueskyAuth",
-        ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-        "Failed to get OAuth session",
-        error instanceof Error ? error : undefined,
-      ),
-    );
-  }
+async function _getAgent(oauthClient: NodeOAuthClient, did: string) {
+  const session = await oauthClient.restore(did);
+  return new Agent(session);
 }
+export const getAgent = ResultAsync.fromThrowable(
+  _getAgent,
+  (error) =>
+    new ExternalServiceError(
+      "BlueskyAuth",
+      ExternalServiceErrorCode.AUTHENTICATION_FAILED,
+      "Failed to get OAuth session",
+      error instanceof Error ? error : undefined,
+    ),
+);
 
 export function getOAuthClient(params: {
   config: {

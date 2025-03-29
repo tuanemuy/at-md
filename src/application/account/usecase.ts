@@ -1,7 +1,7 @@
 /**
  * アカウント管理コンテキストのユースケース定義
  */
-import type { Result } from "@/lib/result";
+import type { ResultAsync } from "@/lib/result";
 import type { RequestContext } from "@/domain/types/http";
 import type { AccountError } from "@/domain/account/models/errors";
 import type { SessionData } from "@/domain/account/models/session-data";
@@ -16,7 +16,7 @@ export interface StartBlueskyAuthInput {
 }
 
 export interface StartBlueskyAuthUseCase {
-  execute(input: StartBlueskyAuthInput): Promise<Result<URL, AccountError>>;
+  execute(input: StartBlueskyAuthInput): ResultAsync<URL, AccountError>;
 }
 
 /**
@@ -27,9 +27,7 @@ export interface HandleBlueskyAuthCallbackInput {
 }
 
 export interface HandleBlueskyAuthCallbackUseCase {
-  execute(
-    input: HandleBlueskyAuthCallbackInput,
-  ): Promise<Result<void, AccountError>>;
+  execute(input: HandleBlueskyAuthCallbackInput): ResultAsync<void, AccountError>;
 }
 
 /**
@@ -40,9 +38,7 @@ export interface ValidateSessionInput {
 }
 
 export interface ValidateSessionUseCase {
-  execute(
-    input: ValidateSessionInput,
-  ): Promise<Result<SessionData, AccountError>>;
+  execute(input: ValidateSessionInput): ResultAsync<SessionData, AccountError>;
 }
 
 /**
@@ -53,7 +49,7 @@ export interface LogoutInput {
 }
 
 export interface LogoutUseCase {
-  execute(input: LogoutInput): Promise<Result<void, AccountError>>;
+  execute(input: LogoutInput): ResultAsync<void, AccountError>;
 }
 
 /**
@@ -65,7 +61,7 @@ export interface ConnectGitHubInput {
 }
 
 export interface ConnectGitHubUseCase {
-  execute(input: ConnectGitHubInput): Promise<Result<void, AccountError>>;
+  execute(input: ConnectGitHubInput): ResultAsync<void, AccountError>;
 }
 
 /**
@@ -76,7 +72,7 @@ export interface DisconnectGitHubInput {
 }
 
 export interface DisconnectGitHubUseCase {
-  execute(input: DisconnectGitHubInput): Promise<Result<void, AccountError>>;
+  execute(input: DisconnectGitHubInput): ResultAsync<void, AccountError>;
 }
 
 /**
@@ -87,7 +83,7 @@ export interface GetUserByIdInput {
 }
 
 export interface GetUserByIdUseCase {
-  execute(input: GetUserByIdInput): Promise<Result<User, AccountError>>;
+  execute(input: GetUserByIdInput): ResultAsync<User, AccountError>;
 }
 
 /**
@@ -105,7 +101,7 @@ export interface UpdateProfileInput {
 }
 
 export interface UpdateProfileUseCase {
-  execute(input: UpdateProfileInput): Promise<Result<User, AccountError>>;
+  execute(input: UpdateProfileInput): ResultAsync<User, AccountError>;
 }
 
 /**
@@ -116,7 +112,7 @@ export interface DeleteUserInput {
 }
 
 export interface DeleteUserUseCase {
-  execute(input: DeleteUserInput): Promise<Result<void, AccountError>>;
+  execute(input: DeleteUserInput): ResultAsync<void, AccountError>;
 }
 
 /**
@@ -127,7 +123,5 @@ export interface GetGitHubConnectionsInput {
 }
 
 export interface GetGitHubConnectionsUseCase {
-  execute(
-    input: GetGitHubConnectionsInput,
-  ): Promise<Result<GitHubConnection, AccountError>>;
+  execute(input: GetGitHubConnectionsInput): ResultAsync<GitHubConnection, AccountError>;
 }

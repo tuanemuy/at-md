@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * 投稿リポジトリのインターフェース
  */
@@ -50,30 +50,30 @@ export interface PostRepository {
   /**
    * 投稿を作成する
    */
-  create(post: CreatePost): Promise<Result<Post, RepositoryError>>;
+  create(post: CreatePost): ResultAsync<Post, RepositoryError>;
 
   /**
    * 投稿を更新する
    */
-  update(post: UpdatePost): Promise<Result<Post, RepositoryError>>;
+  update(post: UpdatePost): ResultAsync<Post, RepositoryError>;
 
   /**
    * 指定したIDの投稿を取得する
    */
-  findById(id: string): Promise<Result<Post, RepositoryError>>;
+  findById(id: string): ResultAsync<Post, RepositoryError>;
 
   /**
    * 指定したノートIDの投稿を取得する
    */
-  findByNoteId(noteId: string): Promise<Result<Post, RepositoryError>>;
+  findByNoteId(noteId: string): ResultAsync<Post, RepositoryError>;
 
   /**
    * 指定したユーザーIDの投稿を取得する
    */
-  findByUserId(userId: string): Promise<Result<Post[], RepositoryError>>;
+  findByUserId(userId: string): ResultAsync<Post[], RepositoryError>;
 
   /**
    * 指定したIDの投稿を削除する
    */
-  delete(id: string): Promise<Result<void, RepositoryError>>;
+  delete(id: string): ResultAsync<void, RepositoryError>;
 }

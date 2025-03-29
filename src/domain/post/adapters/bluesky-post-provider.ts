@@ -2,7 +2,7 @@ import type { ExternalServiceError } from "@/domain/types/error";
 /**
  * Bluesky投稿アダプターのインターフェース
  */
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 import type { BlueskyPost, DID } from "../dtos/bluesky-post";
 import type { Engagement } from "../models";
 
@@ -16,7 +16,7 @@ export interface BlueskyPostProvider {
   createPost(
     did: DID,
     text: string,
-  ): Promise<Result<BlueskyPost, ExternalServiceError>>;
+  ): ResultAsync<BlueskyPost, ExternalServiceError>;
 
   /**
    * エンゲージメントを取得する
@@ -24,5 +24,5 @@ export interface BlueskyPostProvider {
   getEngagement(
     did: DID,
     uri: string,
-  ): Promise<Result<Engagement, ExternalServiceError>>;
+  ): ResultAsync<Engagement, ExternalServiceError>;
 }

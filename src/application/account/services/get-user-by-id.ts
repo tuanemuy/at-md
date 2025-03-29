@@ -25,27 +25,16 @@ export class GetUserByIdService implements GetUserByIdUseCase {
   /**
    * ユースケースを実行する
    */
-  async execute(input: GetUserByIdInput): Promise<Result<User, AccountError>> {
-    logger.info("Getting user by ID", {
-      userId: input.userId,
-    });
-
-    return (await this.userRepository.findById(input.userId))
-      .andTee((value) => {
-        logger.info("Successfully got user", {
-          userId: value.id,
-        });
-      })
-      .mapErr((error) => {
-        logger.error("Failed to get user", {
-          error,
-          userId: input.userId,
-        });
-        return new AccountError(
-          AccountErrorCode.USER_NOT_FOUND,
-          "ユーザーの取得に失敗しました",
-          error,
-        );
-      });
+  execute(input: GetUserByIdInput) {
+    return this.userRepository
+      .findById(input.userId)
+      .mapErr(
+        (error) =>
+          new AccountError(
+            AccountErrorCode.USER_NOT_FOUND,
+            "ユーザーの取得に失敗しました",
+            error,
+          ),
+      );
   }
 }

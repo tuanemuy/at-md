@@ -105,13 +105,21 @@
 - 出力: Result<void, NoteError>
 - 処理: ブック情報を削除
 
+#### GitHubのPushからノートを作成する
+
+- 実装: [PushNotesUseCase](../domain-types/note.md#GitHubのPushからノートを作成する)
+- 入力: [PushNotesInput](../domain-types/note.md#GitHubのPushからノートを作成する)
+  - userId, owner, repo, installationId, commits
+- 出力: Result<Note[], NoteError>
+- 処理: GitHubのコミット情報を基にGitHubからファイルを取得し、パースしてデータベースに保存
+
 #### ノートを同期する
 
 - 実装: [SyncNotesUseCase](../domain-types/note.md#ノートを同期する)
 - 入力: [SyncNotesInput](../domain-types/note.md#ノートを同期する)
-  - commits
+  - userId, commits
 - 出力: Result<Note[], NoteError>
-- 処理: GitHubのコミット情報を基にGitHubからファイルを取得し、パースしてデータベースに保存。タグも解析してデータベースに保存
+- 処理: GitHubからすべてのファイルを取得し、パースしてデータベースに保存
 
 #### ノート一覧を取得する
 

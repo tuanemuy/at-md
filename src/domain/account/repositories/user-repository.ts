@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * ユーザーリポジトリのインターフェース
  */
@@ -50,25 +50,25 @@ export interface UserRepository {
   /**
    * ユーザーを作成する
    */
-  create(user: CreateUser): Promise<Result<User, RepositoryError>>;
+  create(user: CreateUser): ResultAsync<User, RepositoryError>;
 
   /**
    * ユーザーを更新する
    */
-  update(user: UpdateUser): Promise<Result<User, RepositoryError>>;
+  update(user: UpdateUser): ResultAsync<User, RepositoryError>;
 
   /**
    * 指定したIDのユーザーを取得する
    */
-  findById(id: string): Promise<Result<User, RepositoryError>>;
+  findById(id: string): ResultAsync<User, RepositoryError>;
 
   /**
    * 指定したDIDのユーザーを取得する
    */
-  findByDid(did: string): Promise<Result<User, RepositoryError>>;
+  findByDid(did: string): ResultAsync<User, RepositoryError>;
 
   /**
    * 指定したIDのユーザーを削除する
    */
-  delete(id: string): Promise<Result<void, RepositoryError>>;
+  delete(id: string): ResultAsync<void, RepositoryError>;
 }

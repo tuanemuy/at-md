@@ -156,7 +156,7 @@ test("未使用のタグを削除できること", async () => {
   });
 
   // 実行
-  const result = await tagRepository.deleteUnused();
+  const result = await tagRepository.deleteUnused(testBookId);
 
   // 検証
   expect(result.isOk()).toBe(true);

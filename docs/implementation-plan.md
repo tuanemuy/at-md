@@ -111,49 +111,48 @@
 
 ## フェーズ4: アプリケーション層の実装
 
-### ステップ4.1 アカウント管理ユースケース
+### ステップ4.1 アカウント管理アプリケーションサービス
 
-- [ ] 認証関連ユースケース
-  - [ ] StartBlueskyAuthUseCase
-  - [ ] HandleBlueskyAuthCallbackUseCase
-  - [ ] ValidateSessionUseCase
-  - [ ] RefreshSessionUseCase
-  - [ ] LogoutUseCase
-- [ ] GitHub連携ユースケース
-  - [ ] ConnectGitHubUseCase
-  - [ ] DisconnectGitHubUseCase
-- [ ] ユーザー管理ユースケース
-  - [ ] GetUserByIdUseCase
-  - [ ] UpdateProfileUseCase
-  - [ ] DeleteUserUseCase
-  - [ ] ListGitHubConnectionsUseCase
+- [x] 認証関連
+  - [x] StartBlueskyAuthService
+  - [x] HandleBlueskyAuthCallbackService
+  - [x] ValidateSessionService
+  - [x] LogoutService
+- [x] GitHub連携
+  - [x] ConnectGitHubService
+  - [x] DisconnectGitHubService
+- [x] ユーザー管理
+  - [x] GetUserByIdService
+  - [x] UpdateProfileService
+  - [x] DeleteUserService
+  - [x] GetGitHubConnectionsService
 
-### ステップ4.2 ノート管理ユースケース
+### ステップ4.2 ノート管理アプリケーションサービス
 
-- [ ] ブック管理ユースケース
-  - [ ] ListRepositoriesUseCase
-  - [ ] AddBookUseCase
-  - [ ] ListBooksUseCase
-  - [ ] GetBookUseCase
-  - [ ] DeleteBookUseCase
-  - [ ] CheckBookSyncStatusUseCase
-- [ ] ノート管理ユースケース
-  - [ ] SyncNotesUseCase
-  - [ ] ListNotesUseCase
-  - [ ] SearchNotesUseCase
-  - [ ] GetNoteUseCase
-- [ ] タグ管理ユースケース
-  - [ ] ListTagsUseCase
-  - [ ] ListNotesByTagUseCase
+- [ ] ブック管理
+  - [ ] ListRepositoriesService
+  - [ ] AddBookService
+  - [ ] ListBooksService
+  - [ ] GetBookService
+  - [ ] DeleteBookService
+  - [ ] CheckBookSyncStatusService
+- [ ] ノート管理
+  - [ ] SyncNotesService
+  - [ ] ListNotesService
+  - [ ] SearchNotesService
+  - [ ] GetNoteService
+- [ ] タグ管理
+  - [ ] ListTagsService
+  - [ ] ListNotesByTagService
 
-### ステップ4.3 投稿管理ユースケース
+### ステップ4.3 投稿管理アプリケーションサービス
 
-- [ ] 投稿ユースケース
-  - [ ] PostNoteUseCase
-  - [ ] RetryPostUseCase
-- [ ] エンゲージメントユースケース
-  - [ ] GetEngagementUseCase
-  - [ ] CheckPostStatusUseCase
+- [ ] 投稿
+  - [ ] PostNoteService
+  - [ ] RetryPostService
+- [ ] エンゲージメント取得
+  - [ ] GetEngagementService
+  - [ ] CheckPostStatusService
 
 ## フェーズ5: API実装
 

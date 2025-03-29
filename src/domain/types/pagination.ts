@@ -21,3 +21,11 @@ export type Pagination = {
   order: DBOrder;
   orderBy: string;
 };
+
+/**
+ * ページネーションパラメータの型定義
+ */
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}

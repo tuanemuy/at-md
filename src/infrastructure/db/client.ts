@@ -1,4 +1,4 @@
-import { RepositoryErrorCode } from "@/domain/types/error";
+import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import * as schema from "./schema";
@@ -71,4 +71,13 @@ export function codeToRepositoryErrorCode(code?: string): RepositoryErrorCode {
     default:
       return RepositoryErrorCode.UNKNOWN_ERROR;
   }
+}
+
+export function mapRepositoryError(error: unknown) {
+  const code = isDatabaseError(error) ? error.code : undefined;
+  return new RepositoryError(
+    codeToRepositoryErrorCode(code),
+    "PostgreSQL Error",
+    error,
+  );
 }

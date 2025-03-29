@@ -1,17 +1,13 @@
-import type { Book } from "@/domain/note/models";
 import type {
   CreateBook,
   UpdateBook,
 } from "@/domain/note/repositories/book-repository";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
+import { bookSchema } from "@/domain/note/models/book";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { type Result, err, ok } from "@/lib/result";
+import { ResultAsync, err, ok } from "@/lib/result";
 import { and, eq } from "drizzle-orm";
-import {
-  type PgDatabase,
-  codeToRepositoryErrorCode,
-  isDatabaseError,
-} from "../../client";
+import { type PgDatabase, mapRepositoryError } from "../../client";
 import { bookDetails, books, syncStatuses } from "../../schema/note";
 
 /**
@@ -23,13 +19,13 @@ export class DrizzleBookRepository implements BookRepository {
   /**
    * ブックを作成する
    */
-  async create(book: CreateBook): Promise<Result<Book, RepositoryError>> {
-    try {
-      const result = await this.db.transaction(async (tx) => {
+  create(book: CreateBook) {
+    return ResultAsync.fromPromise(
+      this.db.transaction(async (tx) => {
         const [savedBook] = await tx.insert(books).values(book).returning();
 
         if (!savedBook) {
-          throw new Error("Failed to save book data");
+          throw new Error("Failed to save book");
         }
 
         const [savedDetails] = await tx
@@ -56,38 +52,22 @@ export class DrizzleBookRepository implements BookRepository {
           throw new Error("Failed to save book sync status");
         }
 
-        return {
+        return bookSchema.parse({
           ...savedBook,
-          details: {
-            name: savedDetails.name,
-            description: savedDetails.description,
-          },
-          syncStatus: {
-            lastSyncedAt: savedStatus.lastSyncedAt,
-            status: savedStatus.status,
-          },
-        };
-      });
-
-      return ok(result);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to parse book data",
-          error,
-        ),
-      );
-    }
+          details: savedDetails,
+          syncStatus: savedStatus,
+        });
+      }),
+      mapRepositoryError,
+    );
   }
 
   /**
    * ブックを更新する
    */
-  async update(book: UpdateBook): Promise<Result<Book, RepositoryError>> {
-    try {
-      const result = await this.db.transaction(async (tx) => {
+  update(book: UpdateBook) {
+    return ResultAsync.fromPromise(
+      this.db.transaction(async (tx) => {
         const [updatedBook] = await tx
           .update(books)
           .set(book)
@@ -95,7 +75,7 @@ export class DrizzleBookRepository implements BookRepository {
           .returning();
 
         if (!updatedBook) {
-          throw new Error("Failed to parse book data");
+          throw new Error("Failed to update book");
         }
 
         const [updatedDetails] = await tx
@@ -105,7 +85,7 @@ export class DrizzleBookRepository implements BookRepository {
           .returning();
 
         if (!updatedDetails) {
-          throw new Error("Failed to parse book data");
+          throw new Error("Failed to update book details");
         }
 
         const [updatedStatus] = await tx
@@ -115,41 +95,25 @@ export class DrizzleBookRepository implements BookRepository {
           .returning();
 
         if (!updatedStatus) {
-          throw new Error("Failed to parse book data");
+          throw new Error("Failed to update book sync status");
         }
 
-        return {
+        return bookSchema.parse({
           ...updatedBook,
-          details: {
-            name: updatedDetails.name,
-            description: updatedDetails.description,
-          },
-          syncStatus: {
-            lastSyncedAt: updatedStatus.lastSyncedAt,
-            status: updatedStatus.status,
-          },
-        };
-      });
-
-      return ok(result);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to update book",
-          error,
-        ),
-      );
-    }
+          details: updatedDetails,
+          syncStatus: updatedStatus,
+        });
+      }),
+      mapRepositoryError,
+    );
   }
 
   /**
    * 指定したIDのブックを取得する
    */
-  async findById(id: string): Promise<Result<Book, RepositoryError>> {
-    try {
-      const [book] = await this.db
+  findById(id: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select({
           book: books,
           details: bookDetails,
@@ -159,37 +123,30 @@ export class DrizzleBookRepository implements BookRepository {
         .innerJoin(bookDetails, eq(books.id, bookDetails.bookId))
         .innerJoin(syncStatuses, eq(books.id, syncStatuses.bookId))
         .where(eq(books.id, id))
-        .limit(1);
-
-      if (!book) {
-        return err(
-          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-        );
-      }
-
-      return ok({
-        ...book.book,
-        details: book.details,
-        syncStatus: book.syncStatus,
-      });
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find book",
-          error,
-        ),
-      );
-    }
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([book]) =>
+      book
+        ? ok({
+            ...book.book,
+            details: book.details,
+            syncStatus: book.syncStatus,
+          })
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "Book not found",
+            ),
+          ),
+    );
   }
 
   /**
    * 指定したユーザーIDのブック一覧を取得する
    */
-  async findByUserId(userId: string): Promise<Result<Book[], RepositoryError>> {
-    try {
-      const bookResults = await this.db
+  findByUserId(userId: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select({
           book: books,
           details: bookDetails,
@@ -198,44 +155,23 @@ export class DrizzleBookRepository implements BookRepository {
         .from(books)
         .innerJoin(bookDetails, eq(books.id, bookDetails.bookId))
         .innerJoin(syncStatuses, eq(books.id, syncStatuses.bookId))
-        .where(eq(books.userId, userId));
-
-      const parsedBooks = bookResults.map((row) => {
-        return {
-          ...row.book,
-          details: {
-            name: row.details.name,
-            description: row.details.description,
-          },
-          syncStatus: {
-            lastSyncedAt: row.syncStatus.lastSyncedAt,
-            status: row.syncStatus.status,
-          },
-        };
-      });
-
-      return ok(parsedBooks);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find books",
-          error,
-        ),
-      );
-    }
+        .where(eq(books.userId, userId)),
+      mapRepositoryError,
+    ).map((bookResults) =>
+      bookResults.map((row) => ({
+        ...row.book,
+        details: row.details,
+        syncStatus: row.syncStatus,
+      })),
+    );
   }
 
   /**
    * 指定したオーナーとリポジトリのブックを取得する
    */
-  async findByOwnerAndRepo(
-    owner: string,
-    repo: string,
-  ): Promise<Result<Book, RepositoryError>> {
-    try {
-      const [book] = await this.db
+  findByOwnerAndRepo(owner: string, repo: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select({
           book: books,
           details: bookDetails,
@@ -245,53 +181,31 @@ export class DrizzleBookRepository implements BookRepository {
         .innerJoin(bookDetails, eq(books.id, bookDetails.bookId))
         .innerJoin(syncStatuses, eq(books.id, syncStatuses.bookId))
         .where(and(eq(books.owner, owner), eq(books.repo, repo)))
-        .limit(1);
-
-      if (!book) {
-        return err(
-          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-        );
-      }
-
-      return ok({
-        ...book.book,
-        details: {
-          name: book.details.name,
-          description: book.details.description,
-        },
-        syncStatus: {
-          lastSyncedAt: book.syncStatus.lastSyncedAt,
-          status: book.syncStatus.status,
-        },
-      });
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find book",
-          error,
-        ),
-      );
-    }
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([book]) =>
+      book
+        ? ok({
+            ...book.book,
+            details: book.details,
+            syncStatus: book.syncStatus,
+          })
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "Book not found",
+            ),
+          ),
+    );
   }
 
   /**
    * 指定したIDのブックを削除する
    */
-  async delete(id: string): Promise<Result<void, RepositoryError>> {
-    try {
-      await this.db.delete(books).where(eq(books.id, id));
-      return ok(undefined);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to delete book",
-          error,
-        ),
-      );
-    }
+  delete(id: string) {
+    return ResultAsync.fromPromise(
+      this.db.delete(books).where(eq(books.id, id)),
+      mapRepositoryError,
+    ).map(() => {});
   }
 }

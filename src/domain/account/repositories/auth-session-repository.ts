@@ -1,5 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { Result } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 /**
  * AuthSessionリポジトリのインターフェース
  */
@@ -28,15 +28,15 @@ export interface AuthSessionRepository {
    */
   create(
     authSession: CreateAuthSession,
-  ): Promise<Result<AuthSession, RepositoryError>>;
+  ): ResultAsync<AuthSession, RepositoryError>;
 
   /**
    * 指定したキーのAuthSessionを取得する
    */
-  findByKey(key: string): Promise<Result<AuthSession, RepositoryError>>;
+  findByKey(key: string): ResultAsync<AuthSession, RepositoryError>;
 
   /**
    * 指定したキーのAuthSessionを削除する
    */
-  deleteByKey(key: string): Promise<Result<void, RepositoryError>>;
+  deleteByKey(key: string): ResultAsync<void, RepositoryError>;
 }

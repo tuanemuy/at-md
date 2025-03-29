@@ -27,11 +27,19 @@ export const NoteErrorCode = {
   // ノート関連
   NOTE_NOT_FOUND: "note_not_found",
   NOTE_ALREADY_EXISTS: "note_already_exists",
+  NOTE_CREATE_FAILED: "note_create_failed",
   INVALID_NOTE_FORMAT: "invalid_note_format",
 
   // 検索関連
   SEARCH_FAILED: "search_failed",
   INVALID_QUERY: "invalid_query",
+
+  // GitHub連携関連
+  CONNECTION_NOT_FOUND: "connection_not_found",
+  GITHUB_CONTENT_FETCH_FAILED: "github_content_fetch_failed",
+  TAG_CREATION_FAILED: "tag_creation_failed",
+  NOTE_CREATION_FAILED: "note_creation_failed",
+  NOTE_UPDATE_FAILED: "note_update_failed",
 } as const;
 
 export type NoteErrorCode = (typeof NoteErrorCode)[keyof typeof NoteErrorCode];
@@ -48,3 +56,8 @@ export class NoteError extends AnyError {
     super(code, message, cause);
   }
 }
+
+export type NoteError = {
+  code: NoteErrorCode;
+  message: string;
+};

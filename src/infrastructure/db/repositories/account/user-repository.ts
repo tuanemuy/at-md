@@ -1,4 +1,3 @@
-import type { User } from "@/domain/account/models";
 import { userSchema } from "@/domain/account/models";
 import type {
   CreateUser,
@@ -6,13 +5,9 @@ import type {
   UserRepository,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { type Result, err, ok } from "@/lib/result";
+import { ResultAsync, err, ok } from "@/lib/result";
 import { eq } from "drizzle-orm";
-import {
-  type PgDatabase,
-  codeToRepositoryErrorCode,
-  isDatabaseError,
-} from "../../client";
+import { type PgDatabase, mapRepositoryError } from "../../client";
 import { profiles, users } from "../../schema/account";
 
 /**
@@ -24,9 +19,9 @@ export class DrizzleUserRepository implements UserRepository {
   /**
    * ユーザーを作成する
    */
-  async create(user: CreateUser): Promise<Result<User, RepositoryError>> {
-    try {
-      const result = await this.db.transaction(async (tx) => {
+  create(user: CreateUser) {
+    return ResultAsync.fromPromise(
+      this.db.transaction(async (tx) => {
         const [savedUser] = await tx.insert(users).values(user).returning();
 
         if (!savedUser) {
@@ -45,37 +40,21 @@ export class DrizzleUserRepository implements UserRepository {
           throw new Error("Failed to save profile");
         }
 
-        const parsed = userSchema.safeParse({
+        return userSchema.parse({
           ...savedUser,
           profile: savedProfile,
         });
-
-        if (!parsed.success) {
-          throw new Error("Failed to parse user data");
-        }
-
-        return parsed.data;
-      });
-
-      return ok(result);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to create user",
-          error,
-        ),
-      );
-    }
+      }),
+      mapRepositoryError,
+    );
   }
 
   /**
    * ユーザーを更新する
    */
-  async update(user: UpdateUser): Promise<Result<User, RepositoryError>> {
-    try {
-      const result = await this.db.transaction(async (tx) => {
+  update(user: UpdateUser) {
+    return ResultAsync.fromPromise(
+      this.db.transaction(async (tx) => {
         const [updatedUser] = await tx
           .update(users)
           .set(user)
@@ -96,78 +75,51 @@ export class DrizzleUserRepository implements UserRepository {
           throw new Error("Failed to update profile");
         }
 
-        return {
+        return userSchema.parse({
           ...updatedUser,
           profile: updatedProfile,
-        };
-      });
-
-      return ok(result);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to update user",
-          error,
-        ),
-      );
-    }
+        });
+      }),
+      mapRepositoryError,
+    );
   }
 
   /**
    * 指定したIDのユーザーを取得する
    */
-  async findById(id: string): Promise<Result<User, RepositoryError>> {
-    try {
-      const result = await this.db.transaction(async (tx) => {
-        const [user] = await tx
-          .select()
-          .from(users)
-          .where(eq(users.id, id))
-          .limit(1);
-
-        if (!user) return null;
-
-        const [profile] = await tx
-          .select()
-          .from(profiles)
-          .where(eq(profiles.userId, user.id))
-          .limit(1);
-
-        if (!profile) return null;
-
-        return {
-          ...user,
-          profile,
-        };
-      });
-
-      if (!result) {
-        return err(
-          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "User not found"),
-        );
-      }
-
-      return ok(result);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find user by ID",
-          error,
-        ),
-      );
-    }
+  findById(id: string) {
+    return ResultAsync.fromPromise(
+      this.db
+        .select({
+          user: users,
+          profile: profiles,
+        })
+        .from(users)
+        .innerJoin(profiles, eq(users.id, profiles.userId))
+        .where(eq(users.id, id))
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([user]) =>
+      user
+        ? ok({
+            ...user.user,
+            profile: user.profile,
+          })
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "User not found",
+            ),
+          ),
+    );
   }
 
   /**
    * 指定したDIDのユーザーを取得する
    */
-  async findByDid(did: string): Promise<Result<User, RepositoryError>> {
-    try {
-      const [user] = await this.db
+  findByDid(did: string) {
+    return ResultAsync.fromPromise(
+      this.db
         .select({
           user: users,
           profile: profiles,
@@ -175,46 +127,30 @@ export class DrizzleUserRepository implements UserRepository {
         .from(users)
         .innerJoin(profiles, eq(users.id, profiles.userId))
         .where(eq(users.did, did))
-        .limit(1);
-
-      if (!user) {
-        return err(
-          new RepositoryError(RepositoryErrorCode.NOT_FOUND, "User not found"),
-        );
-      }
-
-      return ok({
-        ...user.user,
-        profile: user.profile,
-      });
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to find user by DID",
-          error,
-        ),
-      );
-    }
+        .limit(1),
+      mapRepositoryError,
+    ).andThen(([user]) =>
+      user
+        ? ok({
+            ...user.user,
+            profile: user.profile,
+          })
+        : err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "User not found",
+            ),
+          ),
+    );
   }
 
   /**
    * 指定したIDのユーザーを削除する
    */
-  async delete(id: string): Promise<Result<void, RepositoryError>> {
-    try {
-      await this.db.delete(users).where(eq(users.id, id));
-      return ok(undefined);
-    } catch (error) {
-      const code = isDatabaseError(error) ? error.code : undefined;
-      return err(
-        new RepositoryError(
-          codeToRepositoryErrorCode(code),
-          "Failed to delete user",
-          error,
-        ),
-      );
-    }
+  delete(id: string) {
+    return ResultAsync.fromPromise(
+      this.db.delete(users).where(eq(users.id, id)),
+      mapRepositoryError,
+    ).map(() => {});
   }
 }

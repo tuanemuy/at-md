@@ -2,7 +2,7 @@ import type { ExternalServiceError } from "@/domain/types/error";
 /**
  * GitHub連携アダプターのインターフェース
  */
-import type { Result } from "@/lib/result";
+import type { ResultAsync } from "neverthrow";
 import type { GitHubInstallation } from "../dtos";
 
 /**
@@ -14,18 +14,16 @@ export interface GitHubAppProvider {
    */
   getInstallations(
     accessToken: string,
-  ): Promise<Result<GitHubInstallation[], ExternalServiceError>>;
+  ): ResultAsync<GitHubInstallation[], ExternalServiceError>;
 
   /**
    * GitHub OAuthのアクセストークンを取得する
    */
-  getAccessToken(code: string): Promise<
-    Result<
-      {
-        accessToken: string;
-        refreshToken?: string;
-      },
-      ExternalServiceError
-    >
+  getAccessToken(code: string): ResultAsync<
+    {
+      accessToken: string;
+      refreshToken?: string;
+    },
+    ExternalServiceError
   >;
 }
