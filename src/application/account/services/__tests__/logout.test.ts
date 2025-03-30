@@ -12,7 +12,6 @@ import {
 import type { RequestContext } from "@/domain/types/http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-// モックの作成
 const mockSessionManager = {
   set: vi.fn(),
   get: vi.fn(),
@@ -24,13 +23,11 @@ const mockContext: RequestContext = {
   res: {} as ServerResponse<IncomingMessage>,
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("ログアウト処理が成功した場合にvoidが返されること", async () => {
-  // テストの準備
   mockSessionManager.remove.mockReturnValue(okAsync(undefined));
 
   const service = new LogoutService({
@@ -39,16 +36,13 @@ test("ログアウト処理が成功した場合にvoidが返されること", a
     },
   });
 
-  // 実行
   const result = await service.execute({ context: mockContext });
 
-  // 検証
   expect(mockSessionManager.remove).toHaveBeenCalledWith(mockContext);
   expect(result.isOk()).toBe(true);
 });
 
 test("ログアウト処理が失敗した場合にエラーが返されること", async () => {
-  // テストの準備
   const providerError = new ExternalServiceError(
     "SessionManager",
     ExternalServiceErrorCode.REQUEST_FAILED,
@@ -62,10 +56,8 @@ test("ログアウト処理が失敗した場合にエラーが返されるこ�
     },
   });
 
-  // 実行
   const result = await service.execute({ context: mockContext });
 
-  // 検証
   expect(mockSessionManager.remove).toHaveBeenCalledWith(mockContext);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {

@@ -6,19 +6,8 @@ import {
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Book, Note } from "@/domain/note/models";
+import type { Note } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
-
-// モックの作成
-const mockBookRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByUserId: vi.fn(),
-  findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
-};
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -30,33 +19,14 @@ const mockNoteRepository = {
   deleteByPath: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("有効なブックと検索クエリが指定された場合にノート一覧が返されること", async () => {
-  // テストの準備
   const bookId = "test-book-id";
   const userId = "test-user-id";
   const query = "テスト";
-
-  const book: Book = {
-    id: bookId,
-    userId,
-    owner: "owner1",
-    repo: "repo1",
-    details: {
-      name: "repo1",
-      description: "owner1/repo1",
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
 
   const notes: Note[] = [
     {
@@ -98,7 +68,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
     },
   });
 
-  // 実行
   const result = await service.execute({
     bookId,
     query,
@@ -108,7 +77,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
     },
   });
 
-  // 検証
   expect(mockNoteRepository.search).toHaveBeenCalledWith(
     bookId,
     query,
@@ -127,7 +95,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
 });
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
-  // テストの準備
   const bookId = "non-existing-book-id";
   const query = "テスト";
   const repoError = new RepositoryError(
@@ -143,7 +110,6 @@ test("ブックが存在しない場合にエラーが返されること", async
     },
   });
 
-  // 実行
   const result = await service.execute({
     bookId,
     query,
@@ -153,7 +119,6 @@ test("ブックが存在しない場合にエラーが返されること", async
     },
   });
 
-  // 検証
   expect(mockNoteRepository.search).toHaveBeenCalledWith(
     bookId,
     query,
@@ -175,27 +140,8 @@ test("ブックが存在しない場合にエラーが返されること", async
 });
 
 test("検索に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
   const bookId = "test-book-id";
-  const userId = "test-user-id";
   const query = "テスト";
-
-  const book: Book = {
-    id: bookId,
-    userId,
-    owner: "owner1",
-    repo: "repo1",
-    details: {
-      name: "repo1",
-      description: "owner1/repo1",
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
@@ -210,7 +156,6 @@ test("検索に失敗した場合にエラーが返されること", async () =>
     },
   });
 
-  // 実行
   const result = await service.execute({
     bookId,
     query,
@@ -220,7 +165,6 @@ test("検索に失敗した場合にエラーが返されること", async () =>
     },
   });
 
-  // 検証
   expect(mockNoteRepository.search).toHaveBeenCalledWith(
     bookId,
     query,

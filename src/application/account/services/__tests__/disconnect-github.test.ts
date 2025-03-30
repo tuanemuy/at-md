@@ -7,7 +7,7 @@ import {
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 
-// モックの作成
+
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
   update: vi.fn(),
@@ -17,13 +17,13 @@ const mockGitHubConnectionRepository = {
   delete: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("GitHub連携の解除が成功した場合にvoidが返されること", async () => {
-  // テストの準備
+  
   const userId = "test-user-id";
 
   mockGitHubConnectionRepository.deleteByUserId.mockReturnValue(
@@ -36,10 +36,10 @@ test("GitHub連携の解除が成功した場合にvoidが返されること", a
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ userId });
 
-  // 検証
+  
   expect(mockGitHubConnectionRepository.deleteByUserId).toHaveBeenCalledWith(
     userId,
   );
@@ -47,7 +47,7 @@ test("GitHub連携の解除が成功した場合にvoidが返されること", a
 });
 
 test("GitHub連携の解除に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const userId = "test-user-id";
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
@@ -64,10 +64,10 @@ test("GitHub連携の解除に失敗した場合にエラーが返されるこ�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ userId });
 
-  // 検証
+  
   expect(mockGitHubConnectionRepository.deleteByUserId).toHaveBeenCalledWith(
     userId,
   );

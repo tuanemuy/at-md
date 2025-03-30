@@ -13,7 +13,7 @@ import type { SessionData } from "@/domain/account/models/session-data";
 import type { RequestContext } from "@/domain/types/http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-// モックの作成
+
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
@@ -32,13 +32,13 @@ const mockContext: RequestContext = {
   res: {} as ServerResponse<IncomingMessage>,
 };
 
-// 各テスト前にモックをリセット
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("有効なセッションの場合にセッションデータが返されること", async () => {
-  // テストの準備
+  
   const sessionData: SessionData = {
     did: "valid-did",
   };
@@ -52,10 +52,10 @@ test("有効なセッションの場合にセッションデータが返され�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ context: mockContext });
 
-  // 検証
+  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).toHaveBeenCalledWith(
     sessionData.did,
@@ -67,7 +67,7 @@ test("有効なセッションの場合にセッションデータが返され�
 });
 
 test("セッションが存在しない場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const providerError = new ExternalServiceError(
     "SessionManager",
     ExternalServiceErrorCode.REQUEST_FAILED,
@@ -82,10 +82,10 @@ test("セッションが存在しない場合にエラーが返されること",
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ context: mockContext });
 
-  // 検証
+  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -99,7 +99,7 @@ test("セッションが存在しない場合にエラーが返されること",
 });
 
 test("セッション検証に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const sessionData: SessionData = {
     did: "invalid-did",
   };
@@ -118,10 +118,10 @@ test("セッション検証に失敗した場合にエラーが返されるこ�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ context: mockContext });
 
-  // 検証
+  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).toHaveBeenCalledWith(
     sessionData.did,

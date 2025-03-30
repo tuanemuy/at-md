@@ -13,7 +13,7 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Profile } from "@/domain/account/models";
 import type { User } from "@/domain/account/models/user";
 
-// モックの作成
+
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
@@ -34,13 +34,13 @@ const mockParams = new URLSearchParams();
 mockParams.append("code", "test-code");
 mockParams.append("state", "test-state");
 
-// 各テスト前にモックをリセット
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("既存ユーザーの場合にセッションが返されること", async () => {
-  // テストの準備
+  
   const did = "test-did";
   const profile: Profile = {
     displayName: "New User",
@@ -67,10 +67,10 @@ test("既存ユーザーの場合にセッションが返されること", async
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ params: mockParams });
 
-  // 検証
+  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockUserRepository.create).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ test("既存ユーザーの場合にセッションが返されること", async
 });
 
 test("新規ユーザーの場合にユーザーが作成されること", async () => {
-  // テストの準備
+  
   const did = "test-did";
   const profile: Profile = {
     displayName: "New User",
@@ -106,10 +106,10 @@ test("新規ユーザーの場合にユーザーが作成されること", async
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ params: mockParams });
 
-  // 検証
+  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockAuthProvider.getUserProfile).toHaveBeenCalledWith(did);
@@ -126,7 +126,7 @@ test("新規ユーザーの場合にユーザーが作成されること", async
 });
 
 test("コールバック処理に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const providerError = new ExternalServiceError(
     "BlueskyAuth",
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
@@ -141,10 +141,10 @@ test("コールバック処理に失敗した場合にエラーが返される�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ params: mockParams });
 
-  // 検証
+  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -158,7 +158,7 @@ test("コールバック処理に失敗した場合にエラーが返される�
 });
 
 test("ユーザー情報の確認に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const did = "test-did";
   const repoError = new RepositoryError(
     RepositoryErrorCode.UNKNOWN_ERROR,
@@ -180,10 +180,10 @@ test("ユーザー情報の確認に失敗した場合にエラーが返され�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ params: mockParams });
 
-  // 検証
+  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockAuthProvider.getUserProfile).toHaveBeenCalledWith(did);

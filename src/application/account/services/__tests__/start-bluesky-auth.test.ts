@@ -10,7 +10,6 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 
-// モックの作成
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
@@ -19,7 +18,6 @@ const mockAuthProvider = {
 };
 
 test("有効なハンドルの場合に認証URLが生成されること", async () => {
-  // テスト準備
   const handle = "valid-handle";
   const expectedUrl = new URL("https://example.com/auth");
   mockAuthProvider.authorize.mockReturnValue(okAsync(expectedUrl));
@@ -30,10 +28,8 @@ test("有効なハンドルの場合に認証URLが生成されること", async
     },
   });
 
-  // 実行
   const result = await service.execute({ handle });
 
-  // 検証
   expect(mockAuthProvider.authorize).toHaveBeenCalledWith(handle);
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
@@ -42,7 +38,6 @@ test("有効なハンドルの場合に認証URLが生成されること", async
 });
 
 test("無効なハンドルの場合にエラーが返されること", async () => {
-  // テスト準備
   const handle = "invalid-handle";
   const providerError = new ExternalServiceError(
     "BlueskyAuth",
@@ -57,10 +52,8 @@ test("無効なハンドルの場合にエラーが返されること", async ()
     },
   });
 
-  // 実行
   const result = await service.execute({ handle });
 
-  // 検証
   expect(mockAuthProvider.authorize).toHaveBeenCalledWith(handle);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {

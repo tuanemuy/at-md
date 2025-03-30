@@ -9,7 +9,6 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { User } from "@/domain/account/models/user";
 import type { Profile } from "@/domain/account/models";
 
-// モックの作成
 const mockUserRepository = {
   create: vi.fn(),
   findById: vi.fn(),
@@ -18,13 +17,11 @@ const mockUserRepository = {
   delete: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("プロフィール更新が成功した場合に更新後のユーザー情報が返されること", async () => {
-  // テストの準備
   const userId = "test-user-id";
   const did = "test-did";
   const updatedProfile: Profile = {
@@ -50,14 +47,12 @@ test("プロフィール更新が成功した場合に更新後のユーザー�
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId,
     did,
     profile: updatedProfile,
   });
 
-  // 検証
   expect(mockUserRepository.update).toHaveBeenCalledWith({
     id: userId,
     userId,
@@ -71,7 +66,6 @@ test("プロフィール更新が成功した場合に更新後のユーザー�
 });
 
 test("プロフィール更新に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
   const userId = "test-user-id";
   const did = "test-did";
   const updatedProfile: Profile = {
@@ -94,14 +88,12 @@ test("プロフィール更新に失敗した場合にエラーが返される�
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId,
     did,
     profile: updatedProfile,
   });
 
-  // 検証
   expect(mockUserRepository.update).toHaveBeenCalledWith({
     id: userId,
     userId,

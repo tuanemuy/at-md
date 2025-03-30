@@ -8,7 +8,6 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { GitHubConnection } from "@/domain/account/models/github-connection";
 
-// モックの作成
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
   update: vi.fn(),
@@ -18,13 +17,11 @@ const mockGitHubConnectionRepository = {
   delete: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("GitHub連携が存在する場合に連携情報が返されること", async () => {
-  // テストの準備
   const userId = "test-user-id";
   const connection: GitHubConnection = {
     id: "connection-id",
@@ -45,10 +42,8 @@ test("GitHub連携が存在する場合に連携情報が返されること", as
     },
   });
 
-  // 実行
   const result = await service.execute({ userId });
 
-  // 検証
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
@@ -59,7 +54,6 @@ test("GitHub連携が存在する場合に連携情報が返されること", as
 });
 
 test("GitHub連携が存在しない場合にエラーが返されること", async () => {
-  // テストの準備
   const userId = "non-existing-user-id";
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
@@ -76,10 +70,8 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
     },
   });
 
-  // 実行
   const result = await service.execute({ userId });
 
-  // 検証
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );

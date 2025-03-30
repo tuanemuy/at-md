@@ -6,10 +6,7 @@ import {
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Book } from "@/domain/note/models";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
 
-// モックの作成
 const mockBookRepository = {
   create: vi.fn(),
   update: vi.fn(),
@@ -19,13 +16,11 @@ const mockBookRepository = {
   delete: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("ブックの所有者が削除した場合に成功すること", async () => {
-  // テストの準備
   const bookId = "test-book-id";
   const userId = "test-user-id";
 
@@ -37,16 +32,13 @@ test("ブックの所有者が削除した場合に成功すること", async ()
     },
   });
 
-  // 実行
   const result = await service.execute({ userId, bookId });
 
-  // 検証
   expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
   expect(result.isOk()).toBe(true);
 });
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
-  // テストの準備
   const bookId = "non-existing-book-id";
   const userId = "test-user-id";
   const repoError = new RepositoryError(
@@ -62,10 +54,8 @@ test("ブックが存在しない場合にエラーが返されること", async
     },
   });
 
-  // 実行
   const result = await service.execute({ userId, bookId });
 
-  // 検証
   expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
@@ -78,7 +68,6 @@ test("ブックが存在しない場合にエラーが返されること", async
 });
 
 test("所有者でないユーザーが削除しようとした場合にエラーが返されること", async () => {
-  // テストの準備
   const bookId = "test-book-id";
   const userId = "test-user-id";
   const repoError = new RepositoryError(
@@ -94,10 +83,8 @@ test("所有者でないユーザーが削除しようとした場合にエラ�
     },
   });
 
-  // 実行
   const result = await service.execute({ userId, bookId });
 
-  // 検証
   expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
@@ -110,7 +97,6 @@ test("所有者でないユーザーが削除しようとした場合にエラ�
 });
 
 test("削除処理に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
   const bookId = "test-book-id";
   const userId = "test-user-id";
   const repoError = new RepositoryError(
@@ -126,10 +112,8 @@ test("削除処理に失敗した場合にエラーが返されること", async
     },
   });
 
-  // 実行
   const result = await service.execute({ userId, bookId });
 
-  // 検証
   expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {

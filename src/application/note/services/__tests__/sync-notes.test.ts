@@ -14,7 +14,6 @@ import type { GitHubCommit } from "@/domain/note/dtos";
 import type { Book, Note, Tag, SyncStatus } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 
-// モックの作成
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
   update: vi.fn(),
@@ -24,7 +23,6 @@ const mockGitHubConnectionRepository = {
   delete: vi.fn(),
 };
 
-// モックの作成
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
   findById: vi.fn(),
@@ -63,12 +61,10 @@ const mockGithubContentProvider = {
   setupWebhook: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
-// テスト用のデータ
 const testBook: Book = {
   id: "book-id",
   userId: "user-id",
@@ -125,9 +121,7 @@ scope: public
 
 This is a test markdown file with tags: #test-tag #another-tag`;
 
-// テストケース
 test("コミットのマークダウンファイルを同期できること", async () => {
-  // モックの設定
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync({
       id: "connection-id",
@@ -178,7 +172,6 @@ test("コミットのマークダウンファイルを同期できること", as
   mockNoteRepository.createOrUpdate.mockReturnValue(okAsync(createdNote));
   mockTagRepository.deleteUnused.mockReturnValue(okAsync(undefined));
 
-  // サービスのインスタンス化
   const service = new SyncNotesService({
     deps: {
       githubConnectionRepository: mockGitHubConnectionRepository,
@@ -189,14 +182,12 @@ test("コミットのマークダウンファイルを同期できること", as
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId: "user-id",
     owner: "test-owner",
     repo: "test-repo",
   });
 
-  // 検証
   expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
     "test-owner",
     "test-repo",
@@ -213,7 +204,6 @@ test("コミットのマークダウンファイルを同期できること", as
     "path/to/new-note.md",
   );
 
-  // 結果を検証
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
     expect(result.value).toBe(2);
@@ -221,7 +211,6 @@ test("コミットのマークダウンファイルを同期できること", as
 });
 
 test("GitHub連携情報が見つからない場合はエラーを返すこと", async () => {
-  // モックの設定
   const connectionError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
     "GitHub connection not found",
@@ -230,7 +219,6 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
     errAsync(connectionError),
   );
 
-  // サービスのインスタンス化
   const service = new SyncNotesService({
     deps: {
       githubConnectionRepository: mockGitHubConnectionRepository,
@@ -241,21 +229,18 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId: "user-id",
     owner: "test-owner",
     repo: "test-repo",
   });
 
-  // 検証
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     "user-id",
   );
   expect(mockBookRepository.findByOwnerAndRepo).not.toHaveBeenCalled();
   expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
 
-  // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
@@ -266,7 +251,6 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
 });
 
 test("ブックが見つからない場合はエラーを返すこと", async () => {
-  // モックの設定
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync({
       id: "connection-id",
@@ -283,7 +267,6 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
   );
   mockBookRepository.findByOwnerAndRepo.mockReturnValue(errAsync(bookError));
 
-  // サービスのインスタンス化
   const service = new SyncNotesService({
     deps: {
       githubConnectionRepository: mockGitHubConnectionRepository,
@@ -294,21 +277,18 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId: "user-id",
     owner: "test-owner",
     repo: "test-repo",
   });
 
-  // 検証
   expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
     "test-owner",
     "test-repo",
   );
   expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
 
-  // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
@@ -319,7 +299,6 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
 });
 
 test("ファイル一覧の取得に失敗した場合はエラーを返すこと", async () => {
-  // モックの設定
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync({
       id: "connection-id",
@@ -338,7 +317,6 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
   );
   mockGithubContentProvider.listPaths.mockReturnValue(errAsync(contentError));
 
-  // サービスのインスタンス化
   const service = new SyncNotesService({
     deps: {
       githubConnectionRepository: mockGitHubConnectionRepository,
@@ -349,14 +327,12 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId: "user-id",
     owner: "test-owner",
     repo: "test-repo",
   });
 
-  // 検証
   expect(mockGithubContentProvider.listPaths).toHaveBeenCalledWith(
     "test-token",
     "test-owner",
@@ -364,7 +340,6 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
   );
   expect(mockGithubContentProvider.getContent).not.toHaveBeenCalled();
 
-  // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
@@ -375,7 +350,6 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
 });
 
 test("ファイル内容の取得に失敗した場合はそのファイルをスキップすること", async () => {
-  // モックの設定
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync({
       id: "connection-id",
@@ -399,7 +373,6 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
   );
   mockGithubContentProvider.getContent.mockReturnValue(errAsync(contentError));
 
-  // サービスのインスタンス化
   const service = new SyncNotesService({
     deps: {
       githubConnectionRepository: mockGitHubConnectionRepository,
@@ -410,14 +383,12 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
     },
   });
 
-  // 実行
   const result = await service.execute({
     userId: "user-id",
     owner: "test-owner",
     repo: "test-repo",
   });
 
-  // 検証
   expect(mockGithubContentProvider.getContent).toHaveBeenCalledWith(
     "test-token",
     "test-owner",
@@ -426,7 +397,6 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
   );
   expect(mockNoteRepository.createOrUpdate).not.toHaveBeenCalled();
 
-  // 結果を検証
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
     expect(result.value).toBe(0);

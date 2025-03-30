@@ -12,7 +12,7 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { GitHubConnection } from "@/domain/account/models/github-connection";
 
-// モックの作成
+
 const mockGitHubAppProvider = {
   getAccessToken: vi.fn(),
   getInstallations: vi.fn(),
@@ -27,13 +27,13 @@ const mockGitHubConnectionRepository = {
   delete: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
+
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("正常にGitHub連携が作成された場合にvoidが返されること", async () => {
-  // テストの準備
+  
   const userId = "test-user-id";
   const code = "github-auth-code";
   const accessToken = "github-access-token";
@@ -66,10 +66,10 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ userId, code });
 
-  // 検証
+  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).toHaveBeenCalledWith({
     userId,
@@ -80,7 +80,7 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
 });
 
 test("アクセストークンの取得に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const userId = "test-user-id";
   const code = "invalid-github-auth-code";
 
@@ -99,10 +99,10 @@ test("アクセストークンの取得に失敗した場合にエラーが返�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ userId, code });
 
-  // 検証
+  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -116,7 +116,7 @@ test("アクセストークンの取得に失敗した場合にエラーが返�
 });
 
 test("GitHub連携の作成に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
+  
   const userId = "test-user-id";
   const code = "github-auth-code";
   const accessToken = "github-access-token";
@@ -143,10 +143,10 @@ test("GitHub連携の作成に失敗した場合にエラーが返されるこ�
     },
   });
 
-  // 実行
+  
   const result = await service.execute({ userId, code });
 
-  // 検証
+  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).toHaveBeenCalledWith({
     userId,
