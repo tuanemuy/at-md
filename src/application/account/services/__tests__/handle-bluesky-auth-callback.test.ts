@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { HandleBlueskyAuthCallbackService } from "../handle-bluesky-auth-callback";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
@@ -146,8 +149,10 @@ test("コールバック処理に失敗した場合にエラーが返される�
   expect(mockUserRepository.findByDid).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.CALLBACK_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });
@@ -184,8 +189,10 @@ test("ユーザー情報の確認に失敗した場合にエラーが返され�
   expect(mockAuthProvider.getUserProfile).toHaveBeenCalledWith(did);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.CALLBACK_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });

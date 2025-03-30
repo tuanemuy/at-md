@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { UpdateProfileService } from "../update-profile";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { User } from "@/domain/account/models/user";
 import type { Profile } from "@/domain/account/models";
@@ -107,8 +110,10 @@ test("プロフィール更新に失敗した場合にエラーが返される�
   });
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.UPDATE_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

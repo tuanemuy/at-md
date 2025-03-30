@@ -3,7 +3,10 @@ import type {
   DisconnectGitHubInput,
   DisconnectGitHubUseCase,
 } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * GitHub連携を解除するユースケース実装
@@ -30,9 +33,10 @@ export class DisconnectGitHubService implements DisconnectGitHubUseCase {
       .deleteByUserId(input.userId)
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.GITHUB_DISCONNECTION_FAILED,
-            "GitHub連携の削除に失敗しました",
+          new ApplicationServiceError(
+            "DisconnectGitHub",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to disconnect GitHub",
             error,
           ),
       );

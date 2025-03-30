@@ -1,6 +1,9 @@
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
 import type { UpdateProfileInput, UpdateProfileUseCase } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * ユーザープロフィールを更新するユースケース実装
@@ -30,9 +33,10 @@ export class UpdateProfileService implements UpdateProfileUseCase {
       })
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.UPDATE_FAILED,
-            "プロフィールの更新に失敗しました",
+          new ApplicationServiceError(
+            "UpdateProfile",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to update profile",
             error,
           ),
       );

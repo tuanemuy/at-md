@@ -87,5 +87,5 @@ export interface BookRepository {
   /**
    * 指定したIDのブックを削除する
    */
-  delete(id: string): ResultAsync<void, RepositoryError>;
+  delete(id: string, userId: string): ResultAsync<void, RepositoryError>;
 }

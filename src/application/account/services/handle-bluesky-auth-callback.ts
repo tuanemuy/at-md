@@ -5,7 +5,10 @@ import type {
   HandleBlueskyAuthCallbackInput,
   HandleBlueskyAuthCallbackUseCase,
 } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * Bluesky認証のコールバックを処理するユースケース実装
@@ -56,9 +59,10 @@ export class HandleBlueskyAuthCallbackService
       )
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.CALLBACK_FAILED,
-            "コールバックの処理中にエラーが発生しました",
+          new ApplicationServiceError(
+            "HandleBlueskyAuthCallback",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to handle Bluesky auth callback",
             error,
           ),
       )

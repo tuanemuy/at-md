@@ -1,7 +1,10 @@
 import { expect, test, vi } from "vitest";
 import { StartBlueskyAuthService } from "../start-bluesky-auth";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
@@ -61,8 +64,10 @@ test("無効なハンドルの場合にエラーが返されること", async ()
   expect(mockAuthProvider.authorize).toHaveBeenCalledWith(handle);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.AUTHORIZATION_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });

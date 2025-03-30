@@ -1,20 +1,15 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ListTagsService } from "../list-tags";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book, Tag } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 
 // モックの作成
-const mockBookRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByUserId: vi.fn(),
-  findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
-};
 
 const mockTagRepository = {
   findByNoteId: vi.fn(),
@@ -66,13 +61,11 @@ test("ブックが存在する場合にタグ一覧が返されること", async
     },
   ];
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
   mockTagRepository.findByBookId.mockReturnValue(okAsync(tags));
 
   const service = new ListTagsService({
     deps: {
       tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -80,7 +73,6 @@ test("ブックが存在する場合にタグ一覧が返されること", async
   const result = await service.execute({ bookId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
   expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
@@ -97,12 +89,11 @@ test("ブックが存在しない場合にエラーが返されること", async
     "ブックが見つかりません",
   );
 
-  mockBookRepository.findById.mockReturnValue(errAsync(repoError));
+  mockTagRepository.findByBookId.mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
     deps: {
       tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -110,12 +101,13 @@ test("ブックが存在しない場合にエラーが返されること", async
   const result = await service.execute({ bookId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).not.toHaveBeenCalled();
+  expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });
@@ -147,13 +139,11 @@ test("タグの取得に失敗した場合にエラーが返されること", as
     "データベースエラー",
   );
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
   mockTagRepository.findByBookId.mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
     deps: {
       tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -161,12 +151,13 @@ test("タグの取得に失敗した場合にエラーが返されること", as
   const result = await service.execute({ bookId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
   expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.TAG_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

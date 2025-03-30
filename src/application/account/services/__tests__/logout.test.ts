@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { LogoutService } from "../logout";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
@@ -66,8 +69,10 @@ test("ログアウト処理が失敗した場合にエラーが返されるこ�
   expect(mockSessionManager.remove).toHaveBeenCalledWith(mockContext);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.SESSION_REVOCATION_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });

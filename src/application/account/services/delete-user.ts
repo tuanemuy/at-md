@@ -1,6 +1,9 @@
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
 import type { DeleteUserInput, DeleteUserUseCase } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * ユーザーを削除するユースケース実装
@@ -27,9 +30,10 @@ export class DeleteUserService implements DeleteUserUseCase {
       .delete(input.userId)
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.USER_NOT_FOUND,
-            "ユーザーの削除に失敗しました",
+          new ApplicationServiceError(
+            "DeleteUser",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to delete user",
             error,
           ),
       );

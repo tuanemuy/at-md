@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { AddBookService } from "../add-book";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   ExternalServiceError,
@@ -59,13 +62,13 @@ test("ブックが正常に追加された場合にブック情報が返され�
     updatedAt: new Date(),
   };
 
-  const repositories: GitHubRepository[] = [
-    {
-      owner,
-      name: repo,
-      fullName: `${owner}/${repo}`,
-    },
-  ];
+  const markdownContent = `---
+scope: public
+---
+
+# Test Markdown
+
+This is a test markdown file with tags: #test-tag #another-tag`;
 
   const createdBook: Book = {
     id: "book-id",
@@ -73,8 +76,9 @@ test("ブックが正常に追加された場合にブック情報が返され�
     owner,
     repo,
     details: {
-      name: repo,
-      description: `${owner}/${repo}`,
+      name: "Test Markdown",
+      description:
+        "This is a test markdown file with tags: #test-tag #another-tag",
     },
     syncStatus: {
       lastSyncedAt: null,
@@ -84,21 +88,13 @@ test("ブックが正常に追加された場合にブック情報が返され�
     updatedAt: new Date(),
   };
 
-  // 既存のブックが見つからない
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(
-    errAsync(
-      new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-    ),
-  );
-
   // GitHub連携情報が見つかる
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync(connection),
   );
 
-  // リポジトリ一覧を取得できる
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
-    okAsync(repositories),
+  mockGitHubContentProvider.getContent.mockReturnValue(
+    okAsync(markdownContent),
   );
 
   // ブックの作成に成功
@@ -116,23 +112,23 @@ test("ブックが正常に追加された場合にブック情報が返され�
   const result = await service.execute({ userId, owner, repo });
 
   // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
-    owner,
-    repo,
-  );
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
-  expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
+  expect(mockGitHubContentProvider.getContent).toHaveBeenCalledWith(
     connection.accessToken,
+    owner,
+    repo,
+    "README.md",
   );
   expect(mockBookRepository.create).toHaveBeenCalledWith({
     userId,
     owner,
     repo,
     details: {
-      name: repo,
-      description: `${owner}/${repo}`,
+      name: "Test Markdown",
+      description:
+        "This is a test markdown file with tags: #test-tag #another-tag",
     },
     syncStatus: {
       lastSyncedAt: null,
@@ -152,25 +148,22 @@ test("同じリポジトリが既に登録されている場合にエラーが�
   const owner = "owner1";
   const repo = "repo1";
 
-  const existingBook: Book = {
-    id: "existing-book-id",
+  const connection: GitHubConnection = {
+    id: "connection-id",
     userId,
-    owner,
-    repo,
-    details: {
-      name: repo,
-      description: `${owner}/${repo}`,
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
+    accessToken: "github-access-token",
+    refreshToken: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  // 既存のブックが見つかる
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(existingBook));
+  const markdownContent = `---
+scope: public
+---
+
+# Test Markdown
+
+This is a test markdown file with tags: #test-tag #another-tag`;
 
   const service = new AddBookService({
     deps: {
@@ -180,22 +173,56 @@ test("同じリポジトリが既に登録されている場合にエラーが�
     },
   });
 
+  // GitHub連携情報が見つかる
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    okAsync(connection),
+  );
+
+  mockGitHubContentProvider.getContent.mockReturnValue(
+    okAsync(markdownContent),
+  );
+
+  // ブックの作成に失敗
+  const repoError = new RepositoryError(
+    RepositoryErrorCode.UNIQUE_VIOLATION,
+    "Failed to create book",
+  );
+  mockBookRepository.create.mockReturnValue(errAsync(repoError));
+
   // 実行
   const result = await service.execute({ userId, owner, repo });
 
   // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
+  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
+    userId,
+  );
+  expect(mockGitHubContentProvider.getContent).toHaveBeenCalledWith(
+    connection.accessToken,
     owner,
     repo,
+    "README.md",
   );
-  expect(mockGitHubConnectionRepository.findByUserId).not.toHaveBeenCalled();
-  expect(mockGitHubContentProvider.listRepositories).not.toHaveBeenCalled();
-  expect(mockBookRepository.create).not.toHaveBeenCalled();
+  expect(mockBookRepository.create).toHaveBeenCalledWith({
+    userId,
+    owner,
+    repo,
+    details: {
+      name: "Test Markdown",
+      description:
+        "This is a test markdown file with tags: #test-tag #another-tag",
+    },
+    syncStatus: {
+      lastSyncedAt: null,
+      status: SyncStatusCode.SYNCED,
+    },
+  });
 
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_ALREADY_EXISTS);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
   }
 });
 
@@ -204,13 +231,6 @@ test("GitHub連携情報が見つからない場合にエラーが返される�
   const userId = "test-user-id";
   const owner = "owner1";
   const repo = "repo1";
-
-  // 既存のブックが見つからない
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(
-    errAsync(
-      new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-    ),
-  );
 
   // GitHub連携情報が見つからない
   const repoError = new RepositoryError(
@@ -233,90 +253,19 @@ test("GitHub連携情報が見つからない場合にエラーが返される�
   const result = await service.execute({ userId, owner, repo });
 
   // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
-    owner,
-    repo,
-  );
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
-  expect(mockGitHubContentProvider.listRepositories).not.toHaveBeenCalled();
+  expect(mockGitHubContentProvider.getContent).not.toHaveBeenCalled();
   expect(mockBookRepository.create).not.toHaveBeenCalled();
 
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.CONNECTION_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
-  }
-});
-
-test("リポジトリ一覧の取得に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
-  const userId = "test-user-id";
-  const owner = "owner1";
-  const repo = "repo1";
-
-  const connection: GitHubConnection = {
-    id: "connection-id",
-    userId,
-    accessToken: "github-access-token",
-    refreshToken: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  // 既存のブックが見つからない
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(
-    errAsync(
-      new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-    ),
-  );
-
-  // GitHub連携情報が見つかる
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
-    okAsync(connection),
-  );
-
-  // リポジトリ一覧の取得に失敗
-  const providerError = new ExternalServiceError(
-    "GitHubContent",
-    ExternalServiceErrorCode.REQUEST_FAILED,
-    "Failed to list repositories",
-  );
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
-    errAsync(providerError),
-  );
-
-  const service = new AddBookService({
-    deps: {
-      githubConnectionRepository: mockGitHubConnectionRepository,
-      githubContentProvider: mockGitHubContentProvider,
-      bookRepository: mockBookRepository,
-    },
-  });
-
-  // 実行
-  const result = await service.execute({ userId, owner, repo });
-
-  // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
-    owner,
-    repo,
-  );
-  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
-    userId,
-  );
-  expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
-    connection.accessToken,
-  );
-  expect(mockBookRepository.create).not.toHaveBeenCalled();
-
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.GITHUB_CONTENT_FETCH_FAILED);
-    expect(result.error.cause).toBe(providerError);
   }
 });
 
@@ -335,28 +284,13 @@ test("指定されたリポジトリが存在しない場合にエラーが返�
     updatedAt: new Date(),
   };
 
-  // 既存のブックが見つからない
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(
-    errAsync(
-      new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-    ),
-  );
-
   // GitHub連携情報が見つかる
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync(connection),
   );
 
-  // リポジトリ一覧を取得できるが、指定したリポジトリは含まれていない
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
-    okAsync([
-      {
-        owner: "other-owner",
-        name: "other-repo",
-        fullName: "other-owner/other-repo",
-      },
-    ]),
-  );
+  // リポジトリが見つからない
+  mockGitHubContentProvider.getContent.mockReturnValue(errAsync());
 
   const service = new AddBookService({
     deps: {
@@ -370,22 +304,23 @@ test("指定されたリポジトリが存在しない場合にエラーが返�
   const result = await service.execute({ userId, owner, repo });
 
   // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
-    owner,
-    repo,
-  );
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
-  expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
+  expect(mockGitHubContentProvider.getContent).toHaveBeenCalledWith(
     connection.accessToken,
+    owner,
+    repo,
+    "README.md",
   );
   expect(mockBookRepository.create).not.toHaveBeenCalled();
 
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.INVALID_REPOSITORY);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
   }
 });
 
@@ -404,29 +339,21 @@ test("ブックの作成に失敗した場合にエラーが返されること",
     updatedAt: new Date(),
   };
 
-  const repositories: GitHubRepository[] = [
-    {
-      owner,
-      name: repo,
-      fullName: `${owner}/${repo}`,
-    },
-  ];
+  const markdownContent = `---
+scope: public
+---
 
-  // 既存のブックが見つからない
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(
-    errAsync(
-      new RepositoryError(RepositoryErrorCode.NOT_FOUND, "Book not found"),
-    ),
-  );
+# Test Markdown
+
+This is a test markdown file with tags: #test-tag #another-tag`;
 
   // GitHub連携情報が見つかる
   mockGitHubConnectionRepository.findByUserId.mockReturnValue(
     okAsync(connection),
   );
 
-  // リポジトリ一覧を取得できる
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
-    okAsync(repositories),
+  mockGitHubContentProvider.getContent.mockReturnValue(
+    okAsync(markdownContent),
   );
 
   // ブックの作成に失敗
@@ -448,23 +375,23 @@ test("ブックの作成に失敗した場合にエラーが返されること",
   const result = await service.execute({ userId, owner, repo });
 
   // 検証
-  expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
-    owner,
-    repo,
-  );
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
-  expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
+  expect(mockGitHubContentProvider.getContent).toHaveBeenCalledWith(
     connection.accessToken,
+    owner,
+    repo,
+    "README.md",
   );
   expect(mockBookRepository.create).toHaveBeenCalledWith({
     userId,
     owner,
     repo,
     details: {
-      name: repo,
-      description: `${owner}/${repo}`,
+      name: "Test Markdown",
+      description:
+        "This is a test markdown file with tags: #test-tag #another-tag",
     },
     syncStatus: {
       lastSyncedAt: null,
@@ -474,8 +401,10 @@ test("ブックの作成に失敗した場合にエラーが返されること",
 
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.INVALID_REPOSITORY);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

@@ -3,7 +3,7 @@
  */
 import type { ResultAsync } from "@/lib/result";
 import type { RequestContext } from "@/domain/types/http";
-import type { AccountError } from "@/domain/account/models/errors";
+import type { ApplicationServiceError } from "@/domain/types/error";
 import type { SessionData } from "@/domain/account/models/session-data";
 import type { User } from "@/domain/account/models/user";
 import type { GitHubConnection } from "@/domain/account/models/github-connection";
@@ -16,7 +16,9 @@ export interface StartBlueskyAuthInput {
 }
 
 export interface StartBlueskyAuthUseCase {
-  execute(input: StartBlueskyAuthInput): ResultAsync<URL, AccountError>;
+  execute(
+    input: StartBlueskyAuthInput,
+  ): ResultAsync<URL, ApplicationServiceError>;
 }
 
 /**
@@ -27,7 +29,9 @@ export interface HandleBlueskyAuthCallbackInput {
 }
 
 export interface HandleBlueskyAuthCallbackUseCase {
-  execute(input: HandleBlueskyAuthCallbackInput): ResultAsync<void, AccountError>;
+  execute(
+    input: HandleBlueskyAuthCallbackInput,
+  ): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -38,7 +42,9 @@ export interface ValidateSessionInput {
 }
 
 export interface ValidateSessionUseCase {
-  execute(input: ValidateSessionInput): ResultAsync<SessionData, AccountError>;
+  execute(
+    input: ValidateSessionInput,
+  ): ResultAsync<SessionData, ApplicationServiceError>;
 }
 
 /**
@@ -49,7 +55,7 @@ export interface LogoutInput {
 }
 
 export interface LogoutUseCase {
-  execute(input: LogoutInput): ResultAsync<void, AccountError>;
+  execute(input: LogoutInput): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -61,7 +67,9 @@ export interface ConnectGitHubInput {
 }
 
 export interface ConnectGitHubUseCase {
-  execute(input: ConnectGitHubInput): ResultAsync<void, AccountError>;
+  execute(
+    input: ConnectGitHubInput,
+  ): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -72,7 +80,9 @@ export interface DisconnectGitHubInput {
 }
 
 export interface DisconnectGitHubUseCase {
-  execute(input: DisconnectGitHubInput): ResultAsync<void, AccountError>;
+  execute(
+    input: DisconnectGitHubInput,
+  ): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -83,7 +93,7 @@ export interface GetUserByIdInput {
 }
 
 export interface GetUserByIdUseCase {
-  execute(input: GetUserByIdInput): ResultAsync<User, AccountError>;
+  execute(input: GetUserByIdInput): ResultAsync<User, ApplicationServiceError>;
 }
 
 /**
@@ -101,7 +111,9 @@ export interface UpdateProfileInput {
 }
 
 export interface UpdateProfileUseCase {
-  execute(input: UpdateProfileInput): ResultAsync<User, AccountError>;
+  execute(
+    input: UpdateProfileInput,
+  ): ResultAsync<User, ApplicationServiceError>;
 }
 
 /**
@@ -112,7 +124,7 @@ export interface DeleteUserInput {
 }
 
 export interface DeleteUserUseCase {
-  execute(input: DeleteUserInput): ResultAsync<void, AccountError>;
+  execute(input: DeleteUserInput): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -123,5 +135,7 @@ export interface GetGitHubConnectionsInput {
 }
 
 export interface GetGitHubConnectionsUseCase {
-  execute(input: GetGitHubConnectionsInput): ResultAsync<GitHubConnection, AccountError>;
+  execute(
+    input: GetGitHubConnectionsInput,
+  ): ResultAsync<GitHubConnection, ApplicationServiceError>;
 }

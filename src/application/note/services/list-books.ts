@@ -1,8 +1,7 @@
-import type { Result } from "@/lib/result";
-import { err, ok } from "@/lib/result";
-import { logger } from "@/lib/logger";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
-import type { Book } from "@/domain/note/models";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import type { ListBooksInput, ListBooksUseCase } from "../usecase";
 
@@ -26,28 +25,18 @@ export class ListBooksService implements ListBooksUseCase {
   /**
    * ユースケースを実行する
    */
-  async execute(input: ListBooksInput): Promise<Result<Book[], NoteError>> {
-    logger.info("Listing books", { userId: input.userId });
-
-    // ユーザーのブック一覧を取得
-    return (await this.bookRepository.findByUserId(input.userId))
-      .map((books) => {
-        logger.info("Successfully listed books", {
-          userId: input.userId,
-          count: books.length,
-        });
-        return books;
-      })
-      .mapErr((error) => {
-        logger.error("Failed to list books", {
-          userId: input.userId,
-          error,
-        });
-        return new NoteError(
-          NoteErrorCode.BOOK_NOT_FOUND,
-          "ブック一覧の取得に失敗しました",
-          error,
-        );
-      });
+  execute(input: ListBooksInput) {
+    return this.bookRepository
+      .findByUserId(input.userId)
+      .mapErr(
+        (error) =>
+          new ApplicationServiceError(
+            "ListBooks",
+            ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+            "Failed to list books",
+            error,
+          ),
+      );
   }
-} 
+}
+

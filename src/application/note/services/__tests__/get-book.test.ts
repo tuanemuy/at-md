@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { GetBookService } from "../get-book";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
@@ -84,8 +87,10 @@ test("ブックが存在しない場合にエラーが返されること", async
   expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

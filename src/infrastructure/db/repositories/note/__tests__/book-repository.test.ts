@@ -274,7 +274,7 @@ test("ブックを削除すると該当ブックが削除されること", async
   });
 
   // 実行
-  const deleteResult = await bookRepository.delete(bookId);
+  const deleteResult = await bookRepository.delete(bookId, createData.userId);
 
   // 検証
   expect(deleteResult.isOk()).toBe(true);

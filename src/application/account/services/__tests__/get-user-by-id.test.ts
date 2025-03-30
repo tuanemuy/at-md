@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { GetUserByIdService } from "../get-user-by-id";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { User } from "@/domain/account/models/user";
 
@@ -77,8 +80,10 @@ test("存在しないユーザーIDの場合にエラーが返されること", 
   expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.USER_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

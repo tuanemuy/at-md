@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ValidateSessionService } from "../validate-session";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
@@ -40,7 +43,7 @@ test("有効なセッションの場合にセッションデータが返され�
     did: "valid-did",
   };
   mockSessionManager.get.mockReturnValue(okAsync(sessionData));
-  mockAuthProvider.validateSession.mockReturnValue(okAsync(undefined));
+  mockAuthProvider.validateSession.mockReturnValue(okAsync(sessionData));
 
   const service = new ValidateSessionService({
     deps: {
@@ -87,8 +90,10 @@ test("セッションが存在しない場合にエラーが返されること",
   expect(mockAuthProvider.validateSession).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.SESSION_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });
@@ -123,8 +128,10 @@ test("セッション検証に失敗した場合にエラーが返されるこ�
   );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.SESSION_VALIDATION_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });

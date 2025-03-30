@@ -1,4 +1,7 @@
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import type { LogoutInput, LogoutUseCase } from "../usecase";
 
@@ -27,9 +30,10 @@ export class LogoutService implements LogoutUseCase {
       .remove(input.context)
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.SESSION_REVOCATION_FAILED,
-            "セッションを削除できませんでした",
+          new ApplicationServiceError(
+            "Logout",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to logout",
             error,
           ),
       );

@@ -1,7 +1,10 @@
 import type { GitHubAppProvider } from "@/domain/account/adapters/github-app-provider";
 import type { GitHubConnectionRepository } from "@/domain/account/repositories/github-connection-repository";
 import type { ConnectGitHubInput, ConnectGitHubUseCase } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * GitHubとの連携を行うユースケース実装
@@ -38,9 +41,10 @@ export class ConnectGitHubService implements ConnectGitHubUseCase {
       )
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.GITHUB_CONNECTION_FAILED,
-            "GitHubとの連携に失敗しました",
+          new ApplicationServiceError(
+            "ConnectGitHub",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to connect to GitHub",
             error,
           ),
       )

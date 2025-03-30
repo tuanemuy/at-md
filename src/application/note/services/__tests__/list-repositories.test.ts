@@ -1,9 +1,11 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ListRepositoriesService } from "../list-repositories";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
-import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+  RepositoryError,
+  RepositoryErrorCode,
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
@@ -118,8 +120,10 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
   expect(mockGitHubContentProvider.listRepositories).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.CONNECTION_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });
@@ -168,8 +172,10 @@ test("リポジトリ一覧の取得に失敗した場合にエラーが返さ�
   );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.GITHUB_CONTENT_FETCH_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+    );
     expect(result.error.cause).toBe(providerError);
   }
 });

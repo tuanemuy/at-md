@@ -56,8 +56,3 @@ export class NoteError extends AnyError {
     super(code, message, cause);
   }
 }
-
-export type NoteError = {
-  code: NoteErrorCode;
-  message: string;
-};

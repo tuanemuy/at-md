@@ -3,7 +3,10 @@ import type {
   StartBlueskyAuthInput,
   StartBlueskyAuthUseCase,
 } from "../usecase";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 
 /**
  * Bluesky認証を開始するユースケース実装
@@ -30,9 +33,10 @@ export class StartBlueskyAuthService implements StartBlueskyAuthUseCase {
       .authorize(input.handle)
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.AUTHORIZATION_FAILED,
-            "Blueskyの認証URLの取得に失敗しました",
+          new ApplicationServiceError(
+            "StartBlueskyAuth",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to start Bluesky auth",
             error,
           ),
       );

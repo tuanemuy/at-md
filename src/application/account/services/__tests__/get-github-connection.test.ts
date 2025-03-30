@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { GetGitHubConnectionsService } from "../get-github-connection";
 import { okAsync, errAsync } from "@/lib/result";
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { GitHubConnection } from "@/domain/account/models/github-connection";
 
@@ -82,8 +85,10 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
   );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(AccountError);
-    expect(result.error.code).toBe(AccountErrorCode.GITHUB_CONNECTION_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

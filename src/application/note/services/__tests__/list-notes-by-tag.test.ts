@@ -1,27 +1,14 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { ListNotesByTagService } from "../list-notes-by-tag";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book, Note, Tag } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
-
-// モックの作成
-const mockBookRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByUserId: vi.fn(),
-  findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
-};
-
-const mockTagRepository = {
-  findByNoteId: vi.fn(),
-  findByBookId: vi.fn(),
-  deleteUnused: vi.fn(),
-};
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -43,23 +30,6 @@ test("有効なブックとタグが指定された場合にノート一覧が�
   const bookId = "test-book-id";
   const tagId = "test-tag-id";
   const userId = "test-user-id";
-
-  const book: Book = {
-    id: bookId,
-    userId,
-    owner: "owner1",
-    repo: "repo1",
-    details: {
-      name: "repo1",
-      description: "owner1/repo1",
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
 
   const tags: Tag[] = [
     {
@@ -105,8 +75,6 @@ test("有効なブックとタグが指定された場合にノート一覧が�
     },
   ];
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
-  mockTagRepository.findByBookId.mockReturnValue(okAsync(tags));
   mockNoteRepository.findByTag.mockReturnValue(
     okAsync({
       items: notes,
@@ -117,8 +85,6 @@ test("有効なブックとタグが指定された場合にノート一覧が�
   const service = new ListNotesByTagService({
     deps: {
       noteRepository: mockNoteRepository,
-      tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -126,13 +92,11 @@ test("有効なブックとタグが指定された場合にノート一覧が�
   const result = await service.execute({ bookId, tagId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
   expect(mockNoteRepository.findByTag).toHaveBeenCalledWith(bookId, tagId);
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
-    expect(result.value).toEqual(notes);
-    expect(result.value.length).toBe(2);
+    expect(result.value.items).toEqual(notes);
+    expect(result.value.count).toBe(2);
   }
 });
 
@@ -145,13 +109,11 @@ test("ブックが存在しない場合にエラーが返されること", async
     "ブックが見つかりません",
   );
 
-  mockBookRepository.findById.mockReturnValue(errAsync(repoError));
+  mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {
       noteRepository: mockNoteRepository,
-      tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -159,13 +121,13 @@ test("ブックが存在しない場合にエラーが返されること", async
   const result = await service.execute({ bookId, tagId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).not.toHaveBeenCalled();
-  expect(mockNoteRepository.findByTag).not.toHaveBeenCalled();
+  expect(mockNoteRepository.findByTag).toHaveBeenCalledWith(bookId, tagId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });
@@ -174,38 +136,16 @@ test("タグの取得に失敗した場合にエラーが返されること", as
   // テストの準備
   const bookId = "test-book-id";
   const tagId = "test-tag-id";
-  const userId = "test-user-id";
-
-  const book: Book = {
-    id: bookId,
-    userId,
-    owner: "owner1",
-    repo: "repo1",
-    details: {
-      name: "repo1",
-      description: "owner1/repo1",
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
     "データベースエラー",
   );
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
-  mockTagRepository.findByBookId.mockReturnValue(errAsync(repoError));
+  mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {
       noteRepository: mockNoteRepository,
-      tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -213,79 +153,14 @@ test("タグの取得に失敗した場合にエラーが返されること", as
   const result = await service.execute({ bookId, tagId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
-  expect(mockNoteRepository.findByTag).not.toHaveBeenCalled();
+  expect(mockNoteRepository.findByTag).toHaveBeenCalledWith(bookId, tagId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.TAG_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
-  }
-});
-
-test("指定されたタグがブックに存在しない場合にエラーが返されること", async () => {
-  // テストの準備
-  const bookId = "test-book-id";
-  const tagId = "non-existing-tag-id";
-  const userId = "test-user-id";
-
-  const book: Book = {
-    id: bookId,
-    userId,
-    owner: "owner1",
-    repo: "repo1",
-    details: {
-      name: "repo1",
-      description: "owner1/repo1",
-    },
-    syncStatus: {
-      lastSyncedAt: null,
-      status: SyncStatusCode.SYNCED,
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const tags: Tag[] = [
-    {
-      id: "tag-id-1",
-      bookId,
-      name: "タグ1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id: "tag-id-2",
-      bookId,
-      name: "タグ2",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ];
-
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
-  mockTagRepository.findByBookId.mockReturnValue(okAsync(tags));
-
-  const service = new ListNotesByTagService({
-    deps: {
-      noteRepository: mockNoteRepository,
-      tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
-    },
-  });
-
-  // 実行
-  const result = await service.execute({ bookId, tagId });
-
-  // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
-  expect(mockNoteRepository.findByTag).not.toHaveBeenCalled();
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.TAG_NOT_FOUND);
   }
 });
 
@@ -327,15 +202,11 @@ test("ノート一覧の取得に失敗した場合にエラーが返される�
     "データベースエラー",
   );
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
-  mockTagRepository.findByBookId.mockReturnValue(okAsync(tags));
   mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {
       noteRepository: mockNoteRepository,
-      tagRepository: mockTagRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -343,13 +214,13 @@ test("ノート一覧の取得に失敗した場合にエラーが返される�
   const result = await service.execute({ bookId, tagId });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockTagRepository.findByBookId).toHaveBeenCalledWith(bookId);
   expect(mockNoteRepository.findByTag).toHaveBeenCalledWith(bookId, tagId);
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.NOTE_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

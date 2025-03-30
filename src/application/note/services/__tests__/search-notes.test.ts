@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { SearchNotesService } from "../search-notes";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book, Note } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
@@ -82,7 +85,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
     },
   ];
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
   mockNoteRepository.search.mockReturnValue(
     okAsync({
       items: notes,
@@ -93,7 +95,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
   const service = new SearchNotesService({
     deps: {
       noteRepository: mockNoteRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -108,7 +109,6 @@ test("有効なブックと検索クエリが指定された場合にノート�
   });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
   expect(mockNoteRepository.search).toHaveBeenCalledWith(
     bookId,
     query,
@@ -121,8 +121,8 @@ test("有効なブックと検索クエリが指定された場合にノート�
   );
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
-    expect(result.value).toEqual(notes);
-    expect(result.value.length).toBe(2);
+    expect(result.value.items).toEqual(notes);
+    expect(result.value.count).toBe(2);
   }
 });
 
@@ -135,12 +135,11 @@ test("ブックが存在しない場合にエラーが返されること", async
     "ブックが見つかりません",
   );
 
-  mockBookRepository.findById.mockReturnValue(errAsync(repoError));
+  mockNoteRepository.search.mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
     deps: {
       noteRepository: mockNoteRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -155,12 +154,22 @@ test("ブックが存在しない場合にエラーが返されること", async
   });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
-  expect(mockNoteRepository.search).not.toHaveBeenCalled();
+  expect(mockNoteRepository.search).toHaveBeenCalledWith(
+    bookId,
+    query,
+    expect.objectContaining({
+      page: 1,
+      limit: 10,
+      order: "desc",
+      orderBy: "updatedAt",
+    }),
+  );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });
@@ -193,13 +202,11 @@ test("検索に失敗した場合にエラーが返されること", async () =>
     "検索に失敗しました",
   );
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
   mockNoteRepository.search.mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
     deps: {
       noteRepository: mockNoteRepository,
-      bookRepository: mockBookRepository,
     },
   });
 
@@ -214,7 +221,6 @@ test("検索に失敗した場合にエラーが返されること", async () =>
   });
 
   // 検証
-  expect(mockBookRepository.findById).toHaveBeenCalledWith(bookId);
   expect(mockNoteRepository.search).toHaveBeenCalledWith(
     bookId,
     query,
@@ -227,8 +233,10 @@ test("検索に失敗した場合にエラーが返されること", async () =>
   );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.NOTE_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
     expect(result.error.cause).toBe(repoError);
   }
 });

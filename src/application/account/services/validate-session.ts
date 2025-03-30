@@ -1,4 +1,7 @@
-import { AccountError, AccountErrorCode } from "@/domain/account/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
 import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import type { ValidateSessionInput, ValidateSessionUseCase } from "../usecase";
@@ -34,9 +37,10 @@ export class ValidateSessionService implements ValidateSessionUseCase {
       )
       .mapErr(
         (error) =>
-          new AccountError(
-            AccountErrorCode.SESSION_VALIDATION_FAILED,
-            "セッションの検証に失敗しました",
+          new ApplicationServiceError(
+            "ValidateSession",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to validate session",
             error,
           ),
       );

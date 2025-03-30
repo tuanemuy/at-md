@@ -1,5 +1,5 @@
 import type { ResultAsync } from "@/lib/result";
-import type { NoteError } from "@/domain/note/models/errors";
+import type { ApplicationServiceError } from "@/domain/types/error";
 import type { Book } from "@/domain/note/models/book";
 import type { Note } from "@/domain/note/models/note";
 import type { SyncStatus } from "@/domain/note/models/sync-status";
@@ -17,7 +17,9 @@ export interface ListRepositoriesInput {
  * リポジトリ一覧を取得するユースケース
  */
 export interface ListRepositoriesUseCase {
-  execute(input: ListRepositoriesInput): ResultAsync<GitHubRepository[], NoteError>;
+  execute(
+    input: ListRepositoriesInput,
+  ): ResultAsync<GitHubRepository[], ApplicationServiceError>;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface AddBookInput {
  * ブックを追加するユースケース
  */
 export interface AddBookUseCase {
-  execute(input: AddBookInput): ResultAsync<Book, NoteError>;
+  execute(input: AddBookInput): ResultAsync<Book, ApplicationServiceError>;
 }
 
 /**
@@ -47,7 +49,7 @@ export interface ListBooksInput {
  * ブック一覧を取得するユースケース
  */
 export interface ListBooksUseCase {
-  execute(input: ListBooksInput): ResultAsync<Book[], NoteError>;
+  execute(input: ListBooksInput): ResultAsync<Book[], ApplicationServiceError>;
 }
 
 /**
@@ -61,7 +63,7 @@ export interface GetBookInput {
  * ブック情報を取得するユースケース
  */
 export interface GetBookUseCase {
-  execute(input: GetBookInput): ResultAsync<Book, NoteError>;
+  execute(input: GetBookInput): ResultAsync<Book, ApplicationServiceError>;
 }
 
 /**
@@ -76,7 +78,7 @@ export interface DeleteBookInput {
  * ブックを削除するユースケース
  */
 export interface DeleteBookUseCase {
-  execute(input: DeleteBookInput): ResultAsync<void, NoteError>;
+  execute(input: DeleteBookInput): ResultAsync<void, ApplicationServiceError>;
 }
 
 /**
@@ -94,7 +96,7 @@ export interface PushNotesInput {
  * GitHubのPushからノートを作成するユースケース
  */
 export interface PushNotesUseCase {
-  execute(input: PushNotesInput): ResultAsync<number, NoteError>;
+  execute(input: PushNotesInput): ResultAsync<number, ApplicationServiceError>;
 }
 
 /**
@@ -110,7 +112,7 @@ export interface SyncNotesInput {
  * ノートを同期するユースケース
  */
 export interface SyncNotesUseCase {
-  execute(input: SyncNotesInput): ResultAsync<number, NoteError>;
+  execute(input: SyncNotesInput): ResultAsync<number, ApplicationServiceError>;
 }
 
 /**
@@ -125,7 +127,9 @@ export interface ListNotesInput {
  * ノート一覧を取得するユースケース
  */
 export interface ListNotesUseCase {
-  execute(input: ListNotesInput): ResultAsync<Note[], NoteError>;
+  execute(
+    input: ListNotesInput,
+  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 }
 
 /**
@@ -134,22 +138,22 @@ export interface ListNotesUseCase {
 export interface SearchNotesInput {
   bookId: string;
   query: string;
-  page: number;
-  perPage: number;
+  pagination: PaginationParams;
 }
 
 /**
  * ノートを検索するユースケース
  */
 export interface SearchNotesUseCase {
-  execute(input: SearchNotesInput): ResultAsync<Note[], NoteError>;
+  execute(
+    input: SearchNotesInput,
+  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 }
 
 /**
  * ノート情報を取得するユースケースの入力
  */
 export interface GetNoteInput {
-  bookId: string;
   noteId: string;
 }
 
@@ -157,7 +161,7 @@ export interface GetNoteInput {
  * ノート情報を取得するユースケース
  */
 export interface GetNoteUseCase {
-  execute(input: GetNoteInput): ResultAsync<Note, NoteError>;
+  execute(input: GetNoteInput): ResultAsync<Note, ApplicationServiceError>;
 }
 
 /**
@@ -171,7 +175,9 @@ export interface ListTagsInput {
  * タグ一覧を取得するユースケース
  */
 export interface ListTagsUseCase {
-  execute(input: ListTagsInput): ResultAsync<Note["tags"], NoteError>;
+  execute(
+    input: ListTagsInput,
+  ): ResultAsync<Note["tags"], ApplicationServiceError>;
 }
 
 /**
@@ -186,7 +192,9 @@ export interface ListNotesByTagInput {
  * タグでノートをフィルタリングするユースケース
  */
 export interface ListNotesByTagUseCase {
-  execute(input: ListNotesByTagInput): ResultAsync<Note[], NoteError>;
+  execute(
+    input: ListNotesByTagInput,
+  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 }
 
 /**
@@ -200,5 +208,7 @@ export interface CheckBookSyncStatusInput {
  * ブックの同期状態を確認するユースケース
  */
 export interface CheckBookSyncStatusUseCase {
-  execute(input: CheckBookSyncStatusInput): ResultAsync<SyncStatus, NoteError>;
+  execute(
+    input: CheckBookSyncStatusInput,
+  ): ResultAsync<SyncStatus, ApplicationServiceError>;
 }

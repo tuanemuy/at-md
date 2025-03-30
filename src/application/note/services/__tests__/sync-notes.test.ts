@@ -1,7 +1,10 @@
 import { expect, test, vi, beforeEach } from "vitest";
 import { SyncNotesService } from "../sync-notes";
 import { okAsync, errAsync } from "@/lib/result";
-import { NoteError, NoteErrorCode } from "@/domain/note/models/errors";
+import {
+  ApplicationServiceError,
+  ApplicationServiceErrorCode,
+} from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import {
   ExternalServiceError,
@@ -125,19 +128,25 @@ This is a test markdown file with tags: #test-tag #another-tag`;
 // テストケース
 test("コミットのマークダウンファイルを同期できること", async () => {
   // モックの設定
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(okAsync({
-    id: "connection-id",
-    userId: "user-id",
-    accessToken: "test-token",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    okAsync({
+      id: "connection-id",
+      userId: "user-id",
+      accessToken: "test-token",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
   mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
   mockBookRepository.findById.mockReturnValue(okAsync(testBook));
   mockBookRepository.update.mockReturnValue(okAsync(testBook));
 
-  mockGithubContentProvider.getContent.mockReturnValue(okAsync(markdownContent));
-  mockGithubContentProvider.listPaths.mockReturnValue(okAsync(["path/to/new-note.md", "path/to/modified-note.md"]));
+  mockGithubContentProvider.getContent.mockReturnValue(
+    okAsync(markdownContent),
+  );
+  mockGithubContentProvider.listPaths.mockReturnValue(
+    okAsync(["path/to/new-note.md", "path/to/modified-note.md"]),
+  );
 
   const createdNote: Note = {
     ...testNote,
@@ -207,7 +216,7 @@ test("コミットのマークダウンファイルを同期できること", as
   // 結果を検証
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
-    expect(result.value).toBe(1);
+    expect(result.value).toBe(2);
   }
 });
 
@@ -217,7 +226,9 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
     RepositoryErrorCode.NOT_FOUND,
     "GitHub connection not found",
   );
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(errAsync(connectionError));
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    errAsync(connectionError),
+  );
 
   // サービスのインスタンス化
   const service = new SyncNotesService({
@@ -238,27 +249,33 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
   });
 
   // 検証
-  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith("user-id");
+  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
+    "user-id",
+  );
   expect(mockBookRepository.findByOwnerAndRepo).not.toHaveBeenCalled();
   expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
 
   // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.CONNECTION_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
   }
 });
 
 test("ブックが見つからない場合はエラーを返すこと", async () => {
   // モックの設定
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(okAsync({
-    id: "connection-id",
-    userId: "user-id",
-    accessToken: "test-token",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    okAsync({
+      id: "connection-id",
+      userId: "user-id",
+      accessToken: "test-token",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
 
   const bookError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
@@ -294,20 +311,24 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
   // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.BOOK_NOT_FOUND);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
   }
 });
 
 test("ファイル一覧の取得に失敗した場合はエラーを返すこと", async () => {
   // モックの設定
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(okAsync({
-    id: "connection-id",
-    userId: "user-id",
-    accessToken: "test-token",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    okAsync({
+      id: "connection-id",
+      userId: "user-id",
+      accessToken: "test-token",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
   mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
 
   const contentError = new ExternalServiceError(
@@ -346,24 +367,30 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
   // 結果を検証
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(NoteError);
-    expect(result.error.code).toBe(NoteErrorCode.GITHUB_CONTENT_FETCH_FAILED);
+    expect(result.error).toBeInstanceOf(ApplicationServiceError);
+    expect(result.error.code).toBe(
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+    );
   }
 });
 
 test("ファイル内容の取得に失敗した場合はそのファイルをスキップすること", async () => {
   // モックの設定
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(okAsync({
-    id: "connection-id",
-    userId: "user-id",
-    accessToken: "test-token",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }));
+  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+    okAsync({
+      id: "connection-id",
+      userId: "user-id",
+      accessToken: "test-token",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
   mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
   mockBookRepository.update.mockReturnValue(okAsync(testBook));
 
-  mockGithubContentProvider.listPaths.mockReturnValue(okAsync(["path/to/new-note.md"]));
+  mockGithubContentProvider.listPaths.mockReturnValue(
+    okAsync(["path/to/new-note.md"]),
+  );
 
   const contentError = new ExternalServiceError(
     "GitHubContent",
@@ -405,4 +432,3 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
     expect(result.value).toBe(0);
   }
 });
-

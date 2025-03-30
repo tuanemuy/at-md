@@ -61,6 +61,14 @@ export const ExternalServiceErrorCode = {
 export type ExternalServiceErrorCode =
   (typeof ExternalServiceErrorCode)[keyof typeof ExternalServiceErrorCode];
 
+export const ApplicationServiceErrorCode = {
+  ACCOUNT_CONTEXT_ERROR: "account_context_error",
+  NOTE_CONTEXT_ERROR: "note_context_error",
+  POST_CONTEXT_ERROR: "post_context_error",
+} as const;
+export type ApplicationServiceErrorCode =
+  (typeof ApplicationServiceErrorCode)[keyof typeof ApplicationServiceErrorCode];
+
 /**
  * Base error class
  * All domain-specific errors inherit from this class
@@ -107,6 +115,20 @@ export class ExternalServiceError extends AnyError {
   constructor(
     public serviceName: string,
     public code: ExternalServiceErrorCode,
+    public message: string,
+    public cause?: Error | unknown,
+  ) {
+    super(code, message, cause);
+  }
+}
+
+/**
+ * Application service error
+ */
+export class ApplicationServiceError extends AnyError {
+  constructor(
+    public usecase: string,
+    public code: ApplicationServiceErrorCode,
     public message: string,
     public cause?: Error | unknown,
   ) {
