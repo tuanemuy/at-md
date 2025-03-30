@@ -9,6 +9,8 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book, Note } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { generateId } from "@/domain/types/id";
+import type { NoteRepository } from "@/domain/note/repositories";
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -18,7 +20,7 @@ const mockNoteRepository = {
   search: vi.fn(),
   delete: vi.fn(),
   deleteByPath: vi.fn(),
-};
+} as unknown as NoteRepository;
 
 // 各テスト前にモックをリセット
 beforeEach(() => {
@@ -27,9 +29,9 @@ beforeEach(() => {
 
 test("有効なブックとノートが指定された場合にノートが返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const noteId = "test-note-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const noteId = generateId("Note");
+  const userId = generateId("User");
 
   const book: Book = {
     id: bookId,
@@ -61,7 +63,7 @@ test("有効なブックとノートが指定された場合にノートが返�
     updatedAt: new Date(),
   };
 
-  mockNoteRepository.findById.mockReturnValue(okAsync(note));
+  (mockNoteRepository.findById as any).mockReturnValue(okAsync(note));
 
   const service = new GetNoteService({
     deps: {
@@ -82,9 +84,10 @@ test("有効なブックとノートが指定された場合にノートが返�
 
 test("ノートが存在しない場合にエラーが返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const noteId = "non-existing-note-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const noteId = generateId("Note");
+  const userId = generateId("User");
+  const errorId = generateId("Error");
 
   const book: Book = {
     id: bookId,
@@ -105,10 +108,10 @@ test("ノートが存在しない場合にエラーが返されること", async
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ノートが見つかりません",
+    `ノートが見つかりません (${errorId})`,
   );
 
-  mockNoteRepository.findById.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.findById as any).mockReturnValue(errAsync(repoError));
 
   const service = new GetNoteService({
     deps: {

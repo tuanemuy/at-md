@@ -11,6 +11,8 @@ import {
 } from "@/domain/types/error";
 import type { GitHubRepository } from "@/domain/note/dtos";
 import type { GitHubConnection } from "@/domain/account/models";
+import { generateId } from "@/domain/types/id";
+import type { GitHubConnectionRepository } from "@/domain/account/repositories";
 
 // モックの作成
 const mockGitHubConnectionRepository = {
@@ -20,7 +22,7 @@ const mockGitHubConnectionRepository = {
   findById: vi.fn(),
   deleteByUserId: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as GitHubConnectionRepository;
 
 const mockGitHubContentProvider = {
   listRepositories: vi.fn(),
@@ -37,9 +39,9 @@ beforeEach(() => {
 
 test("GitHub連携が存在する場合にリポジトリ一覧が返されること", async () => {
   // テストの準備
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const connection: GitHubConnection = {
-    id: "connection-id",
+    id: generateId("Connection"),
     userId,
     accessToken: "github-access-token",
     refreshToken: null,
@@ -60,10 +62,10 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
     },
   ];
 
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
+  (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
     okAsync(repositories),
   );
 
@@ -93,13 +95,14 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
 
 test("GitHub連携が存在しない場合にエラーが返されること", async () => {
   // テストの準備
-  const userId = "non-existing-user-id";
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "GitHub連携情報が見つかりません",
+    `GitHub連携情報が見つかりません (${errorId})`,
   );
 
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     errAsync(repoError),
   );
 
@@ -130,26 +133,27 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
 
 test("リポジトリ一覧の取得に失敗した場合にエラーが返されること", async () => {
   // テストの準備
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const connection: GitHubConnection = {
-    id: "connection-id",
+    id: generateId("Connection"),
     userId,
     accessToken: "github-access-token",
     refreshToken: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+  const errorId = generateId("Error");
 
   const providerError = new ExternalServiceError(
     "GitHubContent",
     ExternalServiceErrorCode.REQUEST_FAILED,
-    "Failed to list repositories",
+    `Failed to list repositories (${errorId})`,
   );
 
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
-  mockGitHubContentProvider.listRepositories.mockReturnValue(
+  (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
     errAsync(providerError),
   );
 

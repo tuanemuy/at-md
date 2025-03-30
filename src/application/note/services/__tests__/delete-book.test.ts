@@ -6,6 +6,8 @@ import {
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import { generateId } from "@/domain/types/id";
+import type { BookRepository } from "@/domain/note/repositories";
 
 const mockBookRepository = {
   create: vi.fn(),
@@ -14,17 +16,17 @@ const mockBookRepository = {
   findByUserId: vi.fn(),
   findByOwnerAndRepo: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as BookRepository;
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("ブックの所有者が削除した場合に成功すること", async () => {
-  const bookId = "test-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
 
-  mockBookRepository.delete.mockReturnValue(okAsync(undefined));
+  (mockBookRepository.delete as any).mockReturnValue(okAsync(undefined));
 
   const service = new DeleteBookService({
     deps: {
@@ -39,14 +41,15 @@ test("ブックの所有者が削除した場合に成功すること", async ()
 });
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
-  const bookId = "non-existing-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ブックが見つかりません",
+    `ブックが見つかりません (${errorId})`,
   );
 
-  mockBookRepository.delete.mockReturnValue(errAsync(repoError));
+  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
     deps: {
@@ -68,14 +71,15 @@ test("ブックが存在しない場合にエラーが返されること", async
 });
 
 test("所有者でないユーザーが削除しようとした場合にエラーが返されること", async () => {
-  const bookId = "test-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "このブックを削除する権限がありません",
+    `このブックを削除する権限がありません (${errorId})`,
   );
 
-  mockBookRepository.delete.mockReturnValue(errAsync(repoError));
+  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
     deps: {
@@ -97,14 +101,15 @@ test("所有者でないユーザーが削除しようとした場合にエラ�
 });
 
 test("削除処理に失敗した場合にエラーが返されること", async () => {
-  const bookId = "test-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "データベースエラー",
+    `データベースエラー (${errorId})`,
   );
 
-  mockBookRepository.delete.mockReturnValue(errAsync(repoError));
+  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
     deps: {

@@ -20,7 +20,10 @@ export async function setupTestDatabase(client: PGlite): Promise<void> {
   const db = drizzle(client, { schema });
   // マイグレーションを実行
   await migrate(db, {
-    migrationsFolder: path.join(import.meta.dirname, "../migrations"),
+    migrationsFolder: path.join(
+      import.meta.dirname,
+      "../../infrastructure/db/migrations",
+    ),
   });
 }
 

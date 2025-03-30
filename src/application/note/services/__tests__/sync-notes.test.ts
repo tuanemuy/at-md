@@ -13,6 +13,12 @@ import {
 import type { GitHubCommit } from "@/domain/note/dtos";
 import type { Book, Note, Tag, SyncStatus } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { generateId } from "@/domain/types/id";
+import type { 
+  NoteRepository, 
+  BookRepository, 
+  TagRepository 
+} from "@/domain/note/repositories";
 
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
@@ -31,7 +37,7 @@ const mockNoteRepository = {
   search: vi.fn(),
   delete: vi.fn(),
   deleteByPath: vi.fn(),
-};
+} as unknown as NoteRepository;
 
 const mockBookRepository = {
   create: vi.fn(),
@@ -40,7 +46,7 @@ const mockBookRepository = {
   findByUserId: vi.fn(),
   findByOwnerAndRepo: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as BookRepository;
 
 const mockTagRepository = {
   create: vi.fn(),
@@ -51,7 +57,7 @@ const mockTagRepository = {
   findOrCreate: vi.fn(),
   delete: vi.fn(),
   deleteUnused: vi.fn(),
-};
+} as unknown as TagRepository;
 
 const mockGithubContentProvider = {
   listRepositories: vi.fn(),
@@ -66,8 +72,8 @@ beforeEach(() => {
 });
 
 const testBook: Book = {
-  id: "book-id",
-  userId: "user-id",
+  id: generateId("Book"),
+  userId: generateId("User"),
   owner: "test-owner",
   repo: "test-repo",
   details: {
@@ -83,17 +89,17 @@ const testBook: Book = {
 };
 
 const testTag: Tag = {
-  id: "tag-id",
-  bookId: "book-id",
+  id: generateId("Tag"),
+  bookId: generateId("Book"),
   name: "test-tag",
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
 const testNote: Note = {
-  id: "note-id",
-  userId: "user-id",
-  bookId: "book-id",
+  id: generateId("Note"),
+  userId: generateId("User"),
+  bookId: generateId("Book"),
   path: "path/to/note.md",
   title: "Test Note",
   body: "# Test Note\n\nThis is a test note.",
@@ -104,7 +110,7 @@ const testNote: Note = {
 };
 
 const testCommit: GitHubCommit = {
-  id: "commit-id",
+  id: generateId("Commit"),
   message: "Test commit",
   timestamp: new Date().toISOString(),
   url: "https://github.com/test-owner/test-repo/commit/hash",
@@ -122,44 +128,47 @@ scope: public
 This is a test markdown file with tags: #test-tag #another-tag`;
 
 test("コミットのマークダウンファイルを同期できること", async () => {
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  const userId = generateId("User");
+  const connectionId = generateId("Connection");
+  
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
-      id: "connection-id",
-      userId: "user-id",
+      id: connectionId,
+      userId,
       accessToken: "test-token",
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
   );
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
-  mockBookRepository.findById.mockReturnValue(okAsync(testBook));
-  mockBookRepository.update.mockReturnValue(okAsync(testBook));
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
+  (mockBookRepository.findById as any).mockReturnValue(okAsync(testBook));
+  (mockBookRepository.update as any).mockReturnValue(okAsync(testBook));
 
-  mockGithubContentProvider.getContent.mockReturnValue(
+  (mockGithubContentProvider.getContent as any).mockReturnValue(
     okAsync(markdownContent),
   );
-  mockGithubContentProvider.listPaths.mockReturnValue(
+  (mockGithubContentProvider.listPaths as any).mockReturnValue(
     okAsync(["path/to/new-note.md", "path/to/modified-note.md"]),
   );
 
   const createdNote: Note = {
     ...testNote,
-    id: "new-note-id",
+    id: generateId("Note"),
     path: "path/to/new-note.md",
     title: "Test Markdown",
     body: markdownContent,
     scope: "public",
     tags: [
       {
-        id: "tag-1",
-        bookId: "book-id",
+        id: generateId("Tag"),
+        bookId: testBook.id,
         name: "test-tag",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: "tag-2",
-        bookId: "book-id",
+        id: generateId("Tag"),
+        bookId: testBook.id,
         name: "another-tag",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -169,8 +178,8 @@ test("コミットのマークダウンファイルを同期できること", as
     updatedAt: new Date(),
   };
 
-  mockNoteRepository.createOrUpdate.mockReturnValue(okAsync(createdNote));
-  mockTagRepository.deleteUnused.mockReturnValue(okAsync(undefined));
+  (mockNoteRepository.createOrUpdate as any).mockReturnValue(okAsync(createdNote));
+  (mockTagRepository.deleteUnused as any).mockReturnValue(okAsync(undefined));
 
   const service = new SyncNotesService({
     deps: {
@@ -183,7 +192,7 @@ test("コミットのマークダウンファイルを同期できること", as
   });
 
   const result = await service.execute({
-    userId: "user-id",
+    userId,
     owner: "test-owner",
     repo: "test-repo",
   });
@@ -211,11 +220,13 @@ test("コミットのマークダウンファイルを同期できること", as
 });
 
 test("GitHub連携情報が見つからない場合はエラーを返すこと", async () => {
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const connectionError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "GitHub connection not found",
+    `GitHub connection not found (${errorId})`,
   );
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     errAsync(connectionError),
   );
 
@@ -230,13 +241,13 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
   });
 
   const result = await service.execute({
-    userId: "user-id",
+    userId,
     owner: "test-owner",
     repo: "test-repo",
   });
 
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
-    "user-id",
+    userId,
   );
   expect(mockBookRepository.findByOwnerAndRepo).not.toHaveBeenCalled();
   expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
@@ -251,10 +262,13 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
 });
 
 test("ブックが見つからない場合はエラーを返すこと", async () => {
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  const userId = generateId("User");
+  const connectionId = generateId("Connection");
+  
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
-      id: "connection-id",
-      userId: "user-id",
+      id: connectionId,
+      userId,
       accessToken: "test-token",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -265,7 +279,7 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
     RepositoryErrorCode.NOT_FOUND,
     "Book not found",
   );
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(errAsync(bookError));
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(errAsync(bookError));
 
   const service = new SyncNotesService({
     deps: {
@@ -278,7 +292,7 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
   });
 
   const result = await service.execute({
-    userId: "user-id",
+    userId,
     owner: "test-owner",
     repo: "test-repo",
   });
@@ -299,23 +313,26 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
 });
 
 test("ファイル一覧の取得に失敗した場合はエラーを返すこと", async () => {
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  const userId = generateId("User");
+  const connectionId = generateId("Connection");
+  
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
-      id: "connection-id",
-      userId: "user-id",
+      id: connectionId,
+      userId,
       accessToken: "test-token",
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
   );
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
 
   const contentError = new ExternalServiceError(
     "GitHubContent",
     ExternalServiceErrorCode.REQUEST_FAILED,
     "Failed to list paths",
   );
-  mockGithubContentProvider.listPaths.mockReturnValue(errAsync(contentError));
+  (mockGithubContentProvider.listPaths as any).mockReturnValue(errAsync(contentError));
 
   const service = new SyncNotesService({
     deps: {
@@ -328,7 +345,7 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
   });
 
   const result = await service.execute({
-    userId: "user-id",
+    userId,
     owner: "test-owner",
     repo: "test-repo",
   });
@@ -350,19 +367,22 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
 });
 
 test("ファイル内容の取得に失敗した場合はそのファイルをスキップすること", async () => {
-  mockGitHubConnectionRepository.findByUserId.mockReturnValue(
+  const userId = generateId("User");
+  const connectionId = generateId("Connection");
+  
+  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
-      id: "connection-id",
-      userId: "user-id",
+      id: connectionId,
+      userId,
       accessToken: "test-token",
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
   );
-  mockBookRepository.findByOwnerAndRepo.mockReturnValue(okAsync(testBook));
-  mockBookRepository.update.mockReturnValue(okAsync(testBook));
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
+  (mockBookRepository.update as any).mockReturnValue(okAsync(testBook));
 
-  mockGithubContentProvider.listPaths.mockReturnValue(
+  (mockGithubContentProvider.listPaths as any).mockReturnValue(
     okAsync(["path/to/new-note.md"]),
   );
 
@@ -371,7 +391,7 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
     ExternalServiceErrorCode.REQUEST_FAILED,
     "Failed to get content",
   );
-  mockGithubContentProvider.getContent.mockReturnValue(errAsync(contentError));
+  (mockGithubContentProvider.getContent as any).mockReturnValue(errAsync(contentError));
 
   const service = new SyncNotesService({
     deps: {
@@ -384,7 +404,7 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
   });
 
   const result = await service.execute({
-    userId: "user-id",
+    userId,
     owner: "test-owner",
     repo: "test-repo",
   });

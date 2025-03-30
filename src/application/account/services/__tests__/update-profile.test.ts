@@ -1,6 +1,6 @@
-import { expect, test, vi, beforeEach } from "vitest";
+import { expect, test, vi, beforeEach, afterEach } from "vitest";
 import { UpdateProfileService } from "../update-profile";
-import { okAsync, errAsync } from "@/lib/result";
+import { okAsync } from "@/lib/result";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -8,22 +8,55 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { User } from "@/domain/account/models/user";
 import type { Profile } from "@/domain/account/models";
+import { PGlite } from "@electric-sql/pglite";
+import { 
+  getTestDatabase, 
+  setupTestDatabase, 
+  cleanupTestDatabase, 
+  closeTestDatabase 
+} from "@/application/__test__/setup";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
+import { generateId } from "@/domain/types/id";
+import type { CreateUser } from "@/domain/account/repositories";
 
-const mockUserRepository = {
-  create: vi.fn(),
-  findById: vi.fn(),
-  findByDid: vi.fn(),
-  update: vi.fn(),
-  delete: vi.fn(),
-};
+let client: PGlite;
+let userRepository: DrizzleUserRepository;
 
-beforeEach(() => {
-  vi.resetAllMocks();
+beforeEach(async () => {
+  // テスト用のデータベースをセットアップ
+  client = new PGlite();
+  await setupTestDatabase(client);
+  const db = getTestDatabase(client);
+  userRepository = new DrizzleUserRepository(db);
+});
+
+afterEach(async () => {
+  // テスト用のデータベースをクリーンアップ
+  await cleanupTestDatabase(client);
+  await closeTestDatabase(client);
 });
 
 test("プロフィール更新が成功した場合に更新後のユーザー情報が返されること", async () => {
-  const userId = "test-user-id";
+  // テスト用ユーザーを作成
   const did = "test-did";
+  const initialProfile: Profile = {
+    displayName: "Test User",
+    description: null,
+    avatarUrl: null,
+    bannerUrl: null,
+  };
+  
+  // 初期ユーザーを作成
+  const testUser: CreateUser = {
+    did,
+    profile: initialProfile,
+  };
+  
+  const createResult = await userRepository.create(testUser);
+  expect(createResult.isOk()).toBe(true);
+  const createdUserId = createResult.isOk() ? createResult.value.id : "";
+  
+  // プロフィール更新内容
   const updatedProfile: Profile = {
     displayName: "Updated User",
     description: "Updated description",
@@ -31,42 +64,33 @@ test("プロフィール更新が成功した場合に更新後のユーザー�
     bannerUrl: "https://example.com/banner-updated.jpg",
   };
 
-  const updatedUser: User = {
-    id: userId,
-    did,
-    profile: updatedProfile,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  mockUserRepository.update.mockReturnValue(okAsync(updatedUser));
-
   const service = new UpdateProfileService({
     deps: {
-      userRepository: mockUserRepository,
+      userRepository,
     },
   });
 
+  // テスト実行
   const result = await service.execute({
-    userId,
+    userId: createdUserId,
     did,
     profile: updatedProfile,
   });
 
-  expect(mockUserRepository.update).toHaveBeenCalledWith({
-    id: userId,
-    userId,
-    did,
-    profile: updatedProfile,
-  });
+  // 検証
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
-    expect(result.value).toEqual(updatedUser);
+    expect(result.value.id).toEqual(createdUserId);
+    expect(result.value.did).toEqual(did);
+    expect(result.value.profile.displayName).toEqual("Updated User");
+    expect(result.value.profile.description).toEqual("Updated description");
+    expect(result.value.profile.avatarUrl).toEqual("https://example.com/avatar-updated.jpg");
+    expect(result.value.profile.bannerUrl).toEqual("https://example.com/banner-updated.jpg");
   }
 });
 
-test("プロフィール更新に失敗した場合にエラーが返されること", async () => {
-  const userId = "test-user-id";
+test("存在しないユーザーIDの場合にエラーが返されること", async () => {
+  const nonExistingUserId = generateId("User");
   const did = "test-did";
   const updatedProfile: Profile = {
     displayName: "Updated User",
@@ -75,38 +99,26 @@ test("プロフィール更新に失敗した場合にエラーが返される�
     bannerUrl: "https://example.com/banner-updated.jpg",
   };
 
-  const repoError = new RepositoryError(
-    RepositoryErrorCode.DATA_ERROR,
-    "データ更新エラー",
-  );
-
-  mockUserRepository.update.mockReturnValue(errAsync(repoError));
-
   const service = new UpdateProfileService({
     deps: {
-      userRepository: mockUserRepository,
+      userRepository,
     },
   });
 
   const result = await service.execute({
-    userId,
+    userId: nonExistingUserId,
     did,
     profile: updatedProfile,
   });
 
-  expect(mockUserRepository.update).toHaveBeenCalledWith({
-    id: userId,
-    userId,
-    did,
-    profile: updatedProfile,
-  });
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
     );
-    expect(result.error.cause).toBe(repoError);
+    const repositoryError = result.error.cause as RepositoryError;
+    expect(repositoryError).toBeInstanceOf(RepositoryError);
   }
 });
 

@@ -8,6 +8,8 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { generateId } from "@/domain/types/id";
+import type { BookRepository } from "@/domain/note/repositories";
 
 // モックの作成
 const mockBookRepository = {
@@ -17,7 +19,7 @@ const mockBookRepository = {
   findByUserId: vi.fn(),
   findByOwnerAndRepo: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as BookRepository;
 
 // 各テスト前にモックをリセット
 beforeEach(() => {
@@ -26,8 +28,8 @@ beforeEach(() => {
 
 test("ブックが存在する場合に同期ステータスが返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
   const book: Book = {
     id: bookId,
     userId,
@@ -45,7 +47,7 @@ test("ブックが存在する場合に同期ステータスが返されるこ�
     updatedAt: new Date(),
   };
 
-  mockBookRepository.findById.mockReturnValue(okAsync(book));
+  (mockBookRepository.findById as any).mockReturnValue(okAsync(book));
 
   const service = new CheckBookSyncStatusService({
     deps: {
@@ -67,13 +69,14 @@ test("ブックが存在する場合に同期ステータスが返されるこ�
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
   // テストの準備
-  const bookId = "non-existing-book-id";
+  const bookId = generateId("Book");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ブックが見つかりません",
+    `ブックが見つかりません (${errorId})`,
   );
 
-  mockBookRepository.findById.mockReturnValue(errAsync(repoError));
+  (mockBookRepository.findById as any).mockReturnValue(errAsync(repoError));
 
   const service = new CheckBookSyncStatusService({
     deps: {

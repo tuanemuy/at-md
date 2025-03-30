@@ -9,6 +9,8 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book, Note, Tag } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { generateId } from "@/domain/types/id";
+import type { NoteRepository } from "@/domain/note/repositories";
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -18,7 +20,7 @@ const mockNoteRepository = {
   search: vi.fn(),
   delete: vi.fn(),
   deleteByPath: vi.fn(),
-};
+} as unknown as NoteRepository;
 
 // 各テスト前にモックをリセット
 beforeEach(() => {
@@ -27,9 +29,9 @@ beforeEach(() => {
 
 test("有効なブックとタグが指定された場合にノート一覧が返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const tagId = "test-tag-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const tagId = generateId("Tag");
+  const userId = generateId("User");
 
   const tags: Tag[] = [
     {
@@ -40,7 +42,7 @@ test("有効なブックとタグが指定された場合にノート一覧が�
       updatedAt: new Date(),
     },
     {
-      id: "tag-id-2",
+      id: generateId("Tag"),
       bookId,
       name: "タグ2",
       createdAt: new Date(),
@@ -50,7 +52,7 @@ test("有効なブックとタグが指定された場合にノート一覧が�
 
   const notes: Note[] = [
     {
-      id: "note-id-1",
+      id: generateId("Note"),
       userId,
       bookId,
       path: "/path/to/note1.md",
@@ -62,7 +64,7 @@ test("有効なブックとタグが指定された場合にノート一覧が�
       updatedAt: new Date(),
     },
     {
-      id: "note-id-2",
+      id: generateId("Note"),
       userId,
       bookId,
       path: "/path/to/note2.md",
@@ -75,7 +77,7 @@ test("有効なブックとタグが指定された場合にノート一覧が�
     },
   ];
 
-  mockNoteRepository.findByTag.mockReturnValue(
+  (mockNoteRepository.findByTag as any).mockReturnValue(
     okAsync({
       items: notes,
       count: notes.length,
@@ -102,14 +104,15 @@ test("有効なブックとタグが指定された場合にノート一覧が�
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
   // テストの準備
-  const bookId = "non-existing-book-id";
-  const tagId = "test-tag-id";
+  const bookId = generateId("Book");
+  const tagId = generateId("Tag");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ブックが見つかりません",
+    `ブックが見つかりません (${errorId})`,
   );
 
-  mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.findByTag as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {
@@ -134,14 +137,15 @@ test("ブックが存在しない場合にエラーが返されること", async
 
 test("タグの取得に失敗した場合にエラーが返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const tagId = "test-tag-id";
+  const bookId = generateId("Book");
+  const tagId = generateId("Tag");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "データベースエラー",
+    `データベースエラー (${errorId})`,
   );
 
-  mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.findByTag as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {
@@ -166,9 +170,10 @@ test("タグの取得に失敗した場合にエラーが返されること", as
 
 test("ノート一覧の取得に失敗した場合にエラーが返されること", async () => {
   // テストの準備
-  const bookId = "test-book-id";
-  const tagId = "test-tag-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const tagId = generateId("Tag");
+  const userId = generateId("User");
+  const errorId = generateId("Error");
 
   const book: Book = {
     id: bookId,
@@ -199,10 +204,10 @@ test("ノート一覧の取得に失敗した場合にエラーが返される�
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "データベースエラー",
+    `データベースエラー (${errorId})`,
   );
 
-  mockNoteRepository.findByTag.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.findByTag as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesByTagService({
     deps: {

@@ -1,4 +1,3 @@
-import type { Result } from "@/lib/result";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 

@@ -8,6 +8,8 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Note } from "@/domain/note/models";
 import { NoteScope } from "@/domain/note/models/note";
+import { generateId } from "@/domain/types/id";
+import type { NoteRepository } from "@/domain/note/repositories";
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -17,20 +19,20 @@ const mockNoteRepository = {
   search: vi.fn(),
   delete: vi.fn(),
   deleteByPath: vi.fn(),
-};
+} as unknown as NoteRepository;
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("有効なブックと検索クエリが指定された場合にノート一覧が返されること", async () => {
-  const bookId = "test-book-id";
-  const userId = "test-user-id";
+  const bookId = generateId("Book");
+  const userId = generateId("User");
   const query = "テスト";
 
   const notes: Note[] = [
     {
-      id: "note-id-1",
+      id: generateId("Note"),
       userId,
       bookId,
       path: "/path/to/note1.md",
@@ -42,7 +44,7 @@ test("有効なブックと検索クエリが指定された場合にノート�
       updatedAt: new Date(),
     },
     {
-      id: "note-id-2",
+      id: generateId("Note"),
       userId,
       bookId,
       path: "/path/to/note2.md",
@@ -55,7 +57,7 @@ test("有効なブックと検索クエリが指定された場合にノート�
     },
   ];
 
-  mockNoteRepository.search.mockReturnValue(
+  (mockNoteRepository.search as any).mockReturnValue(
     okAsync({
       items: notes,
       count: notes.length,
@@ -95,14 +97,15 @@ test("有効なブックと検索クエリが指定された場合にノート�
 });
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
-  const bookId = "non-existing-book-id";
+  const bookId = generateId("Book");
   const query = "テスト";
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ブックが見つかりません",
+    `ブックが見つかりません (${errorId})`,
   );
 
-  mockNoteRepository.search.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.search as any).mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
     deps: {
@@ -140,15 +143,16 @@ test("ブックが存在しない場合にエラーが返されること", async
 });
 
 test("検索に失敗した場合にエラーが返されること", async () => {
-  const bookId = "test-book-id";
+  const bookId = generateId("Book");
   const query = "テスト";
+  const errorId = generateId("Error");
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "検索に失敗しました",
+    `検索に失敗しました (${errorId})`,
   );
 
-  mockNoteRepository.search.mockReturnValue(errAsync(repoError));
+  (mockNoteRepository.search as any).mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
     deps: {

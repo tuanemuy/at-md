@@ -12,14 +12,17 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Profile } from "@/domain/account/models";
 import type { User } from "@/domain/account/models/user";
+import { generateId } from "@/domain/types/id";
+import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import type { UserRepository } from "@/domain/account/repositories";
 
-
+// モック
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
   getUserProfile: vi.fn(),
   validateSession: vi.fn(),
-};
+} as unknown as BlueskyAuthProvider;
 
 const mockUserRepository = {
   create: vi.fn(),
@@ -27,21 +30,19 @@ const mockUserRepository = {
   findByDid: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as UserRepository;
 
 // URLSearchParamsのモック
 const mockParams = new URLSearchParams();
 mockParams.append("code", "test-code");
 mockParams.append("state", "test-state");
 
-
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("既存ユーザーの場合にセッションが返されること", async () => {
-  
-  const did = "test-did";
+  const did = "did:plc:" + generateId("DID");
   const profile: Profile = {
     displayName: "New User",
     description: "Test description",
@@ -49,16 +50,16 @@ test("既存ユーザーの場合にセッションが返されること", async
     bannerUrl: "https://example.com/banner.jpg",
   };
   const existingUser: User = {
-    id: "user-id",
+    id: generateId("User"),
     did,
     profile,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  mockAuthProvider.callback.mockReturnValue(okAsync(did));
-  mockUserRepository.findByDid.mockReturnValue(okAsync(existingUser));
-  mockAuthProvider.getUserProfile.mockReturnValue(okAsync(profile));
+  (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  (mockUserRepository.findByDid as any).mockReturnValue(okAsync(existingUser));
+  (mockAuthProvider.getUserProfile as any).mockReturnValue(okAsync(profile));
 
   const service = new HandleBlueskyAuthCallbackService({
     deps: {
@@ -67,10 +68,8 @@ test("既存ユーザーの場合にセッションが返されること", async
     },
   });
 
-  
   const result = await service.execute({ params: mockParams });
 
-  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockUserRepository.create).not.toHaveBeenCalled();
@@ -78,8 +77,7 @@ test("既存ユーザーの場合にセッションが返されること", async
 });
 
 test("新規ユーザーの場合にユーザーが作成されること", async () => {
-  
-  const did = "test-did";
+  const did = "did:plc:" + generateId("DID");
   const profile: Profile = {
     displayName: "New User",
     description: "Test description",
@@ -87,17 +85,17 @@ test("新規ユーザーの場合にユーザーが作成されること", async
     bannerUrl: "https://example.com/banner.jpg",
   };
   const newUser: User = {
-    id: "new-user-id",
+    id: generateId("User"),
     did,
     profile,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  mockAuthProvider.callback.mockReturnValue(okAsync(did));
-  mockUserRepository.findByDid.mockReturnValue(errAsync());
-  mockAuthProvider.getUserProfile.mockReturnValue(okAsync(profile));
-  mockUserRepository.create.mockReturnValue(okAsync(newUser));
+  (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  (mockUserRepository.findByDid as any).mockReturnValue(errAsync());
+  (mockAuthProvider.getUserProfile as any).mockReturnValue(okAsync(profile));
+  (mockUserRepository.create as any).mockReturnValue(okAsync(newUser));
 
   const service = new HandleBlueskyAuthCallbackService({
     deps: {
@@ -106,10 +104,8 @@ test("新規ユーザーの場合にユーザーが作成されること", async
     },
   });
 
-  
   const result = await service.execute({ params: mockParams });
 
-  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockAuthProvider.getUserProfile).toHaveBeenCalledWith(did);
@@ -126,13 +122,13 @@ test("新規ユーザーの場合にユーザーが作成されること", async
 });
 
 test("コールバック処理に失敗した場合にエラーが返されること", async () => {
-  
+  const errorId = generateId("Error");
   const providerError = new ExternalServiceError(
     "BlueskyAuth",
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-    "Failed to handle callback",
+    `Failed to handle callback (${errorId})`,
   );
-  mockAuthProvider.callback.mockReturnValue(errAsync(providerError));
+  (mockAuthProvider.callback as any).mockReturnValue(errAsync(providerError));
 
   const service = new HandleBlueskyAuthCallbackService({
     deps: {
@@ -141,10 +137,8 @@ test("コールバック処理に失敗した場合にエラーが返される�
     },
   });
 
-  
   const result = await service.execute({ params: mockParams });
 
-  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -158,20 +152,20 @@ test("コールバック処理に失敗した場合にエラーが返される�
 });
 
 test("ユーザー情報の確認に失敗した場合にエラーが返されること", async () => {
-  
-  const did = "test-did";
+  const did = "did:plc:" + generateId("DID");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.UNKNOWN_ERROR,
-    "Database error",
+    `Database error (${errorId})`,
   );
   const providerError = new ExternalServiceError(
     "BlueskyAuth",
     ExternalServiceErrorCode.REQUEST_FAILED,
-    "Failed to get user profile",
+    `Failed to get user profile (${errorId})`,
   );
-  mockAuthProvider.callback.mockReturnValue(okAsync(did));
-  mockUserRepository.findByDid.mockReturnValue(errAsync(repoError));
-  mockAuthProvider.getUserProfile.mockReturnValue(errAsync(providerError));
+  (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  (mockUserRepository.findByDid as any).mockReturnValue(errAsync(repoError));
+  (mockAuthProvider.getUserProfile as any).mockReturnValue(errAsync(providerError));
 
   const service = new HandleBlueskyAuthCallbackService({
     deps: {
@@ -180,10 +174,8 @@ test("ユーザー情報の確認に失敗した場合にエラーが返され�
     },
   });
 
-  
   const result = await service.execute({ params: mockParams });
 
-  
   expect(mockAuthProvider.callback).toHaveBeenCalledWith(mockParams);
   expect(mockUserRepository.findByDid).toHaveBeenCalledWith(did);
   expect(mockAuthProvider.getUserProfile).toHaveBeenCalledWith(did);

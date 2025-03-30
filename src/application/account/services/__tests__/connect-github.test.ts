@@ -11,12 +11,15 @@ import {
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { GitHubConnection } from "@/domain/account/models/github-connection";
+import { generateId } from "@/domain/types/id";
+import type { GitHubAppProvider } from "@/domain/account/adapters/github-app-provider";
+import type { GitHubConnectionRepository } from "@/domain/account/repositories";
 
-
+// モック
 const mockGitHubAppProvider = {
   getAccessToken: vi.fn(),
   getInstallations: vi.fn(),
-};
+} as unknown as GitHubAppProvider;
 
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
@@ -25,22 +28,20 @@ const mockGitHubConnectionRepository = {
   findById: vi.fn(),
   deleteByUserId: vi.fn(),
   delete: vi.fn(),
-};
-
+} as unknown as GitHubConnectionRepository;
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("正常にGitHub連携が作成された場合にvoidが返されること", async () => {
-  
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const code = "github-auth-code";
   const accessToken = "github-access-token";
   const refreshToken = "github-refresh-token";
 
   const githubConnection: GitHubConnection = {
-    id: "github-connection-id",
+    id: generateId("GitHubConnection"),
     userId,
     accessToken,
     refreshToken,
@@ -48,14 +49,14 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
     updatedAt: new Date(),
   };
 
-  mockGitHubAppProvider.getAccessToken.mockReturnValue(
+  (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(
     okAsync({
       accessToken,
       refreshToken,
     }),
   );
 
-  mockGitHubConnectionRepository.create.mockReturnValue(
+  (mockGitHubConnectionRepository.create as any).mockReturnValue(
     okAsync(githubConnection),
   );
 
@@ -66,10 +67,8 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
     },
   });
 
-  
   const result = await service.execute({ userId, code });
 
-  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).toHaveBeenCalledWith({
     userId,
@@ -80,17 +79,17 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
 });
 
 test("アクセストークンの取得に失敗した場合にエラーが返されること", async () => {
-  
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const code = "invalid-github-auth-code";
+  const errorId = generateId("Error");
 
   const providerError = new ExternalServiceError(
     "GitHub",
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-    "アクセストークンの取得に失敗",
+    `アクセストークンの取得に失敗 (${errorId})`,
   );
 
-  mockGitHubAppProvider.getAccessToken.mockReturnValue(errAsync(providerError));
+  (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(errAsync(providerError));
 
   const service = new ConnectGitHubService({
     deps: {
@@ -99,10 +98,8 @@ test("アクセストークンの取得に失敗した場合にエラーが返�
     },
   });
 
-  
   const result = await service.execute({ userId, code });
 
-  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -116,25 +113,25 @@ test("アクセストークンの取得に失敗した場合にエラーが返�
 });
 
 test("GitHub連携の作成に失敗した場合にエラーが返されること", async () => {
-  
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const code = "github-auth-code";
   const accessToken = "github-access-token";
   const refreshToken = "github-refresh-token";
+  const errorId = generateId("Error");
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.CONSTRAINT_VIOLATION,
-    "既に連携が存在します",
+    `既に連携が存在します (${errorId})`,
   );
 
-  mockGitHubAppProvider.getAccessToken.mockReturnValue(
+  (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(
     okAsync({
       accessToken,
       refreshToken,
     }),
   );
 
-  mockGitHubConnectionRepository.create.mockReturnValue(errAsync(repoError));
+  (mockGitHubConnectionRepository.create as any).mockReturnValue(errAsync(repoError));
 
   const service = new ConnectGitHubService({
     deps: {
@@ -143,10 +140,8 @@ test("GitHub連携の作成に失敗した場合にエラーが返されるこ�
     },
   });
 
-  
   const result = await service.execute({ userId, code });
 
-  
   expect(mockGitHubAppProvider.getAccessToken).toHaveBeenCalledWith(code);
   expect(mockGitHubConnectionRepository.create).toHaveBeenCalledWith({
     userId,

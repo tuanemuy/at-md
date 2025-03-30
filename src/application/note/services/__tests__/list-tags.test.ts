@@ -7,30 +7,32 @@ import {
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Tag } from "@/domain/note/models";
+import { generateId } from "@/domain/types/id";
+import type { TagRepository } from "@/domain/note/repositories";
 
 const mockTagRepository = {
   findByNoteId: vi.fn(),
   findByBookId: vi.fn(),
   deleteUnused: vi.fn(),
-};
+} as unknown as TagRepository;
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("ブックが存在する場合にタグ一覧が返されること", async () => {
-  const bookId = "test-book-id";
+  const bookId = generateId("Book");
 
   const tags: Tag[] = [
     {
-      id: "tag-id-1",
+      id: generateId("Tag"),
       bookId,
       name: "タグ1",
       createdAt: new Date(),
       updatedAt: new Date(),
     },
     {
-      id: "tag-id-2",
+      id: generateId("Tag"),
       bookId,
       name: "タグ2",
       createdAt: new Date(),
@@ -38,7 +40,7 @@ test("ブックが存在する場合にタグ一覧が返されること", async
     },
   ];
 
-  mockTagRepository.findByBookId.mockReturnValue(okAsync(tags));
+  (mockTagRepository.findByBookId as any).mockReturnValue(okAsync(tags));
 
   const service = new ListTagsService({
     deps: {
@@ -57,13 +59,14 @@ test("ブックが存在する場合にタグ一覧が返されること", async
 });
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
-  const bookId = "non-existing-book-id";
+  const bookId = generateId("Book");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "ブックが見つかりません",
+    `ブックが見つかりません (${errorId})`,
   );
 
-  mockTagRepository.findByBookId.mockReturnValue(errAsync(repoError));
+  (mockTagRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
     deps: {
@@ -85,14 +88,15 @@ test("ブックが存在しない場合にエラーが返されること", async
 });
 
 test("タグの取得に失敗した場合にエラーが返されること", async () => {
-  const bookId = "test-book-id";
+  const bookId = generateId("Book");
+  const errorId = generateId("Error");
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "データベースエラー",
+    `データベースエラー (${errorId})`,
   );
 
-  mockTagRepository.findByBookId.mockReturnValue(errAsync(repoError));
+  (mockTagRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
     deps: {

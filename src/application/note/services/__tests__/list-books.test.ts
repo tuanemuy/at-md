@@ -8,6 +8,8 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import type { Book } from "@/domain/note/models";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { generateId } from "@/domain/types/id";
+import type { BookRepository } from "@/domain/note/repositories";
 
 // モックの作成
 const mockBookRepository = {
@@ -17,7 +19,7 @@ const mockBookRepository = {
   findByUserId: vi.fn(),
   findByOwnerAndRepo: vi.fn(),
   delete: vi.fn(),
-};
+} as unknown as BookRepository;
 
 // 各テスト前にモックをリセット
 beforeEach(() => {
@@ -26,10 +28,10 @@ beforeEach(() => {
 
 test("ブック一覧が正常に取得された場合にブック一覧が返されること", async () => {
   // テストの準備
-  const userId = "test-user-id";
+  const userId = generateId("User");
   const books: Book[] = [
     {
-      id: "book-id-1",
+      id: generateId("Book"),
       userId,
       owner: "owner1",
       repo: "repo1",
@@ -45,7 +47,7 @@ test("ブック一覧が正常に取得された場合にブック一覧が返�
       updatedAt: new Date(),
     },
     {
-      id: "book-id-2",
+      id: generateId("Book"),
       userId,
       owner: "owner2",
       repo: "repo2",
@@ -62,7 +64,7 @@ test("ブック一覧が正常に取得された場合にブック一覧が返�
     },
   ];
 
-  mockBookRepository.findByUserId.mockReturnValue(okAsync(books));
+  (mockBookRepository.findByUserId as any).mockReturnValue(okAsync(books));
 
   const service = new ListBooksService({
     deps: {
@@ -84,13 +86,14 @@ test("ブック一覧が正常に取得された場合にブック一覧が返�
 
 test("ブック一覧の取得に失敗した場合にエラーが返されること", async () => {
   // テストの準備
-  const userId = "test-user-id";
+  const userId = generateId("User");
+  const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    "データベースエラー",
+    `データベースエラー (${errorId})`,
   );
 
-  mockBookRepository.findByUserId.mockReturnValue(errAsync(repoError));
+  (mockBookRepository.findByUserId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListBooksService({
     deps: {

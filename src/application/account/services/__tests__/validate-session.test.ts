@@ -12,38 +12,39 @@ import {
 import type { SessionData } from "@/domain/account/models/session-data";
 import type { RequestContext } from "@/domain/types/http";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { generateId } from "@/domain/types/id";
+import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import type { SessionManager } from "@/domain/account/adapters/session-manager";
 
-
+// モック
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
   getUserProfile: vi.fn(),
   validateSession: vi.fn(),
-};
+} as unknown as BlueskyAuthProvider;
 
 const mockSessionManager = {
   set: vi.fn(),
   get: vi.fn(),
   remove: vi.fn(),
-};
+} as unknown as SessionManager;
 
 const mockContext: RequestContext = {
   req: {} as IncomingMessage,
   res: {} as ServerResponse<IncomingMessage>,
 };
 
-
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 test("有効なセッションの場合にセッションデータが返されること", async () => {
-  
   const sessionData: SessionData = {
-    did: "valid-did",
+    did: "did:plc:" + generateId("DID"),
   };
-  mockSessionManager.get.mockReturnValue(okAsync(sessionData));
-  mockAuthProvider.validateSession.mockReturnValue(okAsync(sessionData));
+  (mockSessionManager.get as any).mockReturnValue(okAsync(sessionData));
+  (mockAuthProvider.validateSession as any).mockReturnValue(okAsync(sessionData));
 
   const service = new ValidateSessionService({
     deps: {
@@ -52,10 +53,8 @@ test("有効なセッションの場合にセッションデータが返され�
     },
   });
 
-  
   const result = await service.execute({ context: mockContext });
 
-  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).toHaveBeenCalledWith(
     sessionData.did,
@@ -67,13 +66,13 @@ test("有効なセッションの場合にセッションデータが返され�
 });
 
 test("セッションが存在しない場合にエラーが返されること", async () => {
-  
+  const errorId = generateId("Error");
   const providerError = new ExternalServiceError(
     "SessionManager",
     ExternalServiceErrorCode.REQUEST_FAILED,
-    "Failed to get session",
+    `Failed to get session (${errorId})`,
   );
-  mockSessionManager.get.mockReturnValue(errAsync(providerError));
+  (mockSessionManager.get as any).mockReturnValue(errAsync(providerError));
 
   const service = new ValidateSessionService({
     deps: {
@@ -82,10 +81,8 @@ test("セッションが存在しない場合にエラーが返されること",
     },
   });
 
-  
   const result = await service.execute({ context: mockContext });
 
-  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
@@ -99,17 +96,17 @@ test("セッションが存在しない場合にエラーが返されること",
 });
 
 test("セッション検証に失敗した場合にエラーが返されること", async () => {
-  
   const sessionData: SessionData = {
-    did: "invalid-did",
+    did: "did:plc:" + generateId("DID"),
   };
+  const errorId = generateId("Error");
   const providerError = new ExternalServiceError(
     "BlueskyAuth",
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
-    "Failed to validate session",
+    `Failed to validate session (${errorId})`,
   );
-  mockSessionManager.get.mockReturnValue(okAsync(sessionData));
-  mockAuthProvider.validateSession.mockReturnValue(errAsync(providerError));
+  (mockSessionManager.get as any).mockReturnValue(okAsync(sessionData));
+  (mockAuthProvider.validateSession as any).mockReturnValue(errAsync(providerError));
 
   const service = new ValidateSessionService({
     deps: {
@@ -118,10 +115,8 @@ test("セッション検証に失敗した場合にエラーが返されるこ�
     },
   });
 
-  
   const result = await service.execute({ context: mockContext });
 
-  
   expect(mockSessionManager.get).toHaveBeenCalledWith(mockContext);
   expect(mockAuthProvider.validateSession).toHaveBeenCalledWith(
     sessionData.did,
