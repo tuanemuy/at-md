@@ -1,7 +1,7 @@
 import type { ResultAsync } from "neverthrow";
+import { z } from "zod";
 import type { RepositoryError } from "../../types/error";
 import type { Pagination } from "../../types/pagination";
-import { z } from "zod";
 import type { Note } from "../models";
 import { noteScopeSchema } from "../models/note";
 
@@ -30,9 +30,7 @@ export interface NoteRepository {
   /**
    * ノートを作成または更新する
    */
-  createOrUpdate(
-    note: CreateOrUpdateNote,
-  ): ResultAsync<Note, RepositoryError>;
+  createOrUpdate(note: CreateOrUpdateNote): ResultAsync<Note, RepositoryError>;
 
   /**
    * 指定したIDのノートを取得する

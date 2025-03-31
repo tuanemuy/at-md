@@ -1,8 +1,8 @@
 import path from "node:path";
+import * as schema from "@/infrastructure/db/schema";
 import type { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import * as schema from "@/infrastructure/db/schema";
 
 /**
  * テスト用のDrizzleクライアントを取得する

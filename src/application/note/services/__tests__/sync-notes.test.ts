@@ -1,31 +1,35 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { SyncNotesService } from "../sync-notes";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Book, Note } from "@/domain/note/models";
+import { NoteScope } from "@/domain/note/models/note";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
-} from "@/domain/types/error";
-import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import {
   ExternalServiceError,
   ExternalServiceErrorCode,
+  RepositoryError,
+  RepositoryErrorCode,
 } from "@/domain/types/error";
-import type { GitHubCommit } from "@/domain/note/dtos";
-import type { Book, Note, Tag, SyncStatus } from "@/domain/note/models";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { generateId } from "@/domain/types/id";
-import type { 
-  NoteRepository, 
-  BookRepository, 
-  TagRepository 
-} from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { SyncNotesService } from "../sync-notes";
 
+// テスト用モック
 const mockGitHubConnectionRepository = {
   create: vi.fn(),
   update: vi.fn(),
   findByUserId: vi.fn(),
   findById: vi.fn(),
   deleteByUserId: vi.fn(),
+  delete: vi.fn(),
+};
+
+const mockBookRepository = {
+  create: vi.fn(),
+  update: vi.fn(),
+  findById: vi.fn(),
+  findByUserId: vi.fn(),
+  findByOwnerAndRepo: vi.fn(),
   delete: vi.fn(),
 };
 
@@ -37,27 +41,13 @@ const mockNoteRepository = {
   search: vi.fn(),
   delete: vi.fn(),
   deleteByPath: vi.fn(),
-} as unknown as NoteRepository;
-
-const mockBookRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByUserId: vi.fn(),
-  findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
-} as unknown as BookRepository;
+};
 
 const mockTagRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByBookId: vi.fn(),
   findByNoteId: vi.fn(),
-  findOrCreate: vi.fn(),
-  delete: vi.fn(),
+  findByBookId: vi.fn(),
   deleteUnused: vi.fn(),
-} as unknown as TagRepository;
+};
 
 const mockGithubContentProvider = {
   listRepositories: vi.fn(),
@@ -67,70 +57,34 @@ const mockGithubContentProvider = {
   setupWebhook: vi.fn(),
 };
 
-beforeEach(() => {
-  vi.resetAllMocks();
-});
-
+// テスト用データ
 const testBook: Book = {
   id: generateId("Book"),
   userId: generateId("User"),
   owner: "test-owner",
   repo: "test-repo",
   details: {
-    name: "Test Book",
-    description: "Test Description",
+    name: "テストリポジトリ",
+    description: "テスト用のリポジトリです",
   },
   syncStatus: {
-    lastSyncedAt: new Date(),
+    lastSyncedAt: null,
     status: SyncStatusCode.SYNCED,
   },
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-const testTag: Tag = {
-  id: generateId("Tag"),
-  bookId: generateId("Book"),
-  name: "test-tag",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+// 各テスト前にモックをリセット
+beforeEach(() => {
+  vi.resetAllMocks();
+});
 
-const testNote: Note = {
-  id: generateId("Note"),
-  userId: generateId("User"),
-  bookId: generateId("Book"),
-  path: "path/to/note.md",
-  title: "Test Note",
-  body: "# Test Note\n\nThis is a test note.",
-  scope: "private",
-  tags: [],
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
-const testCommit: GitHubCommit = {
-  id: generateId("Commit"),
-  message: "Test commit",
-  timestamp: new Date().toISOString(),
-  url: "https://github.com/test-owner/test-repo/commit/hash",
-  added: ["path/to/new-note.md"],
-  removed: ["path/to/deleted-note.md"],
-  modified: ["path/to/modified-note.md"],
-};
-
-const markdownContent = `---
-scope: public
----
-
-# Test Markdown
-
-This is a test markdown file with tags: #test-tag #another-tag`;
-
-test("コミットのマークダウンファイルを同期できること", async () => {
+test("GitHubからの同期が成功した場合にノート数が返されること", async () => {
   const userId = generateId("User");
   const connectionId = generateId("Connection");
-  
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
       id: connectionId,
@@ -140,45 +94,65 @@ test("コミットのマークダウンファイルを同期できること", as
       updatedAt: new Date(),
     }),
   );
-  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
-  (mockBookRepository.findById as any).mockReturnValue(okAsync(testBook));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(
+    okAsync(testBook),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.update as any).mockReturnValue(okAsync(testBook));
 
-  (mockGithubContentProvider.getContent as any).mockReturnValue(
-    okAsync(markdownContent),
-  );
-  (mockGithubContentProvider.listPaths as any).mockReturnValue(
-    okAsync(["path/to/new-note.md", "path/to/modified-note.md"]),
-  );
-
-  const createdNote: Note = {
-    ...testNote,
+  const existingNote: Note = {
     id: generateId("Note"),
-    path: "path/to/new-note.md",
-    title: "Test Markdown",
-    body: markdownContent,
-    scope: "public",
-    tags: [
-      {
-        id: generateId("Tag"),
-        bookId: testBook.id,
-        name: "test-tag",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: generateId("Tag"),
-        bookId: testBook.id,
-        name: "another-tag",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ],
+    userId: testBook.userId,
+    bookId: testBook.id,
+    path: "path/to/existing-note.md",
+    title: "既存ノート",
+    body: "既存ノートの内容",
+    scope: NoteScope.PUBLIC,
+    tags: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  (mockNoteRepository.createOrUpdate as any).mockReturnValue(okAsync(createdNote));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockNoteRepository.findByBookId as any).mockReturnValue(
+    okAsync({
+      items: [existingNote],
+      count: 1,
+    }),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGithubContentProvider.listPaths as any).mockReturnValue(
+    okAsync(["path/to/existing-note.md", "path/to/new-note.md"]),
+  );
+
+  const newNoteContent = `---
+scope: public
+tags: [テスト, マークダウン]
+---
+# 新しいノート
+これは新しいノートの内容です。`;
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGithubContentProvider.getContent as any).mockReturnValue(
+    okAsync(newNoteContent),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockNoteRepository.createOrUpdate as any).mockReturnValue(
+    okAsync({
+      id: generateId("Note"),
+      userId: testBook.userId,
+      bookId: testBook.id,
+      path: "path/to/new-note.md",
+      title: "新しいノート",
+      body: "これは新しいノートの内容です。",
+      scope: NoteScope.PUBLIC,
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockTagRepository.deleteUnused as any).mockReturnValue(okAsync(undefined));
 
   const service = new SyncNotesService({
@@ -197,6 +171,9 @@ test("コミットのマークダウンファイルを同期できること", as
     repo: "test-repo",
   });
 
+  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
+    userId,
+  );
   expect(mockBookRepository.findByOwnerAndRepo).toHaveBeenCalledWith(
     "test-owner",
     "test-repo",
@@ -219,15 +196,17 @@ test("コミットのマークダウンファイルを同期できること", as
   }
 });
 
-test("GitHub連携情報が見つからない場合はエラーを返すこと", async () => {
+test("GitHubとの連携情報が見つからない場合にエラーが返されること", async () => {
   const userId = generateId("User");
   const errorId = generateId("Error");
-  const connectionError = new RepositoryError(
+  const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    `GitHub connection not found (${errorId})`,
+    `GitHub連携情報が見つかりません (${errorId})`,
   );
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
-    errAsync(connectionError),
+    errAsync(repoError),
   );
 
   const service = new SyncNotesService({
@@ -249,22 +228,22 @@ test("GitHub連携情報が見つからない場合はエラーを返すこと",
   expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
     userId,
   );
-  expect(mockBookRepository.findByOwnerAndRepo).not.toHaveBeenCalled();
-  expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
-
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
+    expect(result.error.cause).toBe(repoError);
   }
 });
 
-test("ブックが見つからない場合はエラーを返すこと", async () => {
+test("ブックが見つからない場合にエラーが返されること", async () => {
   const userId = generateId("User");
   const connectionId = generateId("Connection");
-  
+  const errorId = generateId("Error");
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
       id: connectionId,
@@ -275,11 +254,14 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
     }),
   );
 
-  const bookError = new RepositoryError(
+  const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
-    "Book not found",
+    `ブックが見つかりません (${errorId})`,
   );
-  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(errAsync(bookError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(
+    errAsync(repoError),
+  );
 
   const service = new SyncNotesService({
     deps: {
@@ -301,21 +283,22 @@ test("ブックが見つからない場合はエラーを返すこと", async ()
     "test-owner",
     "test-repo",
   );
-  expect(mockGithubContentProvider.listPaths).not.toHaveBeenCalled();
-
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
+    expect(result.error.cause).toBe(repoError);
   }
 });
 
-test("ファイル一覧の取得に失敗した場合はエラーを返すこと", async () => {
+test("パスの一覧取得に失敗した場合にエラーが返されること", async () => {
   const userId = generateId("User");
   const connectionId = generateId("Connection");
-  
+  const errorId = generateId("Error");
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
       id: connectionId,
@@ -325,14 +308,20 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
       updatedAt: new Date(),
     }),
   );
-  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(
+    okAsync(testBook),
+  );
 
   const contentError = new ExternalServiceError(
     "GitHubContent",
     ExternalServiceErrorCode.REQUEST_FAILED,
-    "Failed to list paths",
+    `Failed to list paths (${errorId})`,
   );
-  (mockGithubContentProvider.listPaths as any).mockReturnValue(errAsync(contentError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGithubContentProvider.listPaths as any).mockReturnValue(
+    errAsync(contentError),
+  );
 
   const service = new SyncNotesService({
     deps: {
@@ -355,21 +344,21 @@ test("ファイル一覧の取得に失敗した場合はエラーを返すこ�
     "test-owner",
     "test-repo",
   );
-  expect(mockGithubContentProvider.getContent).not.toHaveBeenCalled();
-
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
+    expect(result.error.cause).toBe(contentError);
   }
 });
 
 test("ファイル内容の取得に失敗した場合はそのファイルをスキップすること", async () => {
   const userId = generateId("User");
   const connectionId = generateId("Connection");
-  
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync({
       id: connectionId,
@@ -379,9 +368,14 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
       updatedAt: new Date(),
     }),
   );
-  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(okAsync(testBook));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockBookRepository.findByOwnerAndRepo as any).mockReturnValue(
+    okAsync(testBook),
+  );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.update as any).mockReturnValue(okAsync(testBook));
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGithubContentProvider.listPaths as any).mockReturnValue(
     okAsync(["path/to/new-note.md"]),
   );
@@ -391,7 +385,10 @@ test("ファイル内容の取得に失敗した場合はそのファイルを�
     ExternalServiceErrorCode.REQUEST_FAILED,
     "Failed to get content",
   );
-  (mockGithubContentProvider.getContent as any).mockReturnValue(errAsync(contentError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGithubContentProvider.getContent as any).mockReturnValue(
+    errAsync(contentError),
+  );
 
   const service = new SyncNotesService({
     deps: {

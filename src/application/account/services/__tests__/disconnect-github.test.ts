@@ -1,22 +1,22 @@
-import { expect, test, beforeEach, afterEach } from "vitest";
-import { DisconnectGitHubService } from "../disconnect-github";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { CreateUser } from "@/domain/account/repositories";
+import type { CreateGitHubConnection } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { PGlite } from "@electric-sql/pglite";
-import { 
-  getTestDatabase, 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
-  closeTestDatabase 
-} from "@/application/__test__/setup";
+import { generateId } from "@/domain/types/id";
 import { DrizzleGitHubConnectionRepository } from "@/infrastructure/db/repositories/account/github-connection-repository";
 import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
-import { generateId } from "@/domain/types/id";
-import type { CreateUser } from "@/domain/account/repositories";
-import type { CreateGitHubConnection } from "@/domain/account/repositories";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test } from "vitest";
+import { DisconnectGitHubService } from "../disconnect-github";
 
 let client: PGlite;
 let githubConnectionRepository: DrizzleGitHubConnectionRepository;
@@ -48,19 +48,20 @@ test("GitHub連携の解除が成功した場合にvoidが返されること", a
       bannerUrl: null,
     },
   };
-  
+
   const createUserResult = await userRepository.create(testUser);
   expect(createUserResult.isOk()).toBe(true);
   const userId = createUserResult.isOk() ? createUserResult.value.id : "";
-  
+
   // GitHub連携情報を作成
   const connection: CreateGitHubConnection = {
     userId,
     accessToken: "github-access-token",
     refreshToken: "github-refresh-token",
   };
-  
-  const createConnectionResult = await githubConnectionRepository.create(connection);
+
+  const createConnectionResult =
+    await githubConnectionRepository.create(connection);
   expect(createConnectionResult.isOk()).toBe(true);
 
   const service = new DisconnectGitHubService({
@@ -72,7 +73,7 @@ test("GitHub連携の解除が成功した場合にvoidが返されること", a
   const result = await service.execute({ userId });
 
   expect(result.isOk()).toBe(true);
-  
+
   // 連携が削除されたか確認
   const findResult = await githubConnectionRepository.findByUserId(userId);
   expect(findResult.isErr()).toBe(true);
@@ -95,4 +96,3 @@ test("GitHub連携がない場合でも成功すること", async () => {
   // 存在しないデータの削除は成功として扱われる
   expect(result.isOk()).toBe(true);
 });
-

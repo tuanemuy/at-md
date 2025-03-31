@@ -1,10 +1,10 @@
+import type { NoteRepository } from "@/domain/note/repositories/note-repository";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { NoteRepository } from "@/domain/note/repositories/note-repository";
-import type { SearchNotesInput, SearchNotesUseCase } from "../usecase";
 import { DBOrder } from "@/domain/types/pagination";
+import type { SearchNotesInput, SearchNotesUseCase } from "../usecase";
 
 /**
  * ノートを検索するユースケース実装
@@ -44,4 +44,3 @@ export class SearchNotesService implements SearchNotesUseCase {
       );
   }
 }
-

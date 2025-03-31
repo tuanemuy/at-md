@@ -1,12 +1,12 @@
+import type { GitHubConnection } from "@/domain/account/models/github-connection";
+import type { SessionData } from "@/domain/account/models/session-data";
+import type { User } from "@/domain/account/models/user";
+import type { ApplicationServiceError } from "@/domain/types/error";
+import type { RequestContext } from "@/domain/types/http";
 /**
  * アカウント管理コンテキストのユースケース定義
  */
 import type { ResultAsync } from "@/lib/result";
-import type { RequestContext } from "@/domain/types/http";
-import type { ApplicationServiceError } from "@/domain/types/error";
-import type { SessionData } from "@/domain/account/models/session-data";
-import type { User } from "@/domain/account/models/user";
-import type { GitHubConnection } from "@/domain/account/models/github-connection";
 
 /**
  * Bluesky認証を開始するユースケース

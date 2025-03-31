@@ -1,6 +1,7 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { HandleBlueskyAuthCallbackService } from "../handle-bluesky-auth-callback";
-import { okAsync, errAsync } from "@/lib/result";
+import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import type { Profile } from "@/domain/account/models";
+import type { User } from "@/domain/account/models/user";
+import type { UserRepository } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -10,11 +11,10 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Profile } from "@/domain/account/models";
-import type { User } from "@/domain/account/models/user";
 import { generateId } from "@/domain/types/id";
-import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
-import type { UserRepository } from "@/domain/account/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { HandleBlueskyAuthCallbackService } from "../handle-bluesky-auth-callback";
 
 // モック
 const mockAuthProvider = {
@@ -42,13 +42,14 @@ beforeEach(() => {
 });
 
 test("既存ユーザーの場合にセッションが返されること", async () => {
-  const did = "did:plc:" + generateId("DID");
+  const did = `did:plc:${generateId("DID")}`;
   const profile: Profile = {
     displayName: "New User",
     description: "Test description",
     avatarUrl: "https://example.com/avatar.jpg",
     bannerUrl: "https://example.com/banner.jpg",
   };
+
   const existingUser: User = {
     id: generateId("User"),
     did,
@@ -57,8 +58,11 @@ test("既存ユーザーの場合にセッションが返されること", async
     updatedAt: new Date(),
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockUserRepository.findByDid as any).mockReturnValue(okAsync(existingUser));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.getUserProfile as any).mockReturnValue(okAsync(profile));
 
   const service = new HandleBlueskyAuthCallbackService({
@@ -77,13 +81,14 @@ test("既存ユーザーの場合にセッションが返されること", async
 });
 
 test("新規ユーザーの場合にユーザーが作成されること", async () => {
-  const did = "did:plc:" + generateId("DID");
+  const did = `did:plc:${generateId("DID")}`;
   const profile: Profile = {
     displayName: "New User",
     description: "Test description",
     avatarUrl: "https://example.com/avatar.jpg",
     bannerUrl: "https://example.com/banner.jpg",
   };
+
   const newUser: User = {
     id: generateId("User"),
     did,
@@ -92,9 +97,13 @@ test("新規ユーザーの場合にユーザーが作成されること", async
     updatedAt: new Date(),
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockUserRepository.findByDid as any).mockReturnValue(errAsync());
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.getUserProfile as any).mockReturnValue(okAsync(profile));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockUserRepository.create as any).mockReturnValue(okAsync(newUser));
 
   const service = new HandleBlueskyAuthCallbackService({
@@ -128,6 +137,7 @@ test("コールバック処理に失敗した場合にエラーが返される�
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
     `Failed to handle callback (${errorId})`,
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.callback as any).mockReturnValue(errAsync(providerError));
 
   const service = new HandleBlueskyAuthCallbackService({
@@ -152,7 +162,7 @@ test("コールバック処理に失敗した場合にエラーが返される�
 });
 
 test("ユーザー情報の確認に失敗した場合にエラーが返されること", async () => {
-  const did = "did:plc:" + generateId("DID");
+  const did = `did:plc:${generateId("DID")}`;
   const errorId = generateId("Error");
   const repoError = new RepositoryError(
     RepositoryErrorCode.UNKNOWN_ERROR,
@@ -163,9 +173,15 @@ test("ユーザー情報の確認に失敗した場合にエラーが返され�
     ExternalServiceErrorCode.REQUEST_FAILED,
     `Failed to get user profile (${errorId})`,
   );
+
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.callback as any).mockReturnValue(okAsync(did));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockUserRepository.findByDid as any).mockReturnValue(errAsync(repoError));
-  (mockAuthProvider.getUserProfile as any).mockReturnValue(errAsync(providerError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockAuthProvider.getUserProfile as any).mockReturnValue(
+    errAsync(providerError),
+  );
 
   const service = new HandleBlueskyAuthCallbackService({
     deps: {
@@ -188,4 +204,3 @@ test("ユーザー情報の確認に失敗した場合にエラーが返され�
     expect(result.error.cause).toBe(providerError);
   }
 });
-

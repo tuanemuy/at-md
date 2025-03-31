@@ -1,9 +1,9 @@
+import type { GitHubConnectionRepository } from "@/domain/account/repositories/github-connection-repository";
+import type { GitHubContentProvider } from "@/domain/note/adapters/github-content-provider";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { GitHubContentProvider } from "@/domain/note/adapters/github-content-provider";
-import type { GitHubConnectionRepository } from "@/domain/account/repositories/github-connection-repository";
 import type {
   ListRepositoriesInput,
   ListRepositoriesUseCase,

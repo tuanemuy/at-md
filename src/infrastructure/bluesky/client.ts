@@ -1,14 +1,14 @@
-import { Agent } from "@atproto/api";
-import { type Result, ResultAsync, err, ok } from "@/lib/result";
-import { logger } from "@/lib/logger";
-import {
-  ExternalServiceError,
-  ExternalServiceErrorCode,
-} from "@/domain/types/error";
 import type {
   AuthSessionRepository,
   AuthStateRepository,
 } from "@/domain/account/repositories";
+import {
+  ExternalServiceError,
+  ExternalServiceErrorCode,
+} from "@/domain/types/error";
+import { logger } from "@/lib/logger";
+import { type Result, ResultAsync, err, ok } from "@/lib/result";
+import { Agent } from "@atproto/api";
 import {
   NodeOAuthClient,
   type NodeSavedSession,

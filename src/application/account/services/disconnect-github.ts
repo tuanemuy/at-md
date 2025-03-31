@@ -1,12 +1,12 @@
 import type { GitHubConnectionRepository } from "@/domain/account/repositories/github-connection-repository";
-import type {
-  DisconnectGitHubInput,
-  DisconnectGitHubUseCase,
-} from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type {
+  DisconnectGitHubInput,
+  DisconnectGitHubUseCase,
+} from "../usecase";
 
 /**
  * GitHub連携を解除するユースケース実装

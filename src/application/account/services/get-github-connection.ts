@@ -1,12 +1,12 @@
 import type { GitHubConnectionRepository } from "@/domain/account/repositories/github-connection-repository";
-import type {
-  GetGitHubConnectionsInput,
-  GetGitHubConnectionsUseCase,
-} from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type {
+  GetGitHubConnectionsInput,
+  GetGitHubConnectionsUseCase,
+} from "../usecase";
 
 /**
  * GitHub連携一覧を取得するユースケース実装

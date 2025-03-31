@@ -1,9 +1,9 @@
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
-import type { UpdateProfileInput, UpdateProfileUseCase } from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type { UpdateProfileInput, UpdateProfileUseCase } from "../usecase";
 
 /**
  * ユーザープロフィールを更新するユースケース実装

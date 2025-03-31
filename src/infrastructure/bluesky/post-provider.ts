@@ -1,5 +1,7 @@
-import type { NodeOAuthClient } from "@atproto/oauth-client-node";
-import { validate } from "@/domain/types/validation";
+import type {
+  AuthSessionRepository,
+  AuthStateRepository,
+} from "@/domain/account/repositories";
 import type { BlueskyPostProvider } from "@/domain/post/adapters/bluesky-post-provider";
 import { type DID, blueskyPostSchema } from "@/domain/post/dtos/bluesky-post";
 import { engagementSchema } from "@/domain/post/models/engagement";
@@ -7,13 +9,11 @@ import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
-import type {
-  AuthSessionRepository,
-  AuthStateRepository,
-} from "@/domain/account/repositories";
+import { validate } from "@/domain/types/validation";
 import { ResultAsync, err, ok } from "@/lib/result";
 import { AppBskyFeedDefs } from "@atproto/api";
-import { getOAuthClient, getAgent } from "./client";
+import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { getAgent, getOAuthClient } from "./client";
 
 export class DefaultBlueskyPostProvider implements BlueskyPostProvider {
   private readonly oauthClient: NodeOAuthClient;

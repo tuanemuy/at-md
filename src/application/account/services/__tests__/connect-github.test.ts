@@ -1,6 +1,6 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ConnectGitHubService } from "../connect-github";
-import { okAsync, errAsync } from "@/lib/result";
+import type { GitHubAppProvider } from "@/domain/account/adapters/github-app-provider";
+import type { GitHubConnection } from "@/domain/account/models/github-connection";
+import type { GitHubConnectionRepository } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -10,10 +10,10 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { GitHubConnection } from "@/domain/account/models/github-connection";
 import { generateId } from "@/domain/types/id";
-import type { GitHubAppProvider } from "@/domain/account/adapters/github-app-provider";
-import type { GitHubConnectionRepository } from "@/domain/account/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { ConnectGitHubService } from "../connect-github";
 
 // モック
 const mockGitHubAppProvider = {
@@ -49,6 +49,7 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
     updatedAt: new Date(),
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(
     okAsync({
       accessToken,
@@ -56,6 +57,7 @@ test("正常にGitHub連携が作成された場合にvoidが返されること"
     }),
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.create as any).mockReturnValue(
     okAsync(githubConnection),
   );
@@ -89,7 +91,10 @@ test("アクセストークンの取得に失敗した場合にエラーが返�
     `アクセストークンの取得に失敗 (${errorId})`,
   );
 
-  (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(errAsync(providerError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(
+    errAsync(providerError),
+  );
 
   const service = new ConnectGitHubService({
     deps: {
@@ -124,6 +129,7 @@ test("GitHub連携の作成に失敗した場合にエラーが返されるこ�
     `既に連携が存在します (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubAppProvider.getAccessToken as any).mockReturnValue(
     okAsync({
       accessToken,
@@ -131,7 +137,10 @@ test("GitHub連携の作成に失敗した場合にエラーが返されるこ�
     }),
   );
 
-  (mockGitHubConnectionRepository.create as any).mockReturnValue(errAsync(repoError));
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
+  (mockGitHubConnectionRepository.create as any).mockReturnValue(
+    errAsync(repoError),
+  );
 
   const service = new ConnectGitHubService({
     deps: {
@@ -157,4 +166,3 @@ test("GitHub連携の作成に失敗した場合にエラーが返されるこ�
     expect(result.error.cause).toBe(repoError);
   }
 });
-

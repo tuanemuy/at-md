@@ -1,12 +1,12 @@
-import type { Pagination } from "@/domain/types/pagination";
 import type { Note, Tag } from "@/domain/note/models";
 import type {
   CreateOrUpdateNote,
   NoteRepository,
 } from "@/domain/note/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
+import type { Pagination } from "@/domain/types/pagination";
 import { ResultAsync, err, ok } from "@/lib/result";
-import { and, or, eq, ilike, inArray, desc, count, asc } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { type PgDatabase, mapRepositoryError } from "../../client";
 import { noteTags, notes, tags } from "../../schema/note";
 

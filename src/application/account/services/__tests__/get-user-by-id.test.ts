@@ -1,20 +1,20 @@
-import { expect, test, beforeEach, afterEach } from "vitest";
-import { GetUserByIdService } from "../get-user-by-id";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { CreateUser } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { PGlite } from "@electric-sql/pglite";
-import {
-  getTestDatabase,
-  setupTestDatabase,
-  cleanupTestDatabase,
-  closeTestDatabase,
-} from "@/application/__test__/setup";
-import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
-import type { CreateUser } from "@/domain/account/repositories";
 import { generateId } from "@/domain/types/id";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test } from "vitest";
+import { GetUserByIdService } from "../get-user-by-id";
 
 let client: PGlite;
 let userRepository: DrizzleUserRepository;

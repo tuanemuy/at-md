@@ -1,8 +1,8 @@
+import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import type { LogoutInput, LogoutUseCase } from "../usecase";
 
 /**

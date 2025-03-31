@@ -1,6 +1,5 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { LogoutService } from "../logout";
-import { okAsync, errAsync } from "@/lib/result";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -10,10 +9,11 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import type { RequestContext } from "@/domain/types/http";
-import type { IncomingMessage, ServerResponse } from "node:http";
-import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import { generateId } from "@/domain/types/id";
+import { errAsync, okAsync } from "@/lib/result";
 import type { ResultAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { LogoutService } from "../logout";
 
 // セッションマネージャーのモック
 const mockSessionManager = {
@@ -33,6 +33,7 @@ beforeEach(() => {
 });
 
 test("ログアウト処理が成功した場合にvoidが返されること", async () => {
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockSessionManager.remove as any).mockReturnValue(okAsync(undefined));
 
   const service = new LogoutService({
@@ -54,6 +55,7 @@ test("ログアウト処理が失敗した場合にエラーが返されるこ�
     ExternalServiceErrorCode.REQUEST_FAILED,
     `Failed to remove session (${errorId})`,
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockSessionManager.remove as any).mockReturnValue(errAsync(providerError));
 
   const service = new LogoutService({
@@ -74,4 +76,3 @@ test("ログアウト処理が失敗した場合にエラーが返されるこ�
     expect(result.error.cause).toBe(providerError);
   }
 });
-

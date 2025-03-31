@@ -1,23 +1,23 @@
-import { expect, test, beforeEach, afterEach } from "vitest";
-import { GetGitHubConnectionsService } from "../get-github-connection";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { GitHubConnection } from "@/domain/account/models/github-connection";
+import type { CreateUser } from "@/domain/account/repositories";
+import type { CreateGitHubConnection } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { GitHubConnection } from "@/domain/account/models/github-connection";
-import { PGlite } from "@electric-sql/pglite";
-import { 
-  getTestDatabase, 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
-  closeTestDatabase 
-} from "@/application/__test__/setup";
+import { generateId } from "@/domain/types/id";
 import { DrizzleGitHubConnectionRepository } from "@/infrastructure/db/repositories/account/github-connection-repository";
 import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
-import { generateId } from "@/domain/types/id";
-import type { CreateUser } from "@/domain/account/repositories";
-import type { CreateGitHubConnection } from "@/domain/account/repositories";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test } from "vitest";
+import { GetGitHubConnectionsService } from "../get-github-connection";
 
 let client: PGlite;
 let githubConnectionRepository: DrizzleGitHubConnectionRepository;
@@ -49,19 +49,20 @@ test("GitHub連携が存在する場合に連携情報が返されること", as
       bannerUrl: null,
     },
   };
-  
+
   const createUserResult = await userRepository.create(testUser);
   expect(createUserResult.isOk()).toBe(true);
   const userId = createUserResult.isOk() ? createUserResult.value.id : "";
-  
+
   // GitHub連携情報を作成
   const connection: CreateGitHubConnection = {
     userId,
     accessToken: "github-access-token",
     refreshToken: "github-refresh-token",
   };
-  
-  const createConnectionResult = await githubConnectionRepository.create(connection);
+
+  const createConnectionResult =
+    await githubConnectionRepository.create(connection);
   expect(createConnectionResult.isOk()).toBe(true);
 
   const service = new GetGitHubConnectionsService({
@@ -102,4 +103,3 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
     expect(repositoryError.code).toBe(RepositoryErrorCode.NOT_FOUND);
   }
 });
-

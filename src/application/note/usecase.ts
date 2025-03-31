@@ -1,10 +1,10 @@
-import type { ResultAsync } from "@/lib/result";
-import type { ApplicationServiceError } from "@/domain/types/error";
+import type { GitHubCommit, GitHubRepository } from "@/domain/note/dtos";
 import type { Book } from "@/domain/note/models/book";
 import type { Note } from "@/domain/note/models/note";
 import type { SyncStatus } from "@/domain/note/models/sync-status";
-import type { GitHubRepository, GitHubCommit } from "@/domain/note/dtos";
+import type { ApplicationServiceError } from "@/domain/types/error";
 import type { PaginationParams } from "@/domain/types/pagination";
+import type { ResultAsync } from "@/lib/result";
 
 /**
  * リポジトリ一覧を取得するユースケースの入力

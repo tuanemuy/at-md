@@ -1,9 +1,9 @@
+import { bookSchema } from "@/domain/note/models/book";
 import type {
   CreateBook,
   UpdateBook,
 } from "@/domain/note/repositories/book-repository";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
-import { bookSchema } from "@/domain/note/models/book";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { ResultAsync, err, ok } from "@/lib/result";
 import { and, eq } from "drizzle-orm";

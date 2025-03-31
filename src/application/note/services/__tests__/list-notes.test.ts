@@ -1,15 +1,15 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ListNotesService } from "../list-notes";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Note } from "@/domain/note/models";
+import { NoteScope } from "@/domain/note/models/note";
+import type { NoteRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Note } from "@/domain/note/models";
-import { NoteScope } from "@/domain/note/models/note";
 import { generateId } from "@/domain/types/id";
-import type { NoteRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { ListNotesService } from "../list-notes";
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -56,6 +56,7 @@ test("有効なブックが指定された場合にノート一覧が返され�
     },
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.findByBookId as any).mockReturnValue(
     okAsync({
       items: notes,
@@ -93,6 +94,7 @@ test("ブックが存在しない場合にエラーが返されること", async
     `ブックが見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesService({
@@ -128,6 +130,7 @@ test("ノート一覧の取得に失敗した場合にエラーが返される�
     `データベースエラー (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListNotesService({
@@ -154,4 +157,3 @@ test("ノート一覧の取得に失敗した場合にエラーが返される�
     expect(result.error.cause).toBe(repoError);
   }
 });
-

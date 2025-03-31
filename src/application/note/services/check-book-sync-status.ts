@@ -1,8 +1,8 @@
+import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import type {
   CheckBookSyncStatusInput,
   CheckBookSyncStatusUseCase,
@@ -43,4 +43,3 @@ export class CheckBookSyncStatusService implements CheckBookSyncStatusUseCase {
       );
   }
 }
-

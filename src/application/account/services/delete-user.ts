@@ -1,9 +1,9 @@
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
-import type { DeleteUserInput, DeleteUserUseCase } from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type { DeleteUserInput, DeleteUserUseCase } from "../usecase";
 
 /**
  * ユーザーを削除するユースケース実装

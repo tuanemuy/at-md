@@ -1,9 +1,9 @@
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
-import type { GetUserByIdInput, GetUserByIdUseCase } from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type { GetUserByIdInput, GetUserByIdUseCase } from "../usecase";
 
 /**
  * ユーザー情報を取得するユースケース実装

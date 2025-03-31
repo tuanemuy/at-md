@@ -26,9 +26,7 @@ export interface AuthStateRepository {
   /**
    * AuthStateを作成する
    */
-  create(
-    authState: CreateAuthState,
-  ): ResultAsync<AuthState, RepositoryError>;
+  create(authState: CreateAuthState): ResultAsync<AuthState, RepositoryError>;
 
   /**
    * 指定したキーのAuthStateを取得する

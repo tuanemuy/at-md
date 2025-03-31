@@ -1,7 +1,7 @@
-import type { ResultAsync } from "neverthrow";
-import type { RequestContext } from "@/domain/types/http";
-import type { ExternalServiceError } from "@/domain/types/error";
 import type { SessionData } from "@/domain/account/models/session-data";
+import type { ExternalServiceError } from "@/domain/types/error";
+import type { RequestContext } from "@/domain/types/http";
+import type { ResultAsync } from "neverthrow";
 
 export interface SessionManager {
   /**
@@ -15,9 +15,7 @@ export interface SessionManager {
   /**
    * セッションからデータを取得する
    */
-  get(
-    context: RequestContext,
-  ): ResultAsync<SessionData, ExternalServiceError>;
+  get(context: RequestContext): ResultAsync<SessionData, ExternalServiceError>;
 
   /**
    * セッションからデータを削除する

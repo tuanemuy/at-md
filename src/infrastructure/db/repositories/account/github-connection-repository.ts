@@ -5,7 +5,7 @@ import type {
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { ResultAsync, err, ok } from "@/lib/result";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { type PgDatabase, mapRepositoryError } from "../../client";
 import { githubConnections } from "../../schema/account";
 

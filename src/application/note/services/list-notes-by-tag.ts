@@ -1,8 +1,8 @@
+import type { NoteRepository } from "@/domain/note/repositories/note-repository";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { NoteRepository } from "@/domain/note/repositories/note-repository";
 import type { ListNotesByTagInput, ListNotesByTagUseCase } from "../usecase";
 
 /**
@@ -39,4 +39,3 @@ export class ListNotesByTagService implements ListNotesByTagUseCase {
       );
   }
 }
-

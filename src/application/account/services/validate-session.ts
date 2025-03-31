@@ -1,9 +1,9 @@
+import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
-import type { SessionManager } from "@/domain/account/adapters/session-manager";
 import type { ValidateSessionInput, ValidateSessionUseCase } from "../usecase";
 
 /**

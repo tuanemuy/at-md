@@ -8,7 +8,7 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { ResultAsync, err, ok } from "@/lib/result";
-import { Octokit, App } from "octokit";
+import { App, Octokit } from "octokit";
 
 export class DefaultGitHubContentProvider implements GitHubContentProvider {
   private webhookUrl: string;

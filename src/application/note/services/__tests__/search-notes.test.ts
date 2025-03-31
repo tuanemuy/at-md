@@ -1,15 +1,15 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { SearchNotesService } from "../search-notes";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Note } from "@/domain/note/models";
+import { NoteScope } from "@/domain/note/models/note";
+import type { NoteRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Note } from "@/domain/note/models";
-import { NoteScope } from "@/domain/note/models/note";
 import { generateId } from "@/domain/types/id";
-import type { NoteRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { SearchNotesService } from "../search-notes";
 
 const mockNoteRepository = {
   createOrUpdate: vi.fn(),
@@ -57,6 +57,7 @@ test("有効なブックと検索クエリが指定された場合にノート�
     },
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.search as any).mockReturnValue(
     okAsync({
       items: notes,
@@ -98,13 +99,15 @@ test("有効なブックと検索クエリが指定された場合にノート�
 
 test("ブックが存在しない場合にエラーが返されること", async () => {
   const bookId = generateId("Book");
-  const query = "テスト";
+  const query = "test";
   const errorId = generateId("Error");
+
   const repoError = new RepositoryError(
     RepositoryErrorCode.NOT_FOUND,
     `ブックが見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.search as any).mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
@@ -142,16 +145,17 @@ test("ブックが存在しない場合にエラーが返されること", async
   }
 });
 
-test("検索に失敗した場合にエラーが返されること", async () => {
+test("検索エラーが発生した場合にエラーが返されること", async () => {
   const bookId = generateId("Book");
-  const query = "テスト";
+  const query = "test";
   const errorId = generateId("Error");
 
   const repoError = new RepositoryError(
     RepositoryErrorCode.SYSTEM_ERROR,
-    `検索に失敗しました (${errorId})`,
+    `検索エラーが発生しました (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockNoteRepository.search as any).mockReturnValue(errAsync(repoError));
 
   const service = new SearchNotesService({
@@ -188,4 +192,3 @@ test("検索に失敗した場合にエラーが返されること", async () =>
     expect(result.error.cause).toBe(repoError);
   }
 });
-

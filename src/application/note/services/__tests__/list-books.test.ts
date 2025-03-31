@@ -1,15 +1,15 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ListBooksService } from "../list-books";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Book } from "@/domain/note/models";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import type { BookRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Book } from "@/domain/note/models";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { generateId } from "@/domain/types/id";
-import type { BookRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { ListBooksService } from "../list-books";
 
 // モックの作成
 const mockBookRepository = {
@@ -64,6 +64,7 @@ test("ブック一覧が正常に取得された場合にブック一覧が返�
     },
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.findByUserId as any).mockReturnValue(okAsync(books));
 
   const service = new ListBooksService({
@@ -93,6 +94,7 @@ test("ブック一覧の取得に失敗した場合にエラーが返される�
     `データベースエラー (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.findByUserId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListBooksService({
@@ -115,4 +117,3 @@ test("ブック一覧の取得に失敗した場合にエラーが返される�
     expect(result.error.cause).toBe(repoError);
   }
 });
-

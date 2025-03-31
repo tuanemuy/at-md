@@ -1,6 +1,4 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { StartBlueskyAuthService } from "../start-bluesky-auth";
-import { okAsync, errAsync } from "@/lib/result";
+import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -10,7 +8,9 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
-import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { StartBlueskyAuthService } from "../start-bluesky-auth";
 
 // モック
 const mockAuthProvider = {
@@ -27,6 +27,7 @@ beforeEach(() => {
 test("有効なハンドルの場合に認証URLが生成されること", async () => {
   const handle = "valid-handle";
   const expectedUrl = new URL("https://example.com/auth");
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.authorize as any).mockReturnValue(okAsync(expectedUrl));
 
   const service = new StartBlueskyAuthService({
@@ -52,6 +53,7 @@ test("無効なハンドルの場合にエラーが返されること", async ()
     ExternalServiceErrorCode.AUTHENTICATION_FAILED,
     `Invalid handle: ${handle} (${errorId})`,
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockAuthProvider.authorize as any).mockReturnValue(errAsync(providerError));
 
   const service = new StartBlueskyAuthService({
@@ -72,4 +74,3 @@ test("無効なハンドルの場合にエラーが返されること", async ()
     expect(result.error.cause).toBe(providerError);
   }
 });
-

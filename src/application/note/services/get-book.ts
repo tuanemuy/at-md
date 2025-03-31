@@ -1,8 +1,8 @@
+import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import type { GetBookInput, GetBookUseCase } from "../usecase";
 
 /**
@@ -36,4 +36,3 @@ export class GetBookService implements GetBookUseCase {
     });
   }
 }
-

@@ -1,5 +1,4 @@
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
-import { validate } from "@/domain/types/validation";
 import { profileSchema } from "@/domain/account/models/profile";
 import type {
   AuthSessionRepository,
@@ -9,9 +8,10 @@ import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
+import { validate } from "@/domain/types/validation";
 import { ResultAsync } from "@/lib/result";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
-import { getOAuthClient, getAgent } from "./client";
+import { getAgent, getOAuthClient } from "./client";
 
 /**
  * Bluesky認証アダプターの実装クラス

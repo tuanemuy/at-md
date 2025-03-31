@@ -1,12 +1,12 @@
-import { getIronSession } from "iron-session";
-import { ResultAsync } from "@/lib/result";
-import type { RequestContext } from "@/domain/types/http";
+import type { SessionManager } from "@/domain/account/adapters/session-manager";
+import type { SessionData } from "@/domain/account/models/session-data";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
-import type { SessionData } from "@/domain/account/models/session-data";
-import type { SessionManager } from "@/domain/account/adapters/session-manager";
+import type { RequestContext } from "@/domain/types/http";
+import { ResultAsync } from "@/lib/result";
+import { getIronSession } from "iron-session";
 
 export class DefaultSessionManager implements SessionManager {
   private readonly secret: string;

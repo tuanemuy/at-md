@@ -60,9 +60,7 @@ export interface GitHubConnectionRepository {
   /**
    * 指定したユーザーIDのGitHub連携情報を取得する
    */
-  findByUserId(
-    userId: string,
-  ): ResultAsync<GitHubConnection, RepositoryError>;
+  findByUserId(userId: string): ResultAsync<GitHubConnection, RepositoryError>;
 
   /**
    * 指定したIDのGitHub連携情報を取得する

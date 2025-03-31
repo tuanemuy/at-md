@@ -1,26 +1,18 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { AddBookService } from "../add-book";
-import { okAsync, errAsync } from "@/lib/result";
+import type { GitHubConnection } from "@/domain/account/models";
+import type { GitHubConnectionRepository } from "@/domain/account/repositories";
+import type { Book, BookDetails, SyncStatus } from "@/domain/note/models";
+import { SyncStatusCode } from "@/domain/note/models";
+import type { BookRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
+  RepositoryError,
+  RepositoryErrorCode,
 } from "@/domain/types/error";
-import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import {
-  ExternalServiceError,
-  ExternalServiceErrorCode,
-} from "@/domain/types/error";
-import type { Book } from "@/domain/note/models";
-import type { GitHubRepository } from "@/domain/note/dtos";
-import type { GitHubConnection } from "@/domain/account/models";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { generateId } from "@/domain/types/id";
-import type { 
-  BookRepository 
-} from "@/domain/note/repositories";
-import type { 
-  GitHubConnectionRepository 
-} from "@/domain/account/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { AddBookService } from "../add-book";
 
 // モックの作成
 const mockGitHubConnectionRepository = {
@@ -44,9 +36,11 @@ const mockBookRepository = {
   create: vi.fn(),
   update: vi.fn(),
   findById: vi.fn(),
-  findByUserId: vi.fn(),
+  list: vi.fn(),
+  findByBookId: vi.fn(),
+  findByUserIdAndRepo: vi.fn(),
   findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
+  deleteById: vi.fn(),
 } as unknown as BookRepository;
 
 // 各テスト前にモックをリセット
@@ -54,9 +48,10 @@ beforeEach(() => {
   vi.resetAllMocks();
 });
 
-test("ブックが正常に追加された場合にブック情報が返されること", async () => {
+test("ブックを追加できる場合", async () => {
   // テストの準備
   const userId = generateId("User");
+  const bookId = generateId("Book");
   const owner = "owner1";
   const repo = "repo1";
 
@@ -78,7 +73,7 @@ scope: public
 This is a test markdown file with tags: #test-tag #another-tag`;
 
   const createdBook: Book = {
-    id: generateId("Book"),
+    id: bookId,
     userId,
     owner,
     repo,
@@ -86,25 +81,28 @@ This is a test markdown file with tags: #test-tag #another-tag`;
       name: "Test Markdown",
       description:
         "This is a test markdown file with tags: #test-tag #another-tag",
-    },
+    } as BookDetails,
     syncStatus: {
       lastSyncedAt: null,
       status: SyncStatusCode.SYNCED,
-    },
+    } as SyncStatus,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   // GitHub連携情報が見つかる
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.getContent as any).mockReturnValue(
     okAsync(markdownContent),
   );
 
   // ブックの作成に成功
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.create as any).mockReturnValue(okAsync(createdBook));
 
   const service = new AddBookService({
@@ -182,10 +180,12 @@ This is a test markdown file with tags: #test-tag #another-tag`;
   });
 
   // GitHub連携情報が見つかる
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.getContent as any).mockReturnValue(
     okAsync(markdownContent),
   );
@@ -195,6 +195,7 @@ This is a test markdown file with tags: #test-tag #another-tag`;
     RepositoryErrorCode.UNIQUE_VIOLATION,
     `Failed to create book (${errorId})`,
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.create as any).mockReturnValue(errAsync(repoError));
 
   // 実行
@@ -246,6 +247,7 @@ test("GitHub連携情報が見つからない場合にエラーが返される�
     RepositoryErrorCode.NOT_FOUND,
     `GitHub連携情報が見つかりません (${errorId})`,
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     errAsync(repoError),
   );
@@ -294,11 +296,13 @@ test("指定されたリポジトリが存在しない場合にエラーが返�
   };
 
   // GitHub連携情報が見つかる
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
 
   // リポジトリが見つからない
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.getContent as any).mockReturnValue(errAsync());
 
   const service = new AddBookService({
@@ -357,19 +361,22 @@ scope: public
 This is a test markdown file with tags: #test-tag #another-tag`;
 
   // GitHub連携情報が見つかる
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.getContent as any).mockReturnValue(
     okAsync(markdownContent),
   );
 
   // ブックの作成に失敗
   const repoError = new RepositoryError(
-    RepositoryErrorCode.DATA_ERROR,
+    RepositoryErrorCode.SYSTEM_ERROR,
     "Failed to create book",
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.create as any).mockReturnValue(errAsync(repoError));
 
   const service = new AddBookService({
@@ -417,4 +424,3 @@ This is a test markdown file with tags: #test-tag #another-tag`;
     expect(result.error.cause).toBe(repoError);
   }
 });
-

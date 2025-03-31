@@ -1,12 +1,12 @@
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
-import type {
-  StartBlueskyAuthInput,
-  StartBlueskyAuthUseCase,
-} from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import type {
+  StartBlueskyAuthInput,
+  StartBlueskyAuthUseCase,
+} from "../usecase";
 
 /**
  * Bluesky認証を開始するユースケース実装

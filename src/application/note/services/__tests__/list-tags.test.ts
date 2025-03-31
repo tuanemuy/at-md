@@ -1,14 +1,14 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ListTagsService } from "../list-tags";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Tag } from "@/domain/note/models";
+import type { TagRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Tag } from "@/domain/note/models";
 import { generateId } from "@/domain/types/id";
-import type { TagRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { ListTagsService } from "../list-tags";
 
 const mockTagRepository = {
   findByNoteId: vi.fn(),
@@ -40,6 +40,7 @@ test("ブックが存在する場合にタグ一覧が返されること", async
     },
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockTagRepository.findByBookId as any).mockReturnValue(okAsync(tags));
 
   const service = new ListTagsService({
@@ -66,6 +67,7 @@ test("ブックが存在しない場合にエラーが返されること", async
     `ブックが見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockTagRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
@@ -96,6 +98,7 @@ test("タグの取得に失敗した場合にエラーが返されること", as
     `データベースエラー (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockTagRepository.findByBookId as any).mockReturnValue(errAsync(repoError));
 
   const service = new ListTagsService({
@@ -116,4 +119,3 @@ test("タグの取得に失敗した場合にエラーが返されること", as
     expect(result.error.cause).toBe(repoError);
   }
 });
-

@@ -1,14 +1,14 @@
-import { okAsync } from "@/lib/result";
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
 import type { UserRepository } from "@/domain/account/repositories/user-repository";
-import type {
-  HandleBlueskyAuthCallbackInput,
-  HandleBlueskyAuthCallbackUseCase,
-} from "../usecase";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
+import { okAsync } from "@/lib/result";
+import type {
+  HandleBlueskyAuthCallbackInput,
+  HandleBlueskyAuthCallbackUseCase,
+} from "../usecase";
 
 /**
  * Bluesky認証のコールバックを処理するユースケース実装

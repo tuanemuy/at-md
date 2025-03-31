@@ -1,15 +1,15 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { CheckBookSyncStatusService } from "../check-book-sync-status";
-import { okAsync, errAsync } from "@/lib/result";
+import type { Book } from "@/domain/note/models";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import type { BookRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { Book } from "@/domain/note/models";
-import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { generateId } from "@/domain/types/id";
-import type { BookRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { CheckBookSyncStatusService } from "../check-book-sync-status";
 
 // モックの作成
 const mockBookRepository = {
@@ -47,6 +47,7 @@ test("ブックが存在する場合に同期ステータスが返されるこ�
     updatedAt: new Date(),
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.findById as any).mockReturnValue(okAsync(book));
 
   const service = new CheckBookSyncStatusService({
@@ -76,6 +77,7 @@ test("ブックが存在しない場合にエラーが返されること", async
     `ブックが見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.findById as any).mockReturnValue(errAsync(repoError));
 
   const service = new CheckBookSyncStatusService({
@@ -98,4 +100,3 @@ test("ブックが存在しない場合にエラーが返されること", async
     expect(result.error.cause).toBe(repoError);
   }
 });
-

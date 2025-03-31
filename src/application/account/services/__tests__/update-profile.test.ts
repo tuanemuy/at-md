@@ -1,23 +1,23 @@
-import { expect, test, vi, beforeEach, afterEach } from "vitest";
-import { UpdateProfileService } from "../update-profile";
-import { okAsync } from "@/lib/result";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { Profile } from "@/domain/account/models";
+import type { User } from "@/domain/account/models/user";
+import type { CreateUser } from "@/domain/account/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { User } from "@/domain/account/models/user";
-import type { Profile } from "@/domain/account/models";
-import { PGlite } from "@electric-sql/pglite";
-import { 
-  getTestDatabase, 
-  setupTestDatabase, 
-  cleanupTestDatabase, 
-  closeTestDatabase 
-} from "@/application/__test__/setup";
-import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
 import { generateId } from "@/domain/types/id";
-import type { CreateUser } from "@/domain/account/repositories";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
+import { okAsync } from "@/lib/result";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { UpdateProfileService } from "../update-profile";
 
 let client: PGlite;
 let userRepository: DrizzleUserRepository;
@@ -45,17 +45,17 @@ test("プロフィール更新が成功した場合に更新後のユーザー�
     avatarUrl: null,
     bannerUrl: null,
   };
-  
+
   // 初期ユーザーを作成
   const testUser: CreateUser = {
     did,
     profile: initialProfile,
   };
-  
+
   const createResult = await userRepository.create(testUser);
   expect(createResult.isOk()).toBe(true);
   const createdUserId = createResult.isOk() ? createResult.value.id : "";
-  
+
   // プロフィール更新内容
   const updatedProfile: Profile = {
     displayName: "Updated User",
@@ -84,8 +84,12 @@ test("プロフィール更新が成功した場合に更新後のユーザー�
     expect(result.value.did).toEqual(did);
     expect(result.value.profile.displayName).toEqual("Updated User");
     expect(result.value.profile.description).toEqual("Updated description");
-    expect(result.value.profile.avatarUrl).toEqual("https://example.com/avatar-updated.jpg");
-    expect(result.value.profile.bannerUrl).toEqual("https://example.com/banner-updated.jpg");
+    expect(result.value.profile.avatarUrl).toEqual(
+      "https://example.com/avatar-updated.jpg",
+    );
+    expect(result.value.profile.bannerUrl).toEqual(
+      "https://example.com/banner-updated.jpg",
+    );
   }
 });
 
@@ -121,4 +125,3 @@ test("存在しないユーザーIDの場合にエラーが返されること", 
     expect(repositoryError).toBeInstanceOf(RepositoryError);
   }
 });
-

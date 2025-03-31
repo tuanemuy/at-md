@@ -1,18 +1,18 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { ListRepositoriesService } from "../list-repositories";
-import { okAsync, errAsync } from "@/lib/result";
+import type { GitHubConnection } from "@/domain/account/models";
+import type { GitHubConnectionRepository } from "@/domain/account/repositories";
+import type { GitHubRepository } from "@/domain/note/dtos";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
-  RepositoryError,
-  RepositoryErrorCode,
   ExternalServiceError,
   ExternalServiceErrorCode,
+  RepositoryError,
+  RepositoryErrorCode,
 } from "@/domain/types/error";
-import type { GitHubRepository } from "@/domain/note/dtos";
-import type { GitHubConnection } from "@/domain/account/models";
 import { generateId } from "@/domain/types/id";
-import type { GitHubConnectionRepository } from "@/domain/account/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { ListRepositoriesService } from "../list-repositories";
 
 // モックの作成
 const mockGitHubConnectionRepository = {
@@ -62,9 +62,11 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
     },
   ];
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
     okAsync(repositories),
   );
@@ -102,6 +104,7 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
     `GitHub連携情報が見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     errAsync(repoError),
   );
@@ -125,7 +128,7 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
-      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
     expect(result.error.cause).toBe(repoError);
   }
@@ -150,9 +153,11 @@ test("リポジトリ一覧の取得に失敗した場合にエラーが返さ�
     `Failed to list repositories (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
     okAsync(connection),
   );
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
     errAsync(providerError),
   );
@@ -178,9 +183,8 @@ test("リポジトリ一覧の取得に失敗した場合にエラーが返さ�
   if (result.isErr()) {
     expect(result.error).toBeInstanceOf(ApplicationServiceError);
     expect(result.error.code).toBe(
-      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR
+      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
     expect(result.error.cause).toBe(providerError);
   }
 });
-

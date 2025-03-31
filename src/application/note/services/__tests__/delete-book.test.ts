@@ -1,13 +1,13 @@
-import { expect, test, vi, beforeEach } from "vitest";
-import { DeleteBookService } from "../delete-book";
-import { okAsync, errAsync } from "@/lib/result";
+import type { BookRepository } from "@/domain/note/repositories";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
-import type { BookRepository } from "@/domain/note/repositories";
+import { errAsync, okAsync } from "@/lib/result";
+import { beforeEach, expect, test, vi } from "vitest";
+import { DeleteBookService } from "../delete-book";
 
 const mockBookRepository = {
   create: vi.fn(),
@@ -26,6 +26,7 @@ test("ブックの所有者が削除した場合に成功すること", async ()
   const bookId = generateId("Book");
   const userId = generateId("User");
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.delete as any).mockReturnValue(okAsync(undefined));
 
   const service = new DeleteBookService({
@@ -49,6 +50,7 @@ test("ブックが存在しない場合にエラーが返されること", async
     `ブックが見つかりません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
@@ -79,6 +81,7 @@ test("所有者でないユーザーが削除しようとした場合にエラ�
     `このブックを削除する権限がありません (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
@@ -109,6 +112,7 @@ test("削除処理に失敗した場合にエラーが返されること", async
     `データベースエラー (${errorId})`,
   );
 
+  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
   (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
 
   const service = new DeleteBookService({
@@ -129,4 +133,3 @@ test("削除処理に失敗した場合にエラーが返されること", async
     expect(result.error.cause).toBe(repoError);
   }
 });
-

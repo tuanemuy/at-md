@@ -1,6 +1,6 @@
+import type { SessionData } from "@/domain/account/models/session-data";
 import type { ExternalServiceError } from "@/domain/types/error";
 import type { ResultAsync } from "@/lib/result";
-import type { SessionData } from "@/domain/account/models/session-data";
 /**
  * Bluesky認証アダプターのインターフェース
  */
