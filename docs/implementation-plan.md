@@ -138,6 +138,7 @@
   - [ ] CheckBookSyncStatusService
 - [ ] ノート管理
   - [ ] SyncNotesService
+  - [ ] PushNotesService
   - [ ] ListNotesService
   - [ ] SearchNotesService
   - [ ] GetNoteService

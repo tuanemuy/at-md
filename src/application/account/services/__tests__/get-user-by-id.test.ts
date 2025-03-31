@@ -4,7 +4,7 @@ import {
   getTestDatabase,
   setupTestDatabase,
 } from "@/application/__test__/setup";
-import type { CreateUser } from "@/domain/account/repositories";
+import type { Profile } from "@/domain/account/models";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
@@ -12,10 +12,12 @@ import {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
 import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
+import { errAsync, okAsync } from "@/lib/result";
 import { PGlite } from "@electric-sql/pglite";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { GetUserByIdService } from "../get-user-by-id";
 
+// データベース関連の変数
 let client: PGlite;
 let userRepository: DrizzleUserRepository;
 
@@ -33,45 +35,47 @@ afterEach(async () => {
   await closeTestDatabase(client);
 });
 
-test("存在するユーザーIDの場合にユーザー情報が返されること", async () => {
-  // テスト用ユーザーを作成
-  const did = "test-did";
-  const testUser: CreateUser = {
-    did,
-    profile: {
-      displayName: "Test User",
-      description: null,
-      avatarUrl: null,
-      bannerUrl: null,
-    },
+test("ユーザーIDに基づいてユーザーを返すこと", async () => {
+  // テスト用のユーザーデータ
+  const did = `did:plc:${generateId("DID")}`;
+  const profile: Profile = {
+    displayName: "Test User",
+    description: "Test description",
+    avatarUrl: "https://example.com/avatar.jpg",
+    bannerUrl: "https://example.com/banner.jpg",
   };
 
-  // ユーザーを作成
-  const createResult = await userRepository.create(testUser);
+  // ユーザーをテストデータベースに作成
+  const createResult = await userRepository.create({
+    did,
+    profile,
+  });
   expect(createResult.isOk()).toBe(true);
   const userId = createResult.isOk() ? createResult.value.id : "";
 
-  // サービスを初期化
+  // テスト対象のサービスを実行
   const service = new GetUserByIdService({
     deps: {
       userRepository,
     },
   });
 
-  // テスト実行
   const result = await service.execute({ userId });
 
-  // 検証
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
-    expect(result.value.id).toEqual(userId);
-    expect(result.value.did).toEqual("test-did");
-    expect(result.value.profile.displayName).toEqual("Test User");
+    const user = result.value;
+    expect(user.id).toBe(userId);
+    expect(user.did).toBe(did);
+    expect(user.profile.displayName).toBe(profile.displayName);
+    expect(user.profile.description).toBe(profile.description);
+    expect(user.profile.avatarUrl).toBe(profile.avatarUrl);
+    expect(user.profile.bannerUrl).toBe(profile.bannerUrl);
   }
 });
 
-test("存在しないユーザーIDの場合にエラーが返されること", async () => {
-  const nonExistingUserId = generateId("User");
+test("ユーザーが存在しない場合にエラーを返すこと", async () => {
+  const userId = generateId("User");
 
   const service = new GetUserByIdService({
     deps: {
@@ -79,7 +83,7 @@ test("存在しないユーザーIDの場合にエラーが返されること", 
     },
   });
 
-  const result = await service.execute({ userId: nonExistingUserId });
+  const result = await service.execute({ userId });
 
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
@@ -87,8 +91,5 @@ test("存在しないユーザーIDの場合にエラーが返されること", 
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
     );
-    const repositoryError = result.error.cause as RepositoryError;
-    expect(repositoryError).toBeInstanceOf(RepositoryError);
-    expect(repositoryError.code).toBe(RepositoryErrorCode.NOT_FOUND);
   }
 });

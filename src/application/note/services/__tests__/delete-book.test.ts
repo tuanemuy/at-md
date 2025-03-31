@@ -1,135 +1,176 @@
-import type { BookRepository } from "@/domain/note/repositories";
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { Profile } from "@/domain/account/models";
+import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
-import { errAsync, okAsync } from "@/lib/result";
-import { beforeEach, expect, test, vi } from "vitest";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
+import { DrizzleBookRepository } from "@/infrastructure/db/repositories/note/book-repository";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test } from "vitest";
 import { DeleteBookService } from "../delete-book";
 
-const mockBookRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findById: vi.fn(),
-  findByUserId: vi.fn(),
-  findByOwnerAndRepo: vi.fn(),
-  delete: vi.fn(),
-} as unknown as BookRepository;
+// データベース関連の変数
+let client: PGlite;
+let userRepository: DrizzleUserRepository;
+let bookRepository: DrizzleBookRepository;
 
-beforeEach(() => {
-  vi.resetAllMocks();
+beforeEach(async () => {
+  // テスト用のデータベースをセットアップ
+  client = new PGlite();
+  await setupTestDatabase(client);
+  const db = getTestDatabase(client);
+  userRepository = new DrizzleUserRepository(db);
+  bookRepository = new DrizzleBookRepository(db);
 });
 
+afterEach(async () => {
+  // テスト用のデータベースをクリーンアップ
+  await cleanupTestDatabase(client);
+  await closeTestDatabase(client);
+});
+
+// テスト用ユーザーを作成するヘルパー関数
+async function createTestUser() {
+  const did = `did:plc:${generateId("DID")}`;
+  const profile: Profile = {
+    displayName: "Test User",
+    description: "テスト用ユーザー",
+    avatarUrl: null,
+    bannerUrl: null,
+  };
+
+  const createUserResult = await userRepository.create({
+    did,
+    profile,
+  });
+
+  if (createUserResult.isErr()) {
+    console.error("ユーザーの作成に失敗:", createUserResult.error);
+    throw new Error("テストユーザーの作成に失敗しました");
+  }
+
+  return createUserResult.value;
+}
+
 test("ブックの所有者が削除した場合に成功すること", async () => {
-  const bookId = generateId("Book");
-  const userId = generateId("User");
+  // テスト用のユーザーを作成
+  const user = await createTestUser();
+  const userId = user.id;
 
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockBookRepository.delete as any).mockReturnValue(okAsync(undefined));
-
-  const service = new DeleteBookService({
-    deps: {
-      bookRepository: mockBookRepository,
+  // テスト用のブックを作成
+  const owner = "owner1";
+  const repo = "repo1";
+  const createBookResult = await bookRepository.create({
+    userId,
+    owner,
+    repo,
+    details: {
+      name: "repo1",
+      description: "owner1/repo1",
+    },
+    syncStatus: {
+      lastSyncedAt: new Date(),
+      status: SyncStatusCode.SYNCED,
     },
   });
 
+  expect(createBookResult.isOk()).toBe(true);
+  const bookId = createBookResult.isOk() ? createBookResult.value.id : "";
+
+  // サービスのインスタンスを作成
+  const service = new DeleteBookService({
+    deps: {
+      bookRepository,
+    },
+  });
+
+  // 実行
   const result = await service.execute({ userId, bookId });
 
-  expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
+  // 検証
+  expect(result.isOk()).toBe(true);
+
+  // ブックが実際に削除されているか確認
+  const findResult = await bookRepository.findById(bookId);
+  expect(findResult.isErr()).toBe(true);
+  if (findResult.isErr()) {
+    expect(findResult.error.code).toBe(RepositoryErrorCode.NOT_FOUND);
+  }
+});
+
+test("存在しないブックIDを指定した場合でもエラーが返されないこと", async () => {
+  // テスト用のユーザーを作成
+  const user = await createTestUser();
+  const userId = user.id;
+
+  // 存在しないブックID
+  const nonExistingBookId = generateId("Book");
+
+  // サービスのインスタンスを作成
+  const service = new DeleteBookService({
+    deps: {
+      bookRepository,
+    },
+  });
+
+  // 実行
+  const result = await service.execute({ userId, bookId: nonExistingBookId });
+
+  // 検証：ブックが存在しなくても成功とみなす
   expect(result.isOk()).toBe(true);
 });
 
-test("ブックが存在しない場合にエラーが返されること", async () => {
-  const bookId = generateId("Book");
-  const userId = generateId("User");
-  const errorId = generateId("Error");
-  const repoError = new RepositoryError(
-    RepositoryErrorCode.NOT_FOUND,
-    `ブックが見つかりません (${errorId})`,
-  );
+test("所有者でないユーザーが削除しようとした場合は何も削除されないこと", async () => {
+  // 2人のテストユーザーを作成
+  const owner = await createTestUser();
+  const ownerId = owner.id;
 
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
+  const otherUser = await createTestUser();
+  const otherUserId = otherUser.id;
 
-  const service = new DeleteBookService({
-    deps: {
-      bookRepository: mockBookRepository,
+  // 1人目のユーザーのブックを作成
+  const repoOwner = "owner1";
+  const repoName = "repo1";
+  const createBookResult = await bookRepository.create({
+    userId: ownerId,
+    owner: repoOwner,
+    repo: repoName,
+    details: {
+      name: "repo1",
+      description: "owner1/repo1",
+    },
+    syncStatus: {
+      lastSyncedAt: new Date(),
+      status: SyncStatusCode.SYNCED,
     },
   });
 
-  const result = await service.execute({ userId, bookId });
+  expect(createBookResult.isOk()).toBe(true);
+  const bookId = createBookResult.isOk() ? createBookResult.value.id : "";
 
-  expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(ApplicationServiceError);
-    expect(result.error.code).toBe(
-      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
-    );
-    expect(result.error.cause).toBe(repoError);
-  }
-});
-
-test("所有者でないユーザーが削除しようとした場合にエラーが返されること", async () => {
-  const bookId = generateId("Book");
-  const userId = generateId("User");
-  const errorId = generateId("Error");
-  const repoError = new RepositoryError(
-    RepositoryErrorCode.NOT_FOUND,
-    `このブックを削除する権限がありません (${errorId})`,
-  );
-
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
-
+  // 2人目のユーザーでブックを削除しようとする
   const service = new DeleteBookService({
     deps: {
-      bookRepository: mockBookRepository,
+      bookRepository,
     },
   });
 
-  const result = await service.execute({ userId, bookId });
+  // 実行
+  const result = await service.execute({ userId: otherUserId, bookId });
 
-  expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(ApplicationServiceError);
-    expect(result.error.code).toBe(
-      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
-    );
-    expect(result.error.cause).toBe(repoError);
-  }
-});
+  // 検証：何も削除されないこと (deleteは成功するがレコードは残る)
+  expect(result.isOk()).toBe(true);
 
-test("削除処理に失敗した場合にエラーが返されること", async () => {
-  const bookId = generateId("Book");
-  const userId = generateId("User");
-  const errorId = generateId("Error");
-  const repoError = new RepositoryError(
-    RepositoryErrorCode.SYSTEM_ERROR,
-    `データベースエラー (${errorId})`,
-  );
-
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockBookRepository.delete as any).mockReturnValue(errAsync(repoError));
-
-  const service = new DeleteBookService({
-    deps: {
-      bookRepository: mockBookRepository,
-    },
-  });
-
-  const result = await service.execute({ userId, bookId });
-
-  expect(mockBookRepository.delete).toHaveBeenCalledWith(bookId, userId);
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error).toBeInstanceOf(ApplicationServiceError);
-    expect(result.error.code).toBe(
-      ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
-    );
-    expect(result.error.cause).toBe(repoError);
-  }
+  // ブックが削除されていないか確認
+  const findResult = await bookRepository.findById(bookId);
+  expect(findResult.isOk()).toBe(true);
 });

@@ -1,3 +1,9 @@
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
 import {
   ApplicationServiceError,
@@ -8,11 +14,13 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
 import { errAsync, okAsync } from "@/lib/result";
-import { beforeEach, expect, test, vi } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { StartBlueskyAuthService } from "../start-bluesky-auth";
 
-// モック
+// BlueskyAuthProviderはモック（外部サービス）
 const mockAuthProvider = {
   authorize: vi.fn(),
   callback: vi.fn(),
@@ -20,8 +28,25 @@ const mockAuthProvider = {
   validateSession: vi.fn(),
 } as unknown as BlueskyAuthProvider;
 
-beforeEach(() => {
+// データベース関連の変数
+let client: PGlite;
+let userRepository: DrizzleUserRepository;
+
+beforeEach(async () => {
+  // テスト用のデータベースをセットアップ
+  client = new PGlite();
+  await setupTestDatabase(client);
+  const db = getTestDatabase(client);
+  userRepository = new DrizzleUserRepository(db);
+
+  // モックをリセット
   vi.resetAllMocks();
+});
+
+afterEach(async () => {
+  // テスト用のデータベースをクリーンアップ
+  await cleanupTestDatabase(client);
+  await closeTestDatabase(client);
 });
 
 test("有効なハンドルの場合に認証URLが生成されること", async () => {

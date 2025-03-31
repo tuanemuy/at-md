@@ -1,5 +1,11 @@
+import {
+  cleanupTestDatabase,
+  closeTestDatabase,
+  getTestDatabase,
+  setupTestDatabase,
+} from "@/application/__test__/setup";
+import type { Profile } from "@/domain/account/models";
 import type { GitHubConnection } from "@/domain/account/models";
-import type { GitHubConnectionRepository } from "@/domain/account/repositories";
 import type { GitHubRepository } from "@/domain/note/dtos";
 import {
   ApplicationServiceError,
@@ -10,20 +16,19 @@ import {
   RepositoryErrorCode,
 } from "@/domain/types/error";
 import { generateId } from "@/domain/types/id";
+import { DrizzleGitHubConnectionRepository } from "@/infrastructure/db/repositories/account/github-connection-repository";
+import { DrizzleUserRepository } from "@/infrastructure/db/repositories/account/user-repository";
 import { errAsync, okAsync } from "@/lib/result";
-import { beforeEach, expect, test, vi } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ListRepositoriesService } from "../list-repositories";
 
-// モックの作成
-const mockGitHubConnectionRepository = {
-  create: vi.fn(),
-  update: vi.fn(),
-  findByUserId: vi.fn(),
-  findById: vi.fn(),
-  deleteByUserId: vi.fn(),
-  delete: vi.fn(),
-} as unknown as GitHubConnectionRepository;
+// データベース関連の変数
+let client: PGlite;
+let userRepository: DrizzleUserRepository;
+let githubConnectionRepository: DrizzleGitHubConnectionRepository;
 
+// GitHubContentProviderのモック
 const mockGitHubContentProvider = {
   listRepositories: vi.fn(),
   getContent: vi.fn(),
@@ -32,23 +37,61 @@ const mockGitHubContentProvider = {
   setupWebhook: vi.fn(),
 };
 
-// 各テスト前にモックをリセット
-beforeEach(() => {
+beforeEach(async () => {
+  // テスト用のデータベースをセットアップ
+  client = new PGlite();
+  await setupTestDatabase(client);
+  const db = getTestDatabase(client);
+  userRepository = new DrizzleUserRepository(db);
+  githubConnectionRepository = new DrizzleGitHubConnectionRepository(db);
+
+  // モックをリセット
   vi.resetAllMocks();
 });
 
-test("GitHub連携が存在する場合にリポジトリ一覧が返されること", async () => {
-  // テストの準備
-  const userId = generateId("User");
-  const connection: GitHubConnection = {
-    id: generateId("Connection"),
-    userId,
-    accessToken: "github-access-token",
-    refreshToken: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+afterEach(async () => {
+  // テスト用のデータベースをクリーンアップ
+  await cleanupTestDatabase(client);
+  await closeTestDatabase(client);
+});
+
+// テスト用ユーザーを作成するヘルパー関数
+async function createTestUser() {
+  const did = `did:plc:${generateId("DID")}`;
+  const profile: Profile = {
+    displayName: "Test User",
+    description: "テスト用ユーザー",
+    avatarUrl: null,
+    bannerUrl: null,
   };
 
+  const createUserResult = await userRepository.create({
+    did,
+    profile,
+  });
+
+  if (createUserResult.isErr()) {
+    console.error("ユーザーの作成に失敗:", createUserResult.error);
+    throw new Error("テストユーザーの作成に失敗しました");
+  }
+
+  return createUserResult.value;
+}
+
+test("GitHub連携が存在する場合にリポジトリ一覧が返されること", async () => {
+  // テスト用のユーザーを作成
+  const user = await createTestUser();
+  const userId = user.id;
+
+  // GitHub連携情報を作成
+  const accessToken = "github-access-token";
+  await githubConnectionRepository.create({
+    userId,
+    accessToken,
+    refreshToken: null,
+  });
+
+  // リポジトリ一覧のモックを設定
   const repositories: GitHubRepository[] = [
     {
       owner: "owner1",
@@ -62,18 +105,15 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
     },
   ];
 
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
-    okAsync(connection),
-  );
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
+  // listRepositoriesのモック応答を設定
+  mockGitHubContentProvider.listRepositories.mockReturnValue(
     okAsync(repositories),
   );
 
+  // サービスのインスタンスを作成
   const service = new ListRepositoriesService({
     deps: {
-      githubConnectionRepository: mockGitHubConnectionRepository,
+      githubConnectionRepository,
       githubContentProvider: mockGitHubContentProvider,
     },
   });
@@ -82,11 +122,8 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
   const result = await service.execute({ userId });
 
   // 検証
-  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
-    userId,
-  );
   expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
-    connection.accessToken,
+    accessToken,
   );
   expect(result.isOk()).toBe(true);
   if (result.isOk()) {
@@ -96,22 +133,15 @@ test("GitHub連携が存在する場合にリポジトリ一覧が返される�
 });
 
 test("GitHub連携が存在しない場合にエラーが返されること", async () => {
-  // テストの準備
-  const userId = generateId("User");
-  const errorId = generateId("Error");
-  const repoError = new RepositoryError(
-    RepositoryErrorCode.NOT_FOUND,
-    `GitHub連携情報が見つかりません (${errorId})`,
-  );
+  // テスト用のユーザーを作成
+  const user = await createTestUser();
+  const userId = user.id;
 
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
-    errAsync(repoError),
-  );
+  // GitHub連携情報は作成しない
 
   const service = new ListRepositoriesService({
     deps: {
-      githubConnectionRepository: mockGitHubConnectionRepository,
+      githubConnectionRepository,
       githubContentProvider: mockGitHubContentProvider,
     },
   });
@@ -120,9 +150,6 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
   const result = await service.execute({ userId });
 
   // 検証
-  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
-    userId,
-  );
   expect(mockGitHubContentProvider.listRepositories).not.toHaveBeenCalled();
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
@@ -130,41 +157,40 @@ test("GitHub連携が存在しない場合にエラーが返されること", as
     expect(result.error.code).toBe(
       ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
     );
-    expect(result.error.cause).toBe(repoError);
+    expect(result.error.cause).toBeInstanceOf(RepositoryError);
+    expect((result.error.cause as RepositoryError).code).toBe(
+      RepositoryErrorCode.NOT_FOUND,
+    );
   }
 });
 
 test("リポジトリ一覧の取得に失敗した場合にエラーが返されること", async () => {
-  // テストの準備
-  const userId = generateId("User");
-  const connection: GitHubConnection = {
-    id: generateId("Connection"),
-    userId,
-    accessToken: "github-access-token",
-    refreshToken: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  const errorId = generateId("Error");
+  // テスト用のユーザーを作成
+  const user = await createTestUser();
+  const userId = user.id;
 
+  // GitHub連携情報を作成
+  const accessToken = "github-access-token";
+  await githubConnectionRepository.create({
+    userId,
+    accessToken,
+    refreshToken: null,
+  });
+
+  // GitHub APIのエラーをシミュレート
   const providerError = new ExternalServiceError(
     "GitHubContent",
     ExternalServiceErrorCode.REQUEST_FAILED,
-    `Failed to list repositories (${errorId})`,
+    "Failed to list repositories",
   );
 
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockGitHubConnectionRepository.findByUserId as any).mockReturnValue(
-    okAsync(connection),
-  );
-  // biome-ignore lint/suspicious/noExplicitAny: モックの型キャストに必要
-  (mockGitHubContentProvider.listRepositories as any).mockReturnValue(
+  mockGitHubContentProvider.listRepositories.mockReturnValue(
     errAsync(providerError),
   );
 
   const service = new ListRepositoriesService({
     deps: {
-      githubConnectionRepository: mockGitHubConnectionRepository,
+      githubConnectionRepository,
       githubContentProvider: mockGitHubContentProvider,
     },
   });
@@ -173,11 +199,8 @@ test("リポジトリ一覧の取得に失敗した場合にエラーが返さ�
   const result = await service.execute({ userId });
 
   // 検証
-  expect(mockGitHubConnectionRepository.findByUserId).toHaveBeenCalledWith(
-    userId,
-  );
   expect(mockGitHubContentProvider.listRepositories).toHaveBeenCalledWith(
-    connection.accessToken,
+    accessToken,
   );
   expect(result.isErr()).toBe(true);
   if (result.isErr()) {
