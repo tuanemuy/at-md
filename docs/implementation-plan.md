@@ -148,12 +148,12 @@
 
 ### ステップ4.3 投稿管理アプリケーションサービス
 
-- [ ] 投稿
-  - [ ] PostNoteService
-  - [ ] RetryPostService
-- [ ] エンゲージメント取得
-  - [ ] GetEngagementService
-  - [ ] CheckPostStatusService
+- [x] 投稿
+  - [x] PostNoteService
+  - [x] RetryPostService
+- [x] エンゲージメント取得
+  - [x] GetEngagementService
+  - [x] CheckPostStatusService
 
 ## フェーズ5: API実装
 
