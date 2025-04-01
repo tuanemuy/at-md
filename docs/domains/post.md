@@ -55,7 +55,7 @@
 
 - 実装: [GetEngagementUseCase](../domain-types/post.md#エンゲージメントを取得する)
 - 入力: [GetEngagementInput](../domain-types/post.md#エンゲージメントを取得する)
-  - noteId
+  - uri
 - 出力: Result<Engagement, PostError>
 - 処理: ノートに紐づいた投稿のエンゲージメント情報をBlueskyから取得する
 

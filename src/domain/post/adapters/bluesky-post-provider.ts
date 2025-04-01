@@ -21,8 +21,5 @@ export interface BlueskyPostProvider {
   /**
    * エンゲージメントを取得する
    */
-  getEngagement(
-    did: DID,
-    uri: string,
-  ): ResultAsync<Engagement, ExternalServiceError>;
+  getEngagement(uri: string): ResultAsync<Engagement, ExternalServiceError>;
 }

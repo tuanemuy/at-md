@@ -129,22 +129,22 @@
 
 ### ステップ4.2 ノート管理アプリケーションサービス
 
-- [ ] ブック管理
-  - [ ] ListRepositoriesService
-  - [ ] AddBookService
-  - [ ] ListBooksService
-  - [ ] GetBookService
-  - [ ] DeleteBookService
-  - [ ] CheckBookSyncStatusService
-- [ ] ノート管理
-  - [ ] SyncNotesService
-  - [ ] PushNotesService
-  - [ ] ListNotesService
-  - [ ] SearchNotesService
-  - [ ] GetNoteService
-- [ ] タグ管理
-  - [ ] ListTagsService
-  - [ ] ListNotesByTagService
+- [x] ブック管理
+  - [x] ListRepositoriesService
+  - [x] AddBookService
+  - [x] ListBooksService
+  - [x] GetBookService
+  - [x] DeleteBookService
+  - [x] CheckBookSyncStatusService
+- [x] ノート管理
+  - [x] SyncNotesService
+  - [x] PushNotesService
+  - [x] ListNotesService
+  - [x] SearchNotesService
+  - [x] GetNoteService
+- [x] タグ管理
+  - [x] ListTagsService
+  - [x] ListNotesByTagService
 
 ### ステップ4.3 投稿管理アプリケーションサービス
 

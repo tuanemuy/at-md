@@ -124,7 +124,7 @@ export interface PostNoteUseCase {
 
 ```typescript
 export interface GetEngagementInput {
-  noteId: string;
+  uri: string;
 }
 
 export interface GetEngagementUseCase {
