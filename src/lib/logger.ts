@@ -27,20 +27,7 @@ export class Logger {
         format.prettyPrint(),
       ),
       defaultMeta: { service: "at-md" },
-      transports: [
-        // 開発環境ではコンソールに出力
-        new transports.Console(),
-        // 本番環境ではファイルにも出力（オプション）
-        ...(process.env.NODE_ENV === "production"
-          ? [
-              new transports.File({
-                filename: "logs/error.log",
-                level: "error",
-              }),
-              new transports.File({ filename: "logs/combined.log" }),
-            ]
-          : []),
-      ],
+      transports: [new transports.Console()],
     });
   }
 
