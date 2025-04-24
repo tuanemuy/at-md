@@ -130,7 +130,7 @@ export default async function Page({ params }: Props) {
         </section>
 
         <section className="py-(--spacing-layout-md)">
-          <Article text={body} />
+          <Article text={note.body} />
           <Highlight />
         </section>
       </div>
