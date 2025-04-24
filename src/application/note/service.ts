@@ -187,8 +187,24 @@ export class NoteService implements NoteUsecase {
     userId: string;
     bookId: string;
   }) {
-    return this.bookRepository
-      .delete(input.bookId, input.userId)
+    return this.githubConnectionRepository
+      .findByUserId(input.userId)
+      .andThen((connection) =>
+        this.bookRepository.delete(input.bookId, input.userId).map((book) => ({
+          book,
+          connection,
+        })),
+      )
+      .map(({ book, connection }) =>
+        this.githubContentProvider
+          .deleteWebhook(
+            connection.accessToken,
+            book.owner,
+            book.repo,
+            book.webhookId,
+          )
+          .unwrapOr(undefined),
+      )
       .mapErr(
         (error) =>
           new ApplicationServiceError(

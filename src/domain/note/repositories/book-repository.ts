@@ -91,7 +91,10 @@ export interface BookRepository {
   /**
    * 指定したIDのブックを削除する
    */
-  delete(id: string, userId: string): ResultAsync<void, RepositoryError>;
+  delete(
+    id: string,
+    userId: string,
+  ): ResultAsync<Omit<Book, "details" | "syncStatus">, RepositoryError>;
 
   count(): ResultAsync<number, RepositoryError>;
 

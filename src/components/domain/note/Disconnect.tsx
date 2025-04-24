@@ -27,8 +27,8 @@ export function Disconnect({ book, redirectPath }: Props) {
   const disconnect = async () => {
     setIsOpen(false);
     const loading = toast.loading("Disconnecting...");
-
     const result = await deleteBook(book.id, redirectPath);
+    toast.dismiss(loading);
 
     if (!result) {
       toast.error("Error", {
@@ -40,8 +40,6 @@ export function Disconnect({ book, redirectPath }: Props) {
     toast.success("Success", {
       description: "GitHub repository disconnected successfully.",
     });
-
-    toast.dismiss(loading);
   };
 
   return (
