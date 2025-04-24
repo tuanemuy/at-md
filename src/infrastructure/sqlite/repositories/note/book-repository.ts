@@ -212,12 +212,13 @@ export class DrizzleBookRepository implements BookRepository {
    * 指定したIDのブックを削除する
    */
   delete(id: string, userId: string) {
-    return ResultAsync.fromPromise(
-      this.db
+    return ResultAsync.fromThrowable(async () => {
+      const [deleted] = await this.db
         .delete(books)
-        .where(and(eq(books.id, id), eq(books.userId, userId))),
-      mapRepositoryError,
-    ).map(() => {});
+        .where(and(eq(books.id, id), eq(books.userId, userId)))
+        .returning();
+      return deleted;
+    }, mapRepositoryError)();
   }
 
   count() {
