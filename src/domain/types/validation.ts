@@ -1,4 +1,4 @@
-import { type Result, err, ok } from "@/lib/result";
+import { type Result, err, ok } from "neverthrow";
 import type { z } from "zod";
 import { ValidationError, ValidationErrorCode } from "./error";
 

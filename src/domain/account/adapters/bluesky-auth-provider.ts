@@ -1,7 +1,7 @@
 import type { ClientMetadata } from "@/domain/account/dtos/bluesky-client-metadata";
 import type { BlueskyProfile } from "@/domain/account/dtos/bluesky-profile";
 import type { ExternalServiceError } from "@/domain/types/error";
-import type { ResultAsync } from "@/lib/result";
+import type { ResultAsync } from "neverthrow";
 /**
  * Bluesky認証アダプターのインターフェース
  */

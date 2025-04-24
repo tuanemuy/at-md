@@ -7,13 +7,13 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { logger } from "@/lib/logger";
-import { ResultAsync } from "@/lib/result";
 import { Agent } from "@atproto/api";
 import {
   NodeOAuthClient,
   type NodeSavedSession,
   type NodeSavedState,
 } from "@atproto/oauth-client-node";
+import { ResultAsync } from "neverthrow";
 const enc = encodeURIComponent;
 
 async function _getAgent(oauthClient: NodeOAuthClient, did: string) {

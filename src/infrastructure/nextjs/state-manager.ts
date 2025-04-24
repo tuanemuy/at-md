@@ -8,8 +8,8 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
-import { ResultAsync } from "@/lib/result";
 import { getIronSession } from "iron-session";
+import { ResultAsync } from "neverthrow";
 import type { cookies } from "next/headers";
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;

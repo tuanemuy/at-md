@@ -15,7 +15,7 @@ import {
 } from "@/domain/types/error";
 import type { PaginationParams } from "@/domain/types/pagination";
 import { logger } from "@/lib/logger";
-import { ResultAsync, okAsync } from "@/lib/result";
+import { ResultAsync, okAsync } from "neverthrow";
 import type { AddBookInput, NoteUsecase, SearchNotesInput } from "./usecase";
 
 export class NoteService implements NoteUsecase {

@@ -4,8 +4,7 @@ import type { GitHubConnection } from "@/domain/account/models/github-connection
 import type { SessionData } from "@/domain/account/models/session-data";
 import type { User } from "@/domain/account/models/user";
 import type { ApplicationServiceError } from "@/domain/types/error";
-import type { PaginationParams } from "@/domain/types/pagination";
-import type { ResultAsync } from "@/lib/result";
+import type { ResultAsync } from "neverthrow";
 import { z } from "zod";
 
 export const startBlueskyAuthInputSchema = z.object({

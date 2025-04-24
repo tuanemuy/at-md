@@ -5,8 +5,8 @@ import type {
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { eq } from "drizzle-orm";
+import { ResultAsync, err, ok } from "neverthrow";
 import { type Database, mapRepositoryError } from "../../client";
 import { authStates } from "../../schema/account";
 

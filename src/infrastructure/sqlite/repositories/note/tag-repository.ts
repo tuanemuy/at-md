@@ -1,6 +1,6 @@
 import type { TagRepository } from "@/domain/note/repositories";
-import { ResultAsync } from "@/lib/result";
 import { eq, inArray } from "drizzle-orm";
+import { ResultAsync } from "neverthrow";
 import { type Database, mapRepositoryError } from "../../client";
 import { noteTags, tags } from "../../schema/note";
 

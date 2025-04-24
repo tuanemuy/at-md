@@ -5,9 +5,8 @@ import type {
   UserRepository,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import type { PaginationParams } from "@/domain/types/pagination";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { asc, count, eq } from "drizzle-orm";
+import { ResultAsync, err, ok } from "neverthrow";
 import { type PgDatabase, mapRepositoryError } from "../../client";
 import { profiles, users } from "../../schema/account";
 

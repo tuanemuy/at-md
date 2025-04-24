@@ -8,9 +8,8 @@ import {
   ApplicationServiceError,
   ApplicationServiceErrorCode,
 } from "@/domain/types/error";
-import type { PaginationParams } from "@/domain/types/pagination";
 import { logger } from "@/lib/logger";
-import { errAsync, okAsync } from "@/lib/result";
+import { errAsync, okAsync } from "neverthrow";
 import { v4 as uuid } from "uuid";
 import type { AccountUsecase } from "./usecase";
 

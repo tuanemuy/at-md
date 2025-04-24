@@ -4,8 +4,8 @@ import type {
   UpdatePost,
 } from "@/domain/post/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { and, eq } from "drizzle-orm";
+import { ResultAsync, err, ok } from "neverthrow";
 import { type Database, mapRepositoryError } from "../../client";
 import { posts } from "../../schema/post";
 

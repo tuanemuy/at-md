@@ -9,8 +9,8 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
-import { ResultAsync } from "@/lib/result";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { ResultAsync } from "neverthrow";
 import { getAgent, getOAuthClient } from "./client";
 
 /**

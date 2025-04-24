@@ -9,8 +9,8 @@ import {
 } from "@/domain/types/error";
 import type { RequestContext } from "@/domain/types/http";
 import { validate } from "@/domain/types/validation";
-import { ResultAsync } from "@/lib/result";
 import { getIronSession } from "iron-session";
+import { ResultAsync } from "neverthrow";
 
 export class HonoSessionManager implements SessionManager<RequestContext> {
   private readonly secret: string;
