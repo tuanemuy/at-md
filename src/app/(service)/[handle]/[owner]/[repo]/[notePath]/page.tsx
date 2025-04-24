@@ -84,7 +84,8 @@ export default async function Page({ params }: Props) {
 
         {note.createdAt && (
           <p className="text-sm text-muted-foreground">
-            {createdAt} / {createdAt !== updatedAt ? updatedAt : ""}
+            {createdAt}
+            {createdAt !== updatedAt ? ` / ${updatedAt}` : ""}
           </p>
         )}
 

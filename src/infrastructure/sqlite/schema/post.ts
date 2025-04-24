@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   foreignKey,
   integer,
@@ -28,10 +28,10 @@ export const posts = sqliteTable(
     postCid: text("post_cid").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow(),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow()
+      .default(sql`(unixepoch())`)
       .$onUpdate(() => new Date()),
   },
   (t) => ({

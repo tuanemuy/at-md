@@ -1,5 +1,5 @@
 import { NoteScope } from "@/domain/note/models/note";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   integer,
   primaryKey,
@@ -25,10 +25,10 @@ export const books = sqliteTable(
     webhookId: integer("webhook_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow(),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow()
+      .default(sql`(unixepoch())`)
       .$onUpdate(() => new Date()),
   },
   (t) => ({
@@ -45,10 +45,10 @@ export const bookDetails = sqliteTable("book_details", {
   description: text("description").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -63,10 +63,10 @@ export const syncStatuses = sqliteTable("sync_statuses", {
     .default("waiting"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -83,10 +83,10 @@ export const tags = sqliteTable(
     name: text("name").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow(),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow()
+      .default(sql`(unixepoch())`)
       .$onUpdate(() => new Date()),
   },
   (t) => [uniqueIndex("book_name_idx").on(t.bookId, t.name)],
@@ -111,10 +111,10 @@ export const notes = sqliteTable(
     scope: text("scope").notNull().$type<NoteScope>().default(NoteScope.PUBLIC),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow(),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .defaultNow()
+      .default(sql`(unixepoch())`)
       .$onUpdate(() => new Date()),
   },
   (t) => ({

@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v7 as textv7 } from "uuid";
 
@@ -11,10 +11,10 @@ export const users = sqliteTable("users", {
   handle: text("handle").notNull().unique(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -29,10 +29,10 @@ export const profiles = sqliteTable("profiles", {
   bannerUrl: text("banner_url"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -50,10 +50,10 @@ export const githubConnections = sqliteTable("github_connections", {
   refreshToken: text("refresh_token"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -66,10 +66,10 @@ export const authSessions = sqliteTable("auth_sessions", {
   session: text("session", { mode: "json" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
@@ -82,10 +82,10 @@ export const authStates = sqliteTable("auth_states", {
   state: text("state", { mode: "json" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow(),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .defaultNow()
+    .default(sql`(unixepoch())`)
     .$onUpdate(() => new Date()),
 });
 
