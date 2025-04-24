@@ -22,6 +22,7 @@
             pnpm
             vtsls
             biome
+            tailwindcss-language-server
           ];
         };
       });

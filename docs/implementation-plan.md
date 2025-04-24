@@ -1,230 +1,287 @@
 # 実装計画
 
-この計画は、設計資料に基づいてプロジェクトを段階的に実装するためのロードマップです。
+このドキュメントでは、プロジェクトの実装計画を段階的に記述します。ドメイン駆動設計の原則に従い、関数型アプローチで実装を進めます。
 
 ## 各ステップの進め方
 
-各ステップは**必ず**以下の手順に従って進めてください。不要な手順をスキップする場合は必ず理由を説明してください。
+- **ステップごとに**イテレーションを回してください
+- **必ず**以下の手順に従って進めてください。
 
-1. ステップの作業内容を確認する
+作業の途中で設計を変更する場合は、先に `docs/*.md` を修正してください。
+
+1. 行う作業内容を確認する
 2. `docs/*.md` の設計を確認する
-3. 作業を行う
-4. 型チェックを行う（`pnpm check`）
-5. 静的解析を行う（`pnpm lint`）
-6. テストを実装する
-7. テストを行う（`pnpm test`）
-8. エラーが無くなるまで4~7を繰り返す
-9. ユーザーに確認する
-10. 進捗を更新する
+3. 実装するモジュールのインターフェースと型を考える
+4. 実装を行う
+5. 必要ならテストを実装する（`./test.mdc`）
+6. テストを行う（`pnpm test`）
+7. 型チェックを行う（`pnpm typecheck`）
+8. 型エラーを修正する
+9. 静的解析を行う（`pnpm lint`）
+10. リンターエラーを修正する
+11. テストを行う（`pnpm test`）
+12. 実装を修正する
+13. エラーが無くなるまで5~11を繰り返す
+14. ユーザーに確認する
 
-## フェーズ1: 基盤構築
+## フェーズ1: 共有カーネルの実装
 
-### ステップ1.1 プロジェクト初期化
+### ステップ1.1 外部ユーティリティーの実装
 
-- [ ] ディレクトリ構造の作成（設計資料の構造に従う）
+- [x] ロギング機能の実装（構造化ロギング・グローバルシングルトン）
+- [x] Result型の実装（neverthrowの活用）
 
-### ステップ1.2 共有カーネルの実装
+### ステップ1.2 共通型／インターフェース定義の実装
 
-- [ ] ID生成機能（`src/domain/shared/models/id.ts`）
-- [ ] 共通型定義（`src/domain/shared/models/common.ts`）
-- [ ] ロガー実装（`src/lib/logger.ts`）
-- [ ] Result型のユーティリティ関数
+- [x] ID型の実装（UUIDベース）
+- [x] 日付型の実装
+- [x] 共通エラー型の実装（AnyError）
+- [x] バリデーション用のZodスキーマ定義
 
 ## フェーズ2: ドメイン層の実装
 
 ### ステップ2.1 アカウント管理コンテキスト
 
-- [ ] ユーザーモデル（`src/domain/account/models/user.ts`）
-- [ ] 認証エラー型（`src/domain/account/models/errors.ts`）
-- [ ] リポジトリインターフェース（`src/domain/account/repositories/user.ts`）
-- [ ] サービスインターフェース（`src/domain/account/services/auth.ts`）
-- [ ] コンテキスト間契約（`src/domain/account/contracts/index.ts`）
+- [x] エンティティの実装（User, GitHubConnection）
+- [x] 値オブジェクトの実装（Profile, Session）
+- [x] DTOの実装（GitHubInstallation）
+- [x] エラー型の実装（AccountError）
+- [x] バリデーション関数の実装
+- [x] リポジトリインターフェースの定義
+- [x] アダプターインターフェースの定義
+- [x] ユースケースインターフェースの定義
 
-### ステップ2.2 文書管理コンテキスト
+### ステップ2.2 ノート管理コンテキスト
 
-- [ ] 文書モデル（`src/domain/document/models/document.ts`）
-- [ ] GitHubリポジトリモデル（`src/domain/document/models/githubRepo.ts`）
-- [ ] タグモデル（`src/domain/document/models/tag.ts`）
-- [ ] エラー型（`src/domain/document/models/errors.ts`）
-- [ ] リポジトリインターフェース（文書、GitHubリポジトリ、タグ）
-- [ ] サービスインターフェース（同期サービス）
-- [ ] コンテキスト間契約
-- [ ] 型チェック（`pnpm check`）
-- [ ] 静的解析（`pnpm check`）
-- [ ] テスト実装
-- [ ] テスト（`pnpm test`）
-- [ ] ユーザーに確認
-- [ ] 進捗を更新
+- [x] エンティティの実装（Note, Book, Tag）
+- [x] 値オブジェクトの実装（BookDetails, SyncStatus）
+- [x] エラー型の実装（NoteError）
+- [x] バリデーション関数の実装
+- [x] リポジトリインターフェースの定義
+- [x] アダプターインターフェースの定義
+- [x] ユースケースインターフェースの定義
 
 ### ステップ2.3 投稿管理コンテキスト
 
-- [ ] 投稿モデル（`src/domain/post/models/post.ts`）
-- [ ] エラー型（`src/domain/post/models/errors.ts`）
-- [ ] リポジトリインターフェース（`src/domain/post/repositories/post.ts`）
-- [ ] サービスインターフェース（`src/domain/post/services/post.ts`）
-- [ ] コンテキスト間契約
-- [ ] 型チェック（`pnpm check`）
-- [ ] 静的解析（`pnpm check`）
-- [ ] テスト実装
-- [ ] テスト（`pnpm test`）
-- [ ] ユーザーに確認
-- [ ] 進捗を更新
-
-### ステップ2.4 DIコンテナの実装
-
-- [ ] DIコンテナの実装（`src/lib/container.ts`）
-- [ ] テスト用モックコンテナの実装
+- [x] エンティティの実装（Post, Engagement）
+- [x] 値オブジェクトの実装（PostSettings）
+- [x] エラー型の実装（PostError）
+- [x] バリデーション関数の実装
+- [x] リポジトリインターフェースの定義
+- [x] アダプターインターフェースの定義
+- [x] ユースケースインターフェースの定義
 
 ## フェーズ3: インフラストラクチャ層の実装
 
-### ステップ3.1 データベースの準備
+### ステップ3.1 基本インフラストラクチャの実装
 
-- [ ] スキーマ定義（`src/infrastructure/db/schema/*.ts`）
-- [ ] データベースクライアントの実装（`src/infrastructure/db/client.ts`）
-- [ ] マイグレーションファイル生成（`pnpm db:generate`）
-- [ ] マイグレーション（`pnpm db:migrate`）
+- [x] DIコンテナの設定（`./infrastructure-layer.md`を参考にコンストラクタインジェクションで実現する）
+- [x] 環境変数管理（dotenvとzodによる型安全な設定）
+- [x] HTTPクライアントの共通実装
 
-### ステップ3.2 ユーザーリポジトリの実装
+### ステップ3.2 データベース基盤
 
-- [ ] ユーザーリポジトリ（`src/infrastructure/db/repositories/account/user.ts`）
+- [x] Drizzleのセットアップ（ユーザーが行う）
+- [x] マイグレーション管理の設定（ユーザーが行う）
+- [x] アカウント管理コンテキストのスキーマ定義
+- [x] ノート管理コンテキストのスキーマ定義
+- [x] 投稿管理コンテキストのスキーマ定義
 
-### ステップ3.3 文書リポジトリの実装
+### ステップ3.3 リポジトリ実装
 
-- [ ] 文書リポジトリ（`src/infrastructure/db/repositories/document/document.ts`）
+- [x] アカウント管理リポジトリの実装
+  - [x] UserRepository
+  - [x] GitHubConnectionRepository
+- [x] ノート管理リポジトリの実装
+  - [x] NoteRepository
+  - [x] BookRepository
+  - [x] TagRepository
+- [x] 投稿管理リポジトリの実装
+  - [x] PostRepository
 
-### ステップ3.4 GitHubリポジトリリポジトリの実装
+### ステップ3.4 外部サービス連携
 
-- [ ] GitHubリポジトリリポジトリ（`src/infrastructure/db/repositories/document/githubRepo.ts`）
-
-### ステップ3.5 タグリポジトリの実装
-
-- [ ] タグリポジトリ（`src/infrastructure/db/repositories/document/tag.ts`）
-
-### ステップ3.6 投稿リポジトリの実装
-
-- [ ] 投稿リポジトリ（`src/infrastructure/db/repositories/post/post.ts`）
-
-### ステップ3.7 GitHub APIクライアントの実装
-
-- [ ] GitHub APIクライアント（`src/infrastructure/api/github/client.ts`）
-
-### ステップ3.8 Bluesky APIクライアントの実装
-
-- [ ] Bluesky APIクライアント（`src/infrastructure/api/bluesky/client.ts`）
-
-### ステップ3.9 Bluesky認証機能の実装
-
-- [ ] Bluesky認証（`src/infrastructure/auth/bluesky.ts`）
-
-### ステップ3.10 GitHub認証機能の実装
-
-- [ ] GitHub認証（`src/infrastructure/auth/github.ts`）
+- [x] Bluesky認証アダプターの実装
+  - [x] BlueskyAuthProvider
+- [x] GitHub連携アダプターの実装
+  - [x] GitHubAppProvider
+  - [x] GitHubContentProvider
+- [x] Bluesky投稿アダプターの実装
+  - [x] BlueskyPostProvider
 
 ## フェーズ4: アプリケーション層の実装
 
-### ステップ4.1 アカウント管理ユースケースの実装
+### ステップ4.1 アカウント管理アプリケーションサービス
 
-- [ ] ユーザー登録ユースケース（`src/application/account/usecases/register.ts`）
-- [ ] GitHub連携ユースケース（`src/application/account/usecases/connect.ts`）
-- [ ] ユーザー情報取得クエリ（`src/application/account/queries/user.ts`）
+- [x] 認証関連
+  - [x] StartBlueskyAuthService
+  - [x] HandleBlueskyAuthCallbackService
+  - [x] ValidateSessionService
+  - [x] LogoutService
+- [x] GitHub連携
+  - [x] ConnectGitHubService
+  - [x] DisconnectGitHubService
+- [x] ユーザー管理
+  - [x] GetUserByIdService
+  - [x] UpdateProfileService
+  - [x] DeleteUserService
+  - [x] GetGitHubConnectionsService
 
-### ステップ4.2 文書管理ユースケースの実装
+### ステップ4.2 ノート管理アプリケーションサービス
 
-- [ ] 文書同期ユースケース（`src/application/document/usecases/sync.ts`）
-- [ ] タグ管理ユースケース（`src/application/document/usecases/tag.ts`）
-- [ ] Webhook処理ユースケース（`src/application/document/usecases/webhook.ts`）
-- [ ] 文書取得クエリ（`src/application/document/queries/document.ts`）
-- [ ] タグ取得クエリ（`src/application/document/queries/tag.ts`）
+- [x] ブック管理
+  - [x] ListRepositoriesService
+  - [x] AddBookService
+  - [x] ListBooksService
+  - [x] GetBookService
+  - [x] DeleteBookService
+  - [x] CheckBookSyncStatusService
+- [x] ノート管理
+  - [x] SyncNotesService
+  - [x] PushNotesService
+  - [x] ListNotesService
+  - [x] SearchNotesService
+  - [x] GetNoteService
+- [x] タグ管理
+  - [x] ListTagsService
+  - [x] ListNotesByTagService
 
-### ステップ4.3 投稿管理ユースケースの実装
+### ステップ4.3 投稿管理アプリケーションサービス
 
-- [ ] 投稿作成ユースケース（`src/application/post/usecases/post.ts`）
-- [ ] 投稿情報取得クエリ（`src/application/post/queries/post.ts`）
+- [x] 投稿
+  - [x] PostNoteService
+  - [x] RetryPostService
+- [x] エンゲージメント取得
+  - [x] GetEngagementService
+  - [x] CheckPostStatusService
 
-## フェーズ5: プレゼンテーション層の実装
+## フェーズ5: API実装
 
-### ステップ5.1 認証・アカウント管理UIの実装
+### ステップ5.1 APIの基盤実装
 
-- [ ] ログインページ（`src/app/auth/login/page.tsx`）
-- [ ] GitHub連携ページ（`src/app/auth/github/page.tsx`）
-- [ ] アカウント設定ページ（`src/app/settings/page.tsx`）
+- [ ] Next.js App Routerのセットアップ
+- [ ] API共通処理（エラーハンドリング、バリデーション）
+- [ ] 認証ミドルウェアの実装
 
-### ステップ5.2 文書管理UIの実装
+### ステップ5.2 認証API
 
-- [ ] リポジトリ一覧ページ（`src/app/dashboard/page.tsx`）
-- [ ] 文書一覧ページ（`src/app/[user]/[repo]/page.tsx`）
-- [ ] 文書表示ページ（`src/app/[user]/[repo]/[path]/page.tsx`）
-- [ ] タグ管理UI（`src/components/domain/TagManager.tsx`）
+- [ ] ログインAPI（`/api/auth/login`）
+- [ ] コールバックAPI（`/api/auth/callback`）
+- [ ] セッション検証API（`/api/auth/session`）
+- [ ] ログアウトAPI（`/api/auth/logout`）
+- [ ] GitHub連携API（`/api/auth/github`）
 
-### ステップ5.3 API Routesの実装
+### ステップ5.3 ノート管理API
 
-- [ ] Webhook受信エンドポイント（`src/app/api/webhook/route.ts`）
-- [ ] 認証エンドポイント（`src/app/api/auth/route.ts`）
-- [ ] 文書同期エンドポイント（`src/app/api/sync/route.ts`）
+- [ ] ブック管理API
+  - [ ] ブック一覧取得（`/api/books`）
+  - [ ] ブック追加（`/api/books`）
+  - [ ] ブック詳細取得（`/api/books/:id`）
+  - [ ] ブック削除（`/api/books/:id`）
+- [ ] ノート管理API
+  - [ ] ノート一覧取得（`/api/books/:bookId/notes`）
+  - [ ] ノート検索（`/api/books/:bookId/notes/search`）
+  - [ ] ノート詳細取得（`/api/notes/:id`）
+- [ ] タグ管理API
+  - [ ] タグ一覧取得（`/api/books/:bookId/tags`）
+  - [ ] タグでノート取得（`/api/books/:bookId/tags/:tagId/notes`）
+- [ ] Webhook受信API
+  - [ ] GitHub Webhook（`/api/webhooks/github`）
 
-## フェーズ6: テストと最適化
+### ステップ5.4 投稿管理API
 
-### ステップ6.1 E2Eテスト
+- [ ] 投稿API
+  - [ ] ノート投稿（`/api/notes/:id/post`）
+  - [ ] 投稿再試行（`/api/notes/:id/retry`）
+- [ ] エンゲージメントAPI
+  - [ ] エンゲージメント取得（`/api/notes/:id/engagement`）
+  - [ ] 投稿ステータス確認（`/api/notes/:id/post-status`）
 
+## フェーズ6: UI実装
+
+### ステップ6.1 共通コンポーネント
+
+- [ ] デザインシステムの構築（Tailwind CSSベース）
+- [ ] 基本UIコンポーネント
+  - [ ] ボタン、入力フォーム、カード
+  - [ ] ナビゲーション、ヘッダー、フッター
+  - [ ] モーダル、ドロップダウン
+- [ ] レイアウトコンポーネント
+  - [ ] アプリケーションレイアウト
+  - [ ] 認証レイアウト
+- [ ] 認証関連コンポーネント
+  - [ ] ログインフォーム
+  - [ ] ユーザープロファイル
+
+### ステップ6.2 機能別ページ
+
+- [ ] 認証関連ページ
+  - [ ] ログインページ
+  - [ ] コールバックページ
+  - [ ] 設定ページ
+- [ ] ブック関連ページ
+  - [ ] ブック一覧ページ
+  - [ ] ブック追加ページ
+  - [ ] ブック詳細ページ
+- [ ] ノート関連ページ
+  - [ ] ノート一覧ページ
+  - [ ] ノート検索ページ
+  - [ ] ノート詳細ページ
+  - [ ] タグフィルターページ
+
+## フェーズ7: テストと最適化
+
+### ステップ7.1 テスト強化
+
+- [ ] ドメイン層のテスト
+  - [ ] エンティティと値オブジェクトのテスト
+  - [ ] バリデーション関数のテスト
+  - [ ] ユースケースのテスト
+- [ ] インフラストラクチャ層のテスト
+  - [ ] リポジトリのテスト
+  - [ ] アダプターのテスト
+- [ ] 統合テスト
+  - [ ] API統合テスト
+  - [ ] ユースケース統合テスト
 - [ ] E2Eテスト
+  - [ ] 認証フロー
+  - [ ] ノート管理フロー
+  - [ ] 投稿フロー
 
-### ステップ6.2 パフォーマンス最適化
+### ステップ7.2 パフォーマンス最適化
 
-- [ ] クエリの最適化
+- [ ] データベースクエリの最適化
+  - [ ] インデックス最適化
+  - [ ] クエリパフォーマンス分析
 - [ ] キャッシュ戦略の実装
-- [ ] 画像最適化
+  - [ ] サーバーサイドキャッシュ
+  - [ ] クライアントサイドキャッシュ
+- [ ] 非同期処理の最適化
+  - [ ] バックグラウンドジョブの実装
+  - [ ] Webhookの非同期処理
 
-### ステップ6.3 セキュリティ強化
+### ステップ7.3 セキュリティ強化
 
-- [ ] 認証フローの見直し
-- [ ] CSRF対策
-- [ ] レート制限の実装
+- [ ] 入力検証の強化
+  - [ ] APIリクエストのバリデーション
+  - [ ] CSRFトークンの実装
+- [ ] 認証・認可の見直し
+  - [ ] JWTトークンの設定最適化
+  - [ ] 権限管理の実装
+- [ ] セキュリティヘッダーの設定
+  - [ ] Content Security Policy
+  - [ ] XSS対策
+  - [ ] CORS設定
 
-## フェーズ7: デプロイと運用準備
+## 実装優先順位
 
-- [ ] CI/CDパイプラインの構築
-- [ ] 本番環境の準備
-- [ ] モニタリングとロギングの設定
-- [ ] バックアップ戦略の実装
-- [ ] デプロイ手順の文書化
-
-## 優先実装項目
-
-最初に実装すべき機能の優先順位：
-
-1. ユーザー認証（Bluesky SSO）
-2. GitHub連携
-3. 文書同期
-4. 文書表示
-5. タグ管理
-6. Bluesky投稿
-
-## 技術的な検討事項
-
-- 認証: Bluesky SSOの実装方法
-- GitHub連携: GitHub Appsの設定と認証フロー
-- 文書同期: Webhookの処理とMarkdownパース
-- 投稿: Bluesky APIの利用方法
-- データベース: リレーションの設計とインデックス最適化
-
-## リスクと対策
-
-| リスク | 影響度 | 対策 |
-|-------|-------|------|
-| Bluesky APIの仕様変更 | 高 | APIクライアントを抽象化し、変更に対応しやすい設計にする |
-| GitHub APIのレート制限 | 中 | キャッシュ戦略とバックオフアルゴリズムの実装 |
-| データベースのパフォーマンス | 中 | 適切なインデックス設計と定期的なパフォーマンス測定 |
-| セキュリティリスク | 高 | 認証フローの厳格な実装と定期的なセキュリティレビュー |
-
-## 開発環境
-
-- Node.js 22.14.0
-- pnpm 10.4.1
-- PostgreSQL 15.x
-
-## 次のステップ
-
-1. プロジェクト初期化とディレクトリ構造の作成
-2. 共有カーネルの実装
-3. データベーススキーマの作成
-4. ドメインモデルの実装開始
+1. 共有カーネルとドメイン層の実装（フェーズ1, 2）
+2. 基本インフラストラクチャの実装（フェーズ3.1）
+3. アカウント管理コンテキストのインフラストラクチャとアプリケーション層（フェーズ3.2, 3.3, 3.4, 4.1）
+4. 認証API（フェーズ5.1, 5.2）
+5. ノート管理コンテキストのインフラストラクチャとアプリケーション層（フェーズ3.2, 3.3, 4.2）
+6. ノート管理API（フェーズ5.3）
+7. 投稿管理コンテキストのインフラストラクチャとアプリケーション層（フェーズ3.2, 3.3, 4.3）
+8. 投稿管理API（フェーズ5.4）
+9. UI実装（フェーズ6）
+10. テストと最適化（フェーズ7）

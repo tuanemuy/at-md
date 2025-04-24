@@ -1,0 +1,7 @@
+@layer utilities {
+  @import "./themes/github.css";
+
+  .dark {
+    @import "./themes/a11y-dark.css";
+  }
+}
