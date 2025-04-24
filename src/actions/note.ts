@@ -6,6 +6,7 @@ import type {
   SearchNotesInput,
 } from "@/application/note/usecase";
 import type { PaginationParams } from "@/domain/types/pagination";
+import { mdToHtml } from "@/lib/markdown";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -130,9 +131,19 @@ export async function searchNotes(input: SearchNotesInput) {
 
 export const getNote = cache(_getNote);
 async function _getNote(notePath: string) {
-  return container.noteService.getNote
+  const note = await container.noteService.getNote
     .bind(container.noteService)({ notePath })
     .unwrapOr(null);
+
+  if (!note) {
+    return null;
+  }
+
+  const body = await mdToHtml(note.body);
+  return {
+    ...note,
+    body,
+  };
 }
 
 export async function deleteNote(noteId: string, redirectPath?: string) {
