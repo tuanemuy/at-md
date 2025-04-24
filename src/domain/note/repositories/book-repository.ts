@@ -88,6 +88,11 @@ export interface BookRepository {
     repo: string,
   ): ResultAsync<Book, RepositoryError>;
 
+  findByOwnerAndRepoWithUser(
+    owner: string,
+    repo: string,
+  ): ResultAsync<Book & { user: User }, RepositoryError>;
+
   /**
    * 指定したIDのブックを削除する
    */

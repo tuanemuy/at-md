@@ -1,9 +1,9 @@
 "use client";
 
 import { searchNotes } from "@/actions/note";
+import type { User } from "@/domain/account/models/user";
 import type { Note } from "@/domain/note/models/note";
-import { useDebounceValue } from "@/hooks/use-debounce-value";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 
 import { NotesView } from "@/components/domain/note/NotesView";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -13,7 +13,7 @@ import { Info } from "lucide-react";
 const limit = Number.parseInt(process.env.NEXT_PUBLIC_PAGINATION_LIMIT, 10);
 
 type Props = {
-  initialNotes: Note[];
+  initialNotes: (Note & { user: User })[];
   initialCount: number;
 };
 

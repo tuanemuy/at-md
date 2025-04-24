@@ -60,7 +60,7 @@ export interface NoteUsecase {
   getBookByRepo: (input: {
     owner: string;
     repo: string;
-  }) => ResultAsync<Book, ApplicationServiceError>;
+  }) => ResultAsync<Book & { user: User }, ApplicationServiceError>;
 
   /**
    * ブックを削除する
@@ -108,7 +108,7 @@ export interface NoteUsecase {
   searchNotes: (
     input: SearchNotesInput,
   ) => ResultAsync<
-    { items: (Note & { fullPath: string })[]; count: number },
+    { items: (Note & { fullPath: string; user: User })[]; count: number },
     ApplicationServiceError
   >;
 
@@ -117,7 +117,13 @@ export interface NoteUsecase {
    */
   getNote: (input: {
     notePath: string;
-  }) => ResultAsync<Note, ApplicationServiceError>;
+  }) => ResultAsync<
+    Note & {
+      user: User;
+      book: Omit<Book, "syncStatus">;
+    },
+    ApplicationServiceError
+  >;
 
   /**
    * タグ一覧を取得する

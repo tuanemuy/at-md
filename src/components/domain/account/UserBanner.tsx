@@ -1,16 +1,10 @@
-import { getUserByHandle } from "@/actions/account";
+import type { User } from "@/domain/account/models/user";
 
 type Props = {
-  handle: string;
+  user: User;
 };
 
-export async function UserBanner({ handle }: Props) {
-  const user = await getUserByHandle(handle);
-
-  if (!user) {
-    return null;
-  }
-
+export function UserBanner({ user }: Props) {
   return (
     <div className="relative w-full aspect-[1440/360] bg-muted-foreground">
       {user.profile.bannerUrl && (

@@ -1,16 +1,17 @@
 "use client";
 
+import type { User } from "@/domain/account/models/user";
 import type { Note } from "@/domain/note/models/note";
 import { format } from "date-fns";
 
 import { Pagination } from "@/components/button/Pagination";
-import { User } from "@/components/domain/account/ClientUser";
+import { UserInfo } from "@/components/domain/account/UserInfo";
 import { Engagement } from "@/components/domain/post/ClientEngagement";
 import Link from "next/link";
 import { NotesViewSkeleton } from "./NotesViewSkeleton";
 
 type Props = {
-  notes: (Note & { fullPath?: string })[];
+  notes: (Note & { fullPath?: string; user?: User })[];
   isPending: boolean;
   page: number;
   totalPages: number;
@@ -37,9 +38,27 @@ export function NotesView({
           return (
             <div key={note.id} className="">
               <Link href={note.fullPath || `${basePath}/${note.path}`}>
-                {showUser && (
+                {showUser && note.user && (
                   <div className="mb-4">
-                    <User id={note.userId} />
+                    <div className="flex items-center gap-3">
+                      {note.user.profile.avatarUrl && (
+                        <img
+                          className="size-11 md:size-12 border-2 object-cover border-border bg-muted-foreground rounded-full"
+                          src={note.user.profile.avatarUrl}
+                          alt="Avatar"
+                          loading="lazy"
+                        />
+                      )}
+
+                      <div className="flex flex-col">
+                        <h3 className="text-md md:text-lg font-bold leading-[1.25]">
+                          {note.user.profile.displayName}
+                        </h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">
+                          @{note.user.handle}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
