@@ -47,7 +47,7 @@ export function NotesView({
 
                 {note.createdAt && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {format(new Date(note.createdAt), "yyyy-MM-dd HH:mm")}
+                    {format(note.createdAt, "yyyy-MM-dd HH:mm")}
                   </p>
                 )}
 
