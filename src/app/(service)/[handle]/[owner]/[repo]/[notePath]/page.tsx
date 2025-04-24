@@ -27,8 +27,17 @@ type Props = {
 
 export const revalidate = 60;
 
-export const generateStaticParams = async ({ params }: Props) => {
-  const { handle, owner, repo } = await params;
+type ParentProps = {
+  params: {
+    handle: string;
+    owner: string;
+    repo: string;
+  };
+};
+
+export const generateStaticParams = async ({
+  params: { handle, owner, repo },
+}: ParentProps) => {
   const book = await getBook(owner, repo);
   if (!book) {
     return [];
