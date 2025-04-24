@@ -50,9 +50,22 @@ async function _listBooks(userId: string) {
 
 export const getBook = cache(_getBook);
 async function _getBook(owner: string, repo: string) {
-  return container.noteService.getBookByRepo
+  const book = await container.noteService.getBookByRepo
     .bind(container.noteService)({ owner, repo })
     .unwrapOr(null);
+
+  if (!book) {
+    return null;
+  }
+
+  const description = await mdToHtml(book?.details.description || "");
+  return {
+    ...book,
+    details: {
+      ...book?.details,
+      description,
+    },
+  };
 }
 
 export async function syncNotes(owner: string, repo: string) {

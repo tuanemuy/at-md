@@ -1,7 +1,7 @@
 import { getUserByHandle } from "@/actions/account";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/ForOwner";
+import { ForOwner } from "@/components/domain/account/ClientForOwner";
 import { UserHeader } from "@/components/domain/account/UserHeader";
 import { Books } from "@/components/domain/note/Books";
 import { BooksSkeleton } from "@/components/domain/note/BooksSkeleton";

@@ -2,7 +2,7 @@ import { listBooks } from "@/actions/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { format } from "date-fns";
 
-import { ForOwner } from "@/components/domain/account/ForOwner";
+import { ForOwner } from "@/components/domain/account/ClientForOwner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
