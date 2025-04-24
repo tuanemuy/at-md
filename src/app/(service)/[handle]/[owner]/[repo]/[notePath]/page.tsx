@@ -4,7 +4,7 @@ import { mdToHtml } from "@/lib/markdown";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/ForOwner";
+import { ForOwner } from "@/components/domain/account/ClientForOwner";
 import { UserInfo } from "@/components/domain/account/UserInfo";
 import { Article } from "@/components/domain/note/Article";
 import { DeleteNote } from "@/components/domain/note/DeleteNote";
@@ -115,14 +115,12 @@ export default async function Page({ params }: Props) {
             />
           </Suspense>
 
-          <Suspense>
-            <ForOwner userId={note.userId}>
-              <DeleteNote
-                note={note}
-                redirectPath={`/${handle}/${owner}/${repo}`}
-              />
-            </ForOwner>
-          </Suspense>
+          <ForOwner userId={note.userId}>
+            <DeleteNote
+              note={note}
+              redirectPath={`/${handle}/${owner}/${repo}`}
+            />
+          </ForOwner>
         </div>
 
         <section className="mt-(--spacing-layout-sm) pt-(--spacing-layout-sm) border-t">
