@@ -1,18 +1,17 @@
 import { getNote } from "@/actions/note";
-import { getBook } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
 import { mdToHtml } from "@/lib/markdown";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
-import { User } from "@/components/domain/account/User";
+import { UserInfo } from "@/components/domain/account/UserInfo";
 import { Article } from "@/components/domain/note/Article";
-import { BackToBook } from "@/components/domain/note/BackToBook";
 import { DeleteNote } from "@/components/domain/note/DeleteNote";
 import { Highlight } from "@/components/domain/note/Highlight";
 import { Engagement } from "@/components/domain/post/Engagement";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -30,10 +29,9 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: Props) {
   const { owner, repo, notePath } = await params;
-  const book = await getBook(owner, repo);
   const note = await getNote(decodeURIComponent(notePath));
 
-  const bookName = book?.details.name || `${owner}/${repo}`;
+  const bookName = note?.book.details.name || `${owner}/${repo}`;
   const noteTitle = note?.title || notePath.replace(separator, "/");
   const title = `${noteTitle} | ${bookName}`;
   const description =
@@ -70,17 +68,12 @@ export default async function Page({ params }: Props) {
   return (
     <main>
       <div className="content py-(--spacing-layout-lg)">
-        <Suspense
-          fallback={
-            <Button asChild variant="ghost" className="!pl-0 cursor-pointer">
-              <Link href={`/${handle}/${owner}/${repo}`}>
-                <ChevronLeft />
-              </Link>
-            </Button>
-          }
-        >
-          <BackToBook handle={handle} owner={owner} repo={repo} />
-        </Suspense>
+        <Button asChild variant="ghost" className="!pl-0 cursor-pointer">
+          <Link href={`/${handle}/${owner}/${repo}`}>
+            <ChevronLeft />
+            {note.book.details.name}
+          </Link>
+        </Button>
 
         <h1 className="mt-3 text-2xl md:text-4xl font-bold">{note.title}</h1>
 
@@ -92,21 +85,25 @@ export default async function Page({ params }: Props) {
         )}
 
         <div className="flex items-center gap-4 mt-4">
-          <Engagement
-            note={note}
-            fullPath={`/${handle}/${owner}/${repo}/${notePath}`}
-          />
-
-          <ForOwner userId={note.userId}>
-            <DeleteNote
+          <Suspense fallback={<Skeleton className="w-24 h-4" />}>
+            <Engagement
               note={note}
-              redirectPath={`/${handle}/${owner}/${repo}`}
+              fullPath={`/${handle}/${owner}/${repo}/${notePath}`}
             />
-          </ForOwner>
+          </Suspense>
+
+          <Suspense>
+            <ForOwner userId={note.userId}>
+              <DeleteNote
+                note={note}
+                redirectPath={`/${handle}/${owner}/${repo}`}
+              />
+            </ForOwner>
+          </Suspense>
         </div>
 
         <section className="mt-(--spacing-layout-sm) pt-(--spacing-layout-sm) border-t">
-          <User handle={handle} />
+          <UserInfo user={note.user} />
         </section>
 
         <section className="py-(--spacing-layout-md)">

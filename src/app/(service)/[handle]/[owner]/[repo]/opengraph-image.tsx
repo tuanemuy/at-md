@@ -1,4 +1,3 @@
-import { getUserByHandle } from "@/actions/account";
 import { getBook } from "@/actions/note";
 import { ImageResponse } from "next/og";
 
@@ -21,11 +20,10 @@ type Props = {
 
 export default async function Image({ params }: Props) {
   const { handle, owner, repo } = await params;
-  const user = await getUserByHandle(handle);
   const book = await getBook(owner, repo);
 
   const bookName = book?.details.name || `${owner}/${repo}`;
-  const userName = user?.profile.displayName || handle;
+  const userName = book?.user.profile.displayName || handle;
 
   return new ImageResponse(
     <div

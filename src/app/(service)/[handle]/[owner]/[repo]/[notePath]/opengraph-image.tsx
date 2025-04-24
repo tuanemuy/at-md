@@ -1,6 +1,4 @@
-import { getUserByHandle } from "@/actions/account";
 import { getNote } from "@/actions/note";
-import { getBook } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
 import { ImageResponse } from "next/og";
 
@@ -24,13 +22,11 @@ type Props = {
 
 export default async function Image({ params }: Props) {
   const { handle, owner, repo, notePath } = await params;
-  const book = await getBook(owner, repo);
   const note = await getNote(decodeURIComponent(notePath));
-  const user = await getUserByHandle(handle);
 
-  const bookName = book?.details.name || `${owner}/${repo}`;
+  const bookName = note?.book.details.name || `${owner}/${repo}`;
   const noteTitle = note?.title || notePath.replace(separator, "/");
-  const userName = user?.profile.displayName || handle;
+  const userName = note?.user.profile.displayName || handle;
 
   return new ImageResponse(
     <div

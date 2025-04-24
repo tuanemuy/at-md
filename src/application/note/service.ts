@@ -171,7 +171,7 @@ export class NoteService implements NoteUsecase {
     repo: string;
   }) {
     return this.bookRepository
-      .findByOwnerAndRepo(input.owner, input.repo)
+      .findByOwnerAndRepoWithUser(input.owner, input.repo)
       .mapErr((error) => {
         return new ApplicationServiceError(
           "GetBookByRepo",
@@ -486,7 +486,7 @@ export class NoteService implements NoteUsecase {
     notePath: string;
   }) {
     return this.noteRepository
-      .findByPath(input.notePath)
+      .findByPathWithUserBook(input.notePath)
       .mapErr(
         (error) =>
           new ApplicationServiceError(

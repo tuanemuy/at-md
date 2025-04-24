@@ -1,3 +1,4 @@
+import type { User } from "@/domain/account/models/user";
 import type { Note, Tag } from "@/domain/note/models";
 import type {
   CreateOrUpdateNote,
@@ -8,8 +9,8 @@ import type { PaginationParams } from "@/domain/types/pagination";
 import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
 import { type Database, mapRepositoryError } from "../../client";
-import { users } from "../../schema/account";
-import { books, noteTags, notes, tags } from "../../schema/note";
+import { profiles, users } from "../../schema/account";
+import { bookDetails, books, noteTags, notes, tags } from "../../schema/note";
 
 /**
  * NoteRepositoryの実装
@@ -158,6 +159,52 @@ export class DrizzleNoteRepository implements NoteRepository {
     );
   }
 
+  findByPathWithUserBook(path: string) {
+    return ResultAsync.fromPromise(
+      this.db
+        .select({
+          note: notes,
+          noteTag: noteTags,
+          tag: tags,
+          book: books,
+          bookDetails: bookDetails,
+          user: users,
+          profile: profiles,
+        })
+        .from(notes)
+        .where(eq(notes.path, path))
+        .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
+        .leftJoin(tags, eq(noteTags.tagId, tags.id))
+        .innerJoin(books, eq(notes.bookId, books.id))
+        .innerJoin(bookDetails, eq(books.id, bookDetails.bookId))
+        .innerJoin(users, eq(books.userId, users.id))
+        .innerJoin(profiles, eq(users.id, profiles.userId)),
+      mapRepositoryError,
+    ).andThen((selectedNotes) =>
+      selectedNotes.length === 0
+        ? err(
+            new RepositoryError(
+              RepositoryErrorCode.NOT_FOUND,
+              "Note not found",
+            ),
+          )
+        : ok({
+            ...selectedNotes[0].note,
+            tags: selectedNotes
+              .map((note) => note.tag)
+              .filter((tag): tag is Tag => tag !== null),
+            book: {
+              ...selectedNotes[0].book,
+              details: selectedNotes[0].bookDetails,
+            },
+            user: {
+              ...selectedNotes[0].user,
+              profile: selectedNotes[0].profile,
+            },
+          }),
+    );
+  }
+
   /**
    * 指定したブックIDのノート一覧を取得する
    */
@@ -301,6 +348,7 @@ export class DrizzleNoteRepository implements NoteRepository {
             note: notes,
             book: books,
             user: users,
+            profile: profiles,
             noteTag: noteTags,
             tag: tags,
           })
@@ -308,6 +356,7 @@ export class DrizzleNoteRepository implements NoteRepository {
           .innerJoin(notes, eq(sq.id, notes.id))
           .innerJoin(books, eq(notes.bookId, books.id))
           .innerJoin(users, eq(notes.userId, users.id))
+          .innerJoin(profiles, eq(users.id, profiles.userId))
           .leftJoin(noteTags, eq(notes.id, noteTags.noteId))
           .leftJoin(tags, eq(noteTags.tagId, tags.id))
           .orderBy(this.getOrderBy(pagination)),
@@ -328,11 +377,15 @@ export class DrizzleNoteRepository implements NoteRepository {
               ...note.note,
               fullPath: `${note.user.handle}/${note.book.owner}/${note.book.repo}/${note.note.path}`,
               tags: note.tag ? [note.tag] : [],
+              user: {
+                ...note.user,
+                profile: note.profile,
+              },
             });
           }
           return acc;
         },
-        [] as (Note & { fullPath: string })[],
+        [] as (Note & { fullPath: string; user: User })[],
       ),
       count: c.at(0)?.value || 0,
     }));

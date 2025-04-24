@@ -1,4 +1,4 @@
-import { getUserByHandle } from "@/actions/account";
+import type { User } from "@/domain/account/models/user";
 import { nl2br } from "@/lib/utils";
 import xss from "xss";
 
@@ -7,16 +7,10 @@ import { SignOut } from "./SignOut";
 import { SyncProfile } from "./SyncProfile";
 
 type Props = {
-  handle: string;
+  user: User;
 };
 
-export async function UserHeader({ handle }: Props) {
-  const user = await getUserByHandle(handle);
-
-  if (!user) {
-    return null;
-  }
-
+export function UserHeader({ user }: Props) {
   return (
     <>
       <div className="relative w-full aspect-[1440/360] bg-muted-foreground">
