@@ -40,13 +40,15 @@ export default function Layout({ children }: Props) {
               </a>
             </li>
           ))}
-          <ForUser>
-            <li>
-              <a href="/auth/delete" className="hover:underline">
-                Delete account
-              </a>
-            </li>
-          </ForUser>
+          <Suspense>
+            <ForUser>
+              <li>
+                <a href="/auth/delete" className="hover:underline">
+                  Delete account
+                </a>
+              </li>
+            </ForUser>
+          </Suspense>
         </ul>
       </footer>
 
