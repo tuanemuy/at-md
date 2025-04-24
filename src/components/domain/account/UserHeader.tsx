@@ -1,4 +1,6 @@
+import { nl2br } from "@/lib/utils";
 import { getUserByHandle } from "@/actions/account";
+import xss from "xss";
 
 import { ForUser } from "./ForUser";
 import { SignOut } from "./SignOut";
@@ -47,7 +49,11 @@ export async function UserHeader({ handle }: Props) {
           {user.profile.displayName}
         </h1>
         <p className="text-muted-foreground">@{user.handle}</p>
-        <p className="mt-2">{user.profile.description}</p>
+        <p
+          dangerouslySetInnerHTML={{
+            __html: xss(nl2br(user.profile.description)),
+          }}
+        />
 
         <ForUser>
           <div className="flex items-center gap-2 mt-3">
