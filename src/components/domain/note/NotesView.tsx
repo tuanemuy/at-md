@@ -36,108 +36,51 @@ export function NotesView({
 
         {notes.map((note) => {
           return (
-            <div key={note.id} className="relative">
-              <div  className="">
-                <Link href={note.fullPath || `${basePath}/${note.path}`}>
-                  {showUser && note.user && (
-                    <div className="mb-4">
-                      <div className="flex items-center gap-3">
-                        {note.user.profile.avatarUrl && (
-                          <img
-                            className="size-11 md:size-12 border-2 object-cover border-border bg-muted-foreground rounded-full"
-                            src={note.user.profile.avatarUrl}
-                            alt="Avatar"
-                            loading="lazy"
-                          />
-                        )}
+            <div key={note.id} className="">
+              <Link href={note.fullPath || `${basePath}/${note.path}`}>
+                {showUser && note.user && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-3">
+                      {note.user.profile.avatarUrl && (
+                        <img
+                          className="size-11 md:size-12 border-2 object-cover border-border bg-muted-foreground rounded-full"
+                          src={note.user.profile.avatarUrl}
+                          alt="Avatar"
+                          loading="lazy"
+                        />
+                      )}
 
-                        <div className="flex flex-col">
-                          <h3 className="text-md md:text-lg font-bold leading-[1.25]">
-                            {note.user.profile.displayName}
-                          </h3>
-                          <p className="text-xs md:text-sm text-muted-foreground">
-                            @{note.user.handle}
-                          </p>
-                        </div>
+                      <div className="flex flex-col">
+                        <h3 className="text-md md:text-lg font-bold leading-[1.25]">
+                          {note.user.profile.displayName}
+                        </h3>
+                        <p className="text-xs md:text-sm text-muted-foreground">
+                          @{note.user.handle}
+                        </p>
                       </div>
                     </div>
-                  )}
-
-                  <h2 className="text-xl md:text-2xl font-bold">
-                    {note.title}
-                  </h2>
-
-                  {note.createdAt && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {format(note.createdAt, "yyyy-MM-dd HH:mm")}
-                    </p>
-                  )}
-
-                  <div className="relative mt-2">
-                    <p>
-                      {note.body.slice(0, 160).replaceAll("#", "")}
-                      {note.body.length > 160 && " ..."}
-                    </p>
                   </div>
+                )}
 
-                  <div className="mt-3">
-                    <Engagement note={note} />
-                  </div>
-                </Link>
-              </div>
-              <div className="">
-                <Link
-                  href={
-                    `${note.fullPath}/client` ||
-                    `${basePath}/${note.path}/client`
-                  }
-                >
-                  {showUser && note.user && (
-                    <div className="mb-4">
-                      <div className="flex items-center gap-3">
-                        {note.user.profile.avatarUrl && (
-                          <img
-                            className="size-11 md:size-12 border-2 object-cover border-border bg-muted-foreground rounded-full"
-                            src={note.user.profile.avatarUrl}
-                            alt="Avatar"
-                            loading="lazy"
-                          />
-                        )}
+                <h2 className="text-xl md:text-2xl font-bold">{note.title}</h2>
 
-                        <div className="flex flex-col">
-                          <h3 className="text-md md:text-lg font-bold leading-[1.25]">
-                            {note.user.profile.displayName}
-                          </h3>
-                          <p className="text-xs md:text-sm text-muted-foreground">
-                            @{note.user.handle}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                {note.createdAt && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {format(note.createdAt, "yyyy-MM-dd HH:mm")}
+                  </p>
+                )}
 
-                  <h2 className="text-xl md:text-2xl font-bold">
-                    {note.title}
-                  </h2>
+                <div className="relative mt-2">
+                  <p>
+                    {note.body.slice(0, 160).replaceAll("#", "")}
+                    {note.body.length > 160 && " ..."}
+                  </p>
+                </div>
 
-                  {note.createdAt && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {format(note.createdAt, "yyyy-MM-dd HH:mm")}
-                    </p>
-                  )}
-
-                  <div className="relative mt-2">
-                    <p>
-                      {note.body.slice(0, 160).replaceAll("#", "")}
-                      {note.body.length > 160 && " ..."}
-                    </p>
-                  </div>
-
-                  <div className="mt-3">
-                    <Engagement note={note} />
-                  </div>
-                </Link>
-              </div>
+                <div className="mt-3">
+                  <Engagement note={note} />
+                </div>
+              </Link>
             </div>
           );
         })}
