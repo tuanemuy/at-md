@@ -83,7 +83,7 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const body = await mdToHtml(note.body);
+  // const body = await mdToHtml(note.body);
   const createdAt = format(note.createdAt, "yyyy-MM-dd HH:mm");
   const updatedAt = format(note.updatedAt, "yyyy-MM-dd HH:mm");
 
@@ -122,7 +122,7 @@ export default async function Page({ params }: Props) {
         </section>
 
         <section className="py-(--spacing-layout-md)">
-          <Article text={body} />
+          <Article text={note.body} />
           <Highlight />
         </section>
       </div>
