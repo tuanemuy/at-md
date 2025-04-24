@@ -31,7 +31,7 @@ export async function addBook(input: AddBookInput) {
     .bind(container.noteService)(input)
     .match(
       () => {
-        revalidatePath("/[handle]/[owner]/[repo]");
+        revalidatePath("/[handle]/[owner]/[repo]", "page");
         return true;
       },
       () => {
@@ -86,7 +86,7 @@ export async function deleteBook(bookId: string, redirectPath?: string) {
     })
     .match(
       () => {
-        revalidatePath("/[handle]");
+        revalidatePath("/[handle]", "page");
         return true;
       },
       () => false,
@@ -140,7 +140,7 @@ export async function deleteNote(noteId: string, redirectPath?: string) {
     })
     .match(
       () => {
-        revalidatePath("/[handle]/[owner]/[repo]");
+        revalidatePath("/[handle]/[owner]/[repo]", "page");
         return true;
       },
       () => false,
