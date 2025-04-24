@@ -1,7 +1,9 @@
+import type { User } from "@/domain/account/models/user";
+import type { Book } from "@/domain/note/models/book";
 import type { ResultAsync } from "neverthrow";
 import { z } from "zod";
 import type { RepositoryError } from "../../types/error";
-import type { Pagination } from "../../types/pagination";
+import type { PaginationParams } from "../../types/pagination";
 import type { Note } from "../models";
 import { noteScopeSchema } from "../models/note";
 
@@ -38,11 +40,16 @@ export interface NoteRepository {
   findById(id: string): ResultAsync<Note, RepositoryError>;
 
   /**
+   * 指定したパスのノートを取得する
+   */
+  findByPath(path: string): ResultAsync<Note, RepositoryError>;
+
+  /**
    * 指定したブックIDのノート一覧を取得する
    */
   findByBookId(
     bookId: string,
-    pagination?: Pagination,
+    pagination?: PaginationParams,
   ): ResultAsync<{ items: Note[]; count: number }, RepositoryError>;
 
   /**
@@ -51,17 +58,20 @@ export interface NoteRepository {
   findByTag(
     bookId: string,
     tagId: string,
-    pagination?: Pagination,
+    pagination?: PaginationParams,
   ): ResultAsync<{ items: Note[]; count: number }, RepositoryError>;
 
   /**
    * 指定した条件でノートを検索する
    */
   search(
-    bookId: string,
-    query: string,
-    pagination?: Pagination,
-  ): ResultAsync<{ items: Note[]; count: number }, RepositoryError>;
+    bookId?: string | null,
+    query?: string | null,
+    pagination?: PaginationParams,
+  ): ResultAsync<
+    { items: (Note & { fullPath: string })[]; count: number },
+    RepositoryError
+  >;
 
   /**
    * 指定したIDのノートを削除する
@@ -75,4 +85,17 @@ export interface NoteRepository {
     bookId: string,
     path: string[],
   ): ResultAsync<void, RepositoryError>;
+
+  count(): ResultAsync<number, RepositoryError>;
+
+  list(
+    page: number,
+    limit: number,
+  ): ResultAsync<
+    (Omit<Note, "tags"> & {
+      user: Omit<User, "profile">;
+      book: Omit<Book, "details" | "syncStatus">;
+    })[],
+    RepositoryError
+  >;
 }

@@ -4,14 +4,13 @@ import type {
 } from "@/domain/account/repositories";
 import type { BlueskyPostProvider } from "@/domain/post/adapters/bluesky-post-provider";
 import { type DID, blueskyPostSchema } from "@/domain/post/dtos/bluesky-post";
-import { engagementSchema } from "@/domain/post/models/engagement";
 import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
 import { ResultAsync, err, ok } from "@/lib/result";
-import { Agent, AppBskyFeedDefs } from "@atproto/api";
+import { Agent, AppBskyFeedDefs, RichText } from "@atproto/api";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
 import { getAgent, getOAuthClient } from "./client";
 
@@ -33,18 +32,25 @@ export class DefaultBlueskyPostProvider implements BlueskyPostProvider {
 
   createPost(did: DID, text: string) {
     return getAgent(this.oauthClient, did).andThen((agent) =>
-      ResultAsync.fromPromise(
-        agent.com.atproto.repo.createRecord({
-          repo: did,
-          collection: "app.bsky.feed.post",
-          record: {
-            $type: "app.bsky.feed.post",
-            text: text,
-            createdAt: new Date().toISOString(),
-          },
-        }),
+      ResultAsync.fromThrowable(
+        async () => {
+          const richText = new RichText({
+            text,
+          });
+          await richText.detectFacets(agent);
+          return agent.com.atproto.repo.createRecord({
+            repo: did,
+            collection: "app.bsky.feed.post",
+            record: {
+              $type: "app.bsky.feed.post",
+              text: richText.text,
+              facets: richText.facets,
+              createdAt: new Date().toISOString(),
+            },
+          });
+        },
         (e) => e,
-      )
+      )()
         .andThen((response) => validate(blueskyPostSchema, response.data))
         .mapErr(
           (error) =>
@@ -79,7 +85,12 @@ export class DefaultBlueskyPostProvider implements BlueskyPostProvider {
         }
         return ok(response.data.thread.post);
       })
-      .andThen((post) => validate(engagementSchema, post))
+      .map((post) => ({
+        likes: post.likeCount || 0,
+        reposts: post.repostCount || 0,
+        replies: post.replyCount || 0,
+        quotes: post.quoteCount || 0,
+      }))
       .mapErr(
         (error) =>
           new ExternalServiceError(

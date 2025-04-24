@@ -24,7 +24,7 @@ export class DefaultGitHubAppProvider implements GitHubAppProvider {
     this.clientSecret = params.config.clientSecret;
   }
 
-  getInstallations(accessToken: string) {
+  listInstallations(accessToken: string) {
     return ResultAsync.fromPromise(
       new Octokit({
         auth: accessToken,
@@ -88,6 +88,56 @@ export class DefaultGitHubAppProvider implements GitHubAppProvider {
       .map((data) => ({
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
+        expiresAt: data.expires_in
+          ? new Date(Date.now() + data.expires_in * 1000)
+          : undefined,
+      }))
+      .mapErr(
+        (error) =>
+          new ExternalServiceError(
+            "GitHub",
+            ExternalServiceErrorCode.REQUEST_FAILED,
+            "Failed to get access token",
+            error,
+          ),
+      );
+  }
+
+  refreshAccessToken(refreshToken: string): ResultAsync<
+    {
+      accessToken: string;
+      refreshToken?: string;
+      expiresIn?: string;
+    },
+    ExternalServiceError
+  > {
+    return ResultAsync.fromPromise(
+      fetch("https://github.com/login/oauth/access_token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+        }),
+      }),
+      (e) => e,
+    )
+      .andThen((response) =>
+        response.ok
+          ? ResultAsync.fromPromise(response.json(), (e) => e)
+          : errAsync(new Error(`HTTP status: ${response.status}`)),
+      )
+      .map((data) => ({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresAt: data.expires_in
+          ? Date.now() + data.expires_in * 1000
+          : undefined,
       }))
       .mapErr(
         (error) =>

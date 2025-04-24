@@ -7,32 +7,86 @@ import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
+import type { PaginationParams } from "@/domain/types/pagination";
 import { ResultAsync, err, ok } from "@/lib/result";
 import { App, Octokit } from "octokit";
 
 export class DefaultGitHubContentProvider implements GitHubContentProvider {
   private webhookUrl: string;
+  private webhookSecret: string;
   private appId: string;
   private privateKey: string;
 
   constructor(params: {
     config: {
       webhookUrl: string;
+      webhookSecret: string;
       appId: string;
       privateKey: string;
     };
   }) {
     this.webhookUrl = params.config.webhookUrl;
+    this.webhookSecret = params.config.webhookSecret;
     this.appId = params.config.appId;
     this.privateKey = params.config.privateKey;
   }
 
-  listRepositories(accessToken: string) {
+  searchRepositories(
+    accessToken: string,
+    query: string,
+    owner: {
+      type: "user" | "org";
+      name: string;
+    },
+    pagination: PaginationParams,
+  ) {
+    return ResultAsync.fromPromise(
+      new Octokit({ auth: accessToken }).rest.search.repos({
+        q: `${encodeURIComponent(query)} in:name ${owner.type}:${owner.name}`,
+        sort: getSortSearchRepositories(pagination?.orderBy),
+        order: pagination?.order,
+        per_page: pagination?.limit || 10,
+        page: pagination?.page || 1,
+      }),
+      (e) => e,
+    )
+      .andThen((response) =>
+        response.status === 200
+          ? ok(response.data)
+          : err(new Error(`HTTP status: ${response.status}`)),
+      )
+      .map(({ total_count, items }) => ({
+        repositories: items
+          .map(
+            (repo) =>
+              gitHubRepositorySchema.safeParse({
+                owner: repo.owner?.login,
+                name: repo.name,
+                fullName: repo.full_name,
+              }).data,
+          )
+          .filter((repo): repo is GitHubRepository => repo !== undefined),
+        count: total_count,
+      }))
+      .mapErr(
+        (error) =>
+          new ExternalServiceError(
+            "GitHub",
+            ExternalServiceErrorCode.REQUEST_FAILED,
+            "Failed to get repositories",
+            error,
+          ),
+      );
+  }
+
+  listRepositories(accessToken: string, pagination?: PaginationParams) {
     return ResultAsync.fromPromise(
       new Octokit({ auth: accessToken }).rest.repos.listForAuthenticatedUser({
         visibility: "all",
-        sort: "updated",
-        per_page: 100, // 最大数を取得
+        sort: getSortForListRepositories(pagination?.orderBy),
+        order: pagination?.order,
+        per_page: pagination?.limit || 10,
+        page: pagination?.page || 1,
       }),
       (e) => e,
     )
@@ -174,6 +228,7 @@ export class DefaultGitHubContentProvider implements GitHubContentProvider {
     owner: string,
     repo: string,
     sha: string,
+    parent?: string,
   ): Promise<string[]> {
     try {
       const response = await octokit.rest.git.getTree({
@@ -189,12 +244,17 @@ export class DefaultGitHubContentProvider implements GitHubContentProvider {
       return (
         await Promise.all(
           response.data.tree.map(async (item) => {
-            if (item.type === "blob" && item.path?.endsWith(".md")) {
-              return [item.path];
+            const fullPath = parent ? `${parent}/${item.path}` : item.path;
+            if (
+              item.type === "blob" &&
+              item.path?.endsWith(".md") &&
+              item.path !== "README.md"
+            ) {
+              return [fullPath];
             }
 
             if (item.type === "tree" && item.sha) {
-              return this.fetchPaths(octokit, owner, repo, item.sha);
+              return this.fetchPaths(octokit, owner, repo, item.sha, fullPath);
             }
 
             return [];
@@ -236,4 +296,56 @@ export class DefaultGitHubContentProvider implements GitHubContentProvider {
           ),
       );
   }
+
+  validateWebhook(secret: string) {
+    return secret === this.webhookSecret;
+  }
+
+  deleteWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    webhookId: number,
+  ) {
+    return ResultAsync.fromPromise(
+      new Octokit({
+        auth: accessToken,
+      }).rest.repos.deleteWebhook({
+        owner,
+        repo,
+        hook_id: webhookId,
+      }),
+      (e) => e,
+    )
+      .andThen((response) =>
+        response.status === 204
+          ? ok()
+          : err(new Error(`HTTP status: ${response.status}`)),
+      )
+      .mapErr(
+        (error) =>
+          new ExternalServiceError(
+            "GitHub",
+            ExternalServiceErrorCode.REQUEST_FAILED,
+            "Failed to delete webhook",
+            error,
+          ),
+      );
+  }
+}
+
+function getSortForListRepositories(name?: string) {
+  if (["created", "updated", "pushed", "full_name"].includes(name || "")) {
+    return name as "created" | "updated" | "pushed" | "full_name";
+  }
+  return "updated";
+}
+
+function getSortSearchRepositories(name?: string) {
+  if (
+    ["stars", "forks", "help-wanted-issues", "updated"].includes(name || "")
+  ) {
+    return name as "stars" | "forks" | "help-wanted-issues" | "updated";
+  }
+  return undefined;
 }

@@ -1,5 +1,5 @@
 import type { BlueskyAuthProvider } from "@/domain/account/adapters/bluesky-auth-provider";
-import { profileSchema } from "@/domain/account/models/profile";
+import { blueskyProfileSchema } from "@/domain/account/dtos/bluesky-profile";
 import type {
   AuthSessionRepository,
   AuthStateRepository,
@@ -32,12 +32,20 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
   }
 
   /**
+   * クライアントメタデータを取得する
+   */
+  getClientMetadata() {
+    return this.oauthClient.clientMetadata;
+  }
+
+  /**
    * Blueskyの認証URLを取得する
    */
-  authorize(handle: string) {
+  authorize(handle: string, state: string) {
     return ResultAsync.fromPromise(
       this.oauthClient.authorize(handle, {
-        scope: "'atproto transition:generic'",
+        state,
+        scope: "atproto transition:generic",
       }),
       (error) =>
         new ExternalServiceError(
@@ -54,7 +62,7 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
    */
   callback(params: URLSearchParams) {
     return ResultAsync.fromPromise(this.oauthClient.callback(params), (e) => e)
-      .map(({ session }) => session.did)
+      .map(({ session, state }) => ({ did: session.did, state }))
       .mapErr(
         (error) =>
           new ExternalServiceError(
@@ -73,22 +81,13 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
     return getAgent(this.oauthClient, did)
       .andThen((agent) =>
         ResultAsync.fromPromise(
-          agent.com.atproto.repo.getRecord({
-            repo: agent.assertDid,
-            collection: "app.bsky.actor.profile",
-            rkey: "self",
+          agent.getProfile({
+            actor: agent.assertDid,
           }),
           (e) => e,
         ),
       )
-      .andThen((response) =>
-        validate(profileSchema, {
-          displayName: response.data.value.displayName,
-          description: response.data.value.description,
-          avatarUrl: response.data.value.avatar,
-          bannerUrl: response.data.value.banner,
-        }),
-      )
+      .andThen((response) => validate(blueskyProfileSchema, response.data))
       .mapErr(
         (error) =>
           new ExternalServiceError(
@@ -107,7 +106,7 @@ export class DefaultBlueskyAuthProvider implements BlueskyAuthProvider {
    */
   validateSession(did: string) {
     return ResultAsync.fromPromise(
-      this.oauthClient.restore(did),
+      this.oauthClient.restore(did).then((session) => session.did),
       (error) =>
         new ExternalServiceError(
           "BlueskyAuth",

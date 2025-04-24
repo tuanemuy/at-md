@@ -1,4 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
+import { jsonObjectSchema } from "@/lib/json";
 import type { ResultAsync } from "neverthrow";
 /**
  * AuthSessionリポジトリのインターフェース
@@ -11,7 +12,7 @@ import type { AuthSession } from "../models";
  */
 export const createAuthSessionSchema = z.object({
   key: z.string().nonempty(),
-  session: z.string().nonempty(),
+  session: jsonObjectSchema,
 });
 
 /**

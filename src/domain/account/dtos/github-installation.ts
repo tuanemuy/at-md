@@ -12,7 +12,7 @@ export const gitHubInstallationSchema = z.object({
     login: z.string(),
     type: z.enum(["User", "Organization"]),
   }),
-  repositorySelection: z.enum(["all", "selected"]),
+  repositorySelection: z.enum(["all", "selected"]).optional(),
 });
 
 /**

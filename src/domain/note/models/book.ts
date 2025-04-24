@@ -13,6 +13,7 @@ export const bookSchema = z.object({
   userId: z.string().uuid(),
   owner: z.string().nonempty(),
   repo: z.string().nonempty(),
+  webhookId: z.number().int().positive(),
   details: bookDetailsSchema,
   syncStatus: syncStatusSchema,
   createdAt: z.date(),

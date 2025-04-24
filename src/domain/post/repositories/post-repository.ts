@@ -12,12 +12,12 @@ import { PostStatus } from "../models/post";
  */
 export const createPostSchema = z.object({
   userId: z.string().uuid(),
-  noteId: z.string().uuid(),
+  bookId: z.string().uuid(),
+  notePath: z.string().nonempty(),
   status: z.nativeEnum(PostStatus),
   platform: z.literal("bluesky"),
-  postUri: z.string().nullable(),
-  postCid: z.string().nullable(),
-  errorMessage: z.string().nullable(),
+  postUri: z.string().nonempty(),
+  postCid: z.string().nonempty(),
 });
 
 /**
@@ -26,11 +26,11 @@ export const createPostSchema = z.object({
 export const updatePostSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  noteId: z.string().uuid(),
+  bookId: z.string().uuid(),
+  notePath: z.string().nonempty(),
   status: z.nativeEnum(PostStatus),
-  postUri: z.string().nullable(),
-  postCid: z.string().nullable(),
-  errorMessage: z.string().nullable(),
+  postUri: z.string().nonempty(),
+  postCid: z.string().nonempty(),
 });
 
 /**
@@ -63,9 +63,12 @@ export interface PostRepository {
   findById(id: string): ResultAsync<Post, RepositoryError>;
 
   /**
-   * 指定したノートIDの投稿を取得する
+   * 指定したノートパスの投稿を取得する
    */
-  findByNoteId(noteId: string): ResultAsync<Post, RepositoryError>;
+  findByNotePath(
+    bookId: string,
+    notePath: string,
+  ): ResultAsync<Post, RepositoryError>;
 
   /**
    * 指定したユーザーIDの投稿を取得する

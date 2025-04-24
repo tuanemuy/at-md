@@ -1,3 +1,4 @@
+import { jsonObjectSchema } from "@/lib/json";
 /**
  * AuthSessionの値オブジェクト
  */
@@ -9,7 +10,7 @@ import { z } from "zod";
 export const authSessionSchema = z.object({
   id: z.string().uuid(),
   key: z.string().nonempty(),
-  session: z.string().nonempty(),
+  session: jsonObjectSchema,
   createdAt: z.date(),
   updatedAt: z.date(),
 });

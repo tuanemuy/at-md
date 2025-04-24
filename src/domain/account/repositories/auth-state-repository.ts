@@ -1,4 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
+import { jsonObjectSchema } from "@/lib/json";
 import type { ResultAsync } from "neverthrow";
 /**
  * AuthStateリポジトリのインターフェース
@@ -11,7 +12,7 @@ import type { AuthState } from "../models";
  */
 export const createAuthStateSchema = z.object({
   key: z.string().nonempty(),
-  state: z.string().nonempty(),
+  state: jsonObjectSchema,
 });
 
 /**

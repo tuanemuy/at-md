@@ -1,8 +1,6 @@
+import type { User } from "@/domain/account/models/user";
 import type { RepositoryError } from "@/domain/types/error";
 import type { ResultAsync } from "neverthrow";
-/**
- * ブックリポジトリのインターフェース
- */
 import { z } from "zod";
 import type { Book } from "../models";
 import { SyncStatusCode } from "../models/sync-status";
@@ -14,6 +12,7 @@ export const createBookSchema = z.object({
   userId: z.string().uuid(),
   owner: z.string().nonempty(),
   repo: z.string().nonempty(),
+  webhookId: z.number().int().positive(),
   details: z.object({
     name: z.string().nonempty(),
     description: z.string().nonempty(),
@@ -29,17 +28,22 @@ export const createBookSchema = z.object({
  */
 export const updateBookSchema = z.object({
   id: z.string().uuid(),
-  userId: z.string().uuid(),
-  owner: z.string().nonempty(),
-  repo: z.string().nonempty(),
-  details: z.object({
-    name: z.string().nonempty(),
-    description: z.string().nonempty(),
-  }),
-  syncStatus: z.object({
-    lastSyncedAt: z.date().nullable(),
-    status: z.nativeEnum(SyncStatusCode),
-  }),
+  userId: z.string().uuid().optional(),
+  owner: z.string().nonempty().optional(),
+  repo: z.string().nonempty().optional(),
+  webhookId: z.number().int().positive().optional(),
+  details: z
+    .object({
+      name: z.string().nonempty().optional(),
+      description: z.string().nonempty().optional(),
+    })
+    .optional(),
+  syncStatus: z
+    .object({
+      lastSyncedAt: z.date().nullable().optional(),
+      status: z.nativeEnum(SyncStatusCode).optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -88,4 +92,16 @@ export interface BookRepository {
    * 指定したIDのブックを削除する
    */
   delete(id: string, userId: string): ResultAsync<void, RepositoryError>;
+
+  count(): ResultAsync<number, RepositoryError>;
+
+  list(
+    page: number,
+    limit: number,
+  ): ResultAsync<
+    (Omit<Book, "details" | "syncStatus"> & {
+      user: Omit<User, "profile">;
+    })[],
+    RepositoryError
+  >;
 }

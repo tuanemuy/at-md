@@ -1,3 +1,4 @@
+import { jsonObjectSchema } from "@/lib/json";
 /**
  * AuthStateの値オブジェクト
  */
@@ -9,7 +10,7 @@ import { z } from "zod";
 export const authStateSchema = z.object({
   id: z.string().uuid(),
   key: z.string().nonempty(),
-  state: z.string().nonempty(),
+  state: jsonObjectSchema,
   createdAt: z.date(),
   updatedAt: z.date(),
 });

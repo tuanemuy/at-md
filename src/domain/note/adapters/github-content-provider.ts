@@ -1,4 +1,5 @@
 import type { ExternalServiceError } from "@/domain/types/error";
+import type { PaginationParams } from "@/domain/types/pagination";
 /**
  * GitHub連携アダプターのインターフェース
  */
@@ -14,7 +15,24 @@ export interface GitHubContentProvider {
    */
   listRepositories(
     accessToken: string,
+    pagination?: PaginationParams,
   ): ResultAsync<GitHubRepository[], ExternalServiceError>;
+
+  /**
+   * リポジトリを検索する
+   */
+  searchRepositories(
+    accessToken: string,
+    query: string,
+    owner: {
+      type: "user" | "org";
+      name: string;
+    },
+    pagination: PaginationParams,
+  ): ResultAsync<
+    { repositories: GitHubRepository[]; count: number },
+    ExternalServiceError
+  >;
 
   /**
    * リポジトリの特定パスのコンテンツを取得する
@@ -53,4 +71,13 @@ export interface GitHubContentProvider {
     owner: string,
     repo: string,
   ): ResultAsync<number, ExternalServiceError>;
+
+  deleteWebhook(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    webhookId: number,
+  ): ResultAsync<void, ExternalServiceError>;
+
+  validateWebhook(secret: string): boolean;
 }

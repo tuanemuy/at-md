@@ -7,7 +7,7 @@ export function parseMarkdown(markdown: string): ParsedMarkdown {
 
   const [frontMatter, content] = match ? match.slice(1) : ["", markdown];
 
-  const scopeMatch = frontMatter.match(/scope:\s*(.*)$/m);
+  const scopeMatch = frontMatter.match(/access:\s*(.*)$/m);
   const scope =
     noteScopeSchema.safeParse(scopeMatch?.at(1)?.trim().replace(/["']/g, ""))
       .data || "private";

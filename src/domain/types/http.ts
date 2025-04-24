@@ -1,6 +1,8 @@
-import type { ClientRequest, IncomingMessage, ServerResponse } from "node:http";
+// import type { IncomingMessage, ServerResponse } from "node:http";
 
 export type RequestContext = {
-  req: IncomingMessage;
-  res: ServerResponse<IncomingMessage>;
+  // req: IncomingMessage;
+  // res: ServerResponse<IncomingMessage>;
+  req: Request;
+  res: Response;
 };

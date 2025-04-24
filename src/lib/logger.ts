@@ -24,18 +24,12 @@ export class Logger {
         format.errors({ stack: true }),
         format.splat(),
         format.json(),
+        format.prettyPrint(),
       ),
       defaultMeta: { service: "at-md" },
       transports: [
         // 開発環境ではコンソールに出力
-        new transports.Console({
-          format: format.combine(
-            format.colorize(),
-            format.printf(
-              (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-            ),
-          ),
-        }),
+        new transports.Console(),
         // 本番環境ではファイルにも出力（オプション）
         ...(process.env.NODE_ENV === "production"
           ? [
@@ -64,8 +58,9 @@ export class Logger {
    * エラーログを出力
    * @param message ログメッセージ
    * @param meta 追加情報（オブジェクト）
+   * biome-ignore lint:
    */
-  public error(message: string, meta?: Record<string, unknown>): void {
+  public error(message: string, ...meta: any[]): void {
     this.logger.error(message, meta);
   }
 
@@ -73,8 +68,9 @@ export class Logger {
    * 警告ログを出力
    * @param message ログメッセージ
    * @param meta 追加情報（オブジェクト）
+   * biome-ignore lint:
    */
-  public warn(message: string, meta?: Record<string, unknown>): void {
+  public warn(message: string, ...meta: any[]): void {
     this.logger.warn(message, meta);
   }
 
@@ -82,8 +78,9 @@ export class Logger {
    * 情報ログを出力
    * @param message ログメッセージ
    * @param meta 追加情報（オブジェクト）
+   * biome-ignore lint:
    */
-  public info(message: string, meta?: Record<string, unknown>): void {
+  public info(message: string, ...meta: any[]): void {
     this.logger.info(message, meta);
   }
 
@@ -91,8 +88,9 @@ export class Logger {
    * デバッグログを出力
    * @param message ログメッセージ
    * @param meta 追加情報（オブジェクト）
+   * biome-ignore lint:
    */
-  public debug(message: string, meta?: Record<string, unknown>): void {
+  public debug(message: string, ...meta: any[]): void {
     this.logger.debug(message, meta);
   }
 

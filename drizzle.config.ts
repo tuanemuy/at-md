@@ -6,10 +6,11 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  out: "./src/infrastructure/db/migrations",
-  schema: "./src/infrastructure/db/schema/index.ts",
-  dialect: "postgresql",
+  out: "./src/infrastructure/sqlite/migrations",
+  schema: "./src/infrastructure/sqlite/schema/index.ts",
+  dialect: "turso",
   dbCredentials: {
     url: process.env.DATABASE_URL,
+    authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 });

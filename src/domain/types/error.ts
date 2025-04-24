@@ -1,3 +1,5 @@
+import { AnyError } from "@/lib/error";
+
 /**
  * Validation error codes
  */
@@ -70,28 +72,10 @@ export type ApplicationServiceErrorCode =
   (typeof ApplicationServiceErrorCode)[keyof typeof ApplicationServiceErrorCode];
 
 /**
- * Base error class
- * All domain-specific errors inherit from this class
- */
-export class AnyError {
-  public readonly name: string = "AnyError";
-  public readonly cause?: Error;
-
-  constructor(
-    public readonly code: string,
-    public readonly message: string,
-    cause?: unknown,
-  ) {
-    this.cause = isError(cause) ? cause : undefined;
-  }
-}
-
-/**
  * Validation error
  */
 export class ValidationError extends AnyError {
   public readonly name = "ValidationError";
-  public readonly cause?: Error;
 
   constructor(
     public readonly code: ValidationErrorCode,
@@ -108,10 +92,9 @@ export class ValidationError extends AnyError {
  */
 export class RepositoryError extends AnyError {
   public readonly name = "RepositoryError";
-  public readonly cause?: Error;
 
   constructor(
-    public readonly code: RepositoryErrorCode,
+    public readonly code: RepositoryErrorCode | string,
     public readonly message: string,
     cause?: unknown,
   ) {
@@ -124,12 +107,11 @@ export class RepositoryError extends AnyError {
  */
 export class ExternalServiceError extends AnyError {
   public readonly name = "ExternalServiceError";
-  public readonly cause?: Error;
 
   constructor(
     public readonly serviceName: string,
-    public readonly code: ExternalServiceErrorCode,
-    public readonly message: string,
+    code: ExternalServiceErrorCode,
+    message: string,
     cause?: unknown,
   ) {
     super(code, message, cause);
@@ -141,20 +123,15 @@ export class ExternalServiceError extends AnyError {
  */
 export class ApplicationServiceError extends AnyError {
   public readonly name = "ApplicationServiceError";
-  public readonly cause?: Error;
 
   constructor(
     public readonly usecase: string,
-    public readonly code: ApplicationServiceErrorCode,
-    public readonly message: string,
+    code: ApplicationServiceErrorCode,
+    message: string,
     cause?: unknown,
   ) {
     super(code, message, cause);
   }
-}
-
-export function isError(error: unknown): error is Error {
-  return error instanceof Error;
 }
 
 /**

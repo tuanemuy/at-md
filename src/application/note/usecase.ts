@@ -1,214 +1,168 @@
+import type { User } from "@/domain/account/models/user";
 import type { GitHubCommit, GitHubRepository } from "@/domain/note/dtos";
 import type { Book } from "@/domain/note/models/book";
 import type { Note } from "@/domain/note/models/note";
-import type { SyncStatus } from "@/domain/note/models/sync-status";
 import type { ApplicationServiceError } from "@/domain/types/error";
-import type { PaginationParams } from "@/domain/types/pagination";
+import {
+  type PaginationParams,
+  paginationParamsSchema,
+} from "@/domain/types/pagination";
 import type { ResultAsync } from "@/lib/result";
+import { z } from "zod";
 
-/**
- * リポジトリ一覧を取得するユースケースの入力
- */
-export interface ListRepositoriesInput {
-  userId: string;
-}
+export const searchNotesInputSchema = z.object({
+  bookId: z.string().nullish(),
+  query: z.string().nullish(),
+  pagination: paginationParamsSchema,
+});
+export type SearchNotesInput = z.infer<typeof searchNotesInputSchema>;
 
-/**
- * リポジトリ一覧を取得するユースケース
- */
-export interface ListRepositoriesUseCase {
-  execute(
-    input: ListRepositoriesInput,
-  ): ResultAsync<GitHubRepository[], ApplicationServiceError>;
-}
+export const addBookInputSchema = z.object({
+  userId: z.string(),
+  owner: z.string(),
+  repo: z.string(),
+});
+export type AddBookInput = z.infer<typeof addBookInputSchema>;
 
-/**
- * ブックを追加するユースケースの入力
- */
-export interface AddBookInput {
-  userId: string;
-  owner: string;
-  repo: string;
-}
+export interface NoteUsecase {
+  /**
+   * GitHubのリポジトリ一覧を取得する
+   */
+  searchRepositories: (input: {
+    userId: string;
+    query: string;
+    owner: {
+      type: "user" | "org";
+      name: string;
+    };
+    pagination: PaginationParams;
+  }) => ResultAsync<
+    { repositories: GitHubRepository[]; count: number },
+    ApplicationServiceError
+  >;
 
-/**
- * ブックを追加するユースケース
- */
-export interface AddBookUseCase {
-  execute(input: AddBookInput): ResultAsync<Book, ApplicationServiceError>;
-}
+  /**
+   * ブックを追加する
+   */
+  addBook: (input: AddBookInput) => ResultAsync<Book, ApplicationServiceError>;
 
-/**
- * ブック一覧を取得するユースケースの入力
- */
-export interface ListBooksInput {
-  userId: string;
-}
+  /**
+   * ブック一覧を取得する
+   */
+  listBooks: (input: {
+    userId: string;
+  }) => ResultAsync<Book[], ApplicationServiceError>;
 
-/**
- * ブック一覧を取得するユースケース
- */
-export interface ListBooksUseCase {
-  execute(input: ListBooksInput): ResultAsync<Book[], ApplicationServiceError>;
-}
+  getBook: (input: {
+    bookId: string;
+  }) => ResultAsync<Book, ApplicationServiceError>;
 
-/**
- * ブック情報を取得するユースケースの入力
- */
-export interface GetBookInput {
-  bookId: string;
-}
+  getBookByRepo: (input: {
+    owner: string;
+    repo: string;
+  }) => ResultAsync<Book, ApplicationServiceError>;
 
-/**
- * ブック情報を取得するユースケース
- */
-export interface GetBookUseCase {
-  execute(input: GetBookInput): ResultAsync<Book, ApplicationServiceError>;
-}
+  /**
+   * ブックを削除する
+   */
+  deleteBook: (input: {
+    userId: string;
+    bookId: string;
+  }) => ResultAsync<void, ApplicationServiceError>;
 
-/**
- * ブックを削除するユースケースの入力
- */
-export interface DeleteBookInput {
-  userId: string;
-  bookId: string;
-}
+  deleteAllWebhooks: (input: {
+    accessToken: string;
+    userId: string;
+  }) => ResultAsync<void, ApplicationServiceError>;
 
-/**
- * ブックを削除するユースケース
- */
-export interface DeleteBookUseCase {
-  execute(input: DeleteBookInput): ResultAsync<void, ApplicationServiceError>;
-}
+  /**
+   * GitHubのPushからノートを作成する
+   */
+  pushNotes: (input: {
+    owner: string;
+    repo: string;
+    installationId: number;
+    commits: GitHubCommit[];
+  }) => ResultAsync<{ synced: number; added: Note[] }, ApplicationServiceError>;
 
-/**
- * GitHubのPushからノートを作成するユースケースの入力
- */
-export interface PushNotesInput {
-  userId: string;
-  owner: string;
-  repo: string;
-  installationId: number;
-  commits: GitHubCommit[];
-}
+  /**
+   * ノートを同期する
+   */
+  syncNotes: (input: {
+    userId: string;
+    owner: string;
+    repo: string;
+  }) => ResultAsync<{ synced: number }, ApplicationServiceError>;
 
-/**
- * GitHubのPushからノートを作成するユースケース
- */
-export interface PushNotesUseCase {
-  execute(input: PushNotesInput): ResultAsync<number, ApplicationServiceError>;
-}
+  /**
+   * ノート一覧を取得する
+   */
+  listNotes: (input: {
+    bookId: string;
+    pagination: PaginationParams;
+  }) => ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 
-/**
- * ノートを同期するユースケースの入力
- */
-export interface SyncNotesInput {
-  userId: string;
-  owner: string;
-  repo: string;
-}
-
-/**
- * ノートを同期するユースケース
- */
-export interface SyncNotesUseCase {
-  execute(input: SyncNotesInput): ResultAsync<number, ApplicationServiceError>;
-}
-
-/**
- * ノート一覧を取得するユースケースの入力
- */
-export interface ListNotesInput {
-  bookId: string;
-  pagination: PaginationParams;
-}
-
-/**
- * ノート一覧を取得するユースケース
- */
-export interface ListNotesUseCase {
-  execute(
-    input: ListNotesInput,
-  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
-}
-
-/**
- * ノートを検索するユースケースの入力
- */
-export interface SearchNotesInput {
-  bookId: string;
-  query: string;
-  pagination: PaginationParams;
-}
-
-/**
- * ノートを検索するユースケース
- */
-export interface SearchNotesUseCase {
-  execute(
+  /**
+   * ノートを検索する
+   */
+  searchNotes: (
     input: SearchNotesInput,
-  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
-}
+  ) => ResultAsync<
+    { items: (Note & { fullPath: string })[]; count: number },
+    ApplicationServiceError
+  >;
 
-/**
- * ノート情報を取得するユースケースの入力
- */
-export interface GetNoteInput {
-  noteId: string;
-}
+  /**
+   * ノート情報を取得する
+   */
+  getNote: (input: {
+    notePath: string;
+  }) => ResultAsync<Note, ApplicationServiceError>;
 
-/**
- * ノート情報を取得するユースケース
- */
-export interface GetNoteUseCase {
-  execute(input: GetNoteInput): ResultAsync<Note, ApplicationServiceError>;
-}
+  /**
+   * タグ一覧を取得する
+   */
+  listTags: (input: {
+    bookId: string;
+  }) => ResultAsync<Note["tags"], ApplicationServiceError>;
 
-/**
- * タグ一覧を取得するユースケースの入力
- */
-export interface ListTagsInput {
-  bookId: string;
-}
+  /**
+   * タグでノートをフィルタリングする
+   */
+  listNotesByTag: (input: {
+    bookId: string;
+    tagId: string;
+  }) => ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 
-/**
- * タグ一覧を取得するユースケース
- */
-export interface ListTagsUseCase {
-  execute(
-    input: ListTagsInput,
-  ): ResultAsync<Note["tags"], ApplicationServiceError>;
-}
+  /**
+   * ノートを削除する
+   */
+  deleteNote: (input: {
+    noteId: string;
+  }) => ResultAsync<void, ApplicationServiceError>;
 
-/**
- * タグでノートをフィルタリングするユースケースの入力
- */
-export interface ListNotesByTagInput {
-  bookId: string;
-  tagId: string;
-}
+  countBooks: () => ResultAsync<number, ApplicationServiceError>;
 
-/**
- * タグでノートをフィルタリングするユースケース
- */
-export interface ListNotesByTagUseCase {
-  execute(
-    input: ListNotesByTagInput,
-  ): ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
-}
+  countNotes: () => ResultAsync<number, ApplicationServiceError>;
 
-/**
- * ブックの同期状態を確認するユースケースの入力
- */
-export interface CheckBookSyncStatusInput {
-  bookId: string;
-}
+  listBooksForSitemap: (input: {
+    page: number;
+    limit: number;
+  }) => ResultAsync<
+    (Omit<Book, "details" | "syncStatus"> & {
+      user: Omit<User, "profile">;
+    })[],
+    ApplicationServiceError
+  >;
 
-/**
- * ブックの同期状態を確認するユースケース
- */
-export interface CheckBookSyncStatusUseCase {
-  execute(
-    input: CheckBookSyncStatusInput,
-  ): ResultAsync<SyncStatus, ApplicationServiceError>;
+  listNotesForSitemap: (input: {
+    page: number;
+    limit: number;
+  }) => ResultAsync<
+    (Omit<Note, "tags"> & {
+      user: Omit<User, "profile">;
+      book: Omit<Book, "details" | "syncStatus">;
+    })[],
+    ApplicationServiceError
+  >;
 }

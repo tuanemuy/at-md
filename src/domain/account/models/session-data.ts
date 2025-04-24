@@ -7,7 +7,10 @@ import { z } from "zod";
  * セッションのZodスキーマ
  */
 export const sessionDataSchema = z.object({
-  did: z.string().nonempty(),
+  user: z.object({
+    id: z.string().nonempty(),
+    did: z.string().nonempty(),
+  }),
 });
 
 /**

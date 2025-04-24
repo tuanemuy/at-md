@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const DBOrder = {
   ASC: "asc",
   DESC: "desc",
@@ -15,17 +17,13 @@ export function stringToDBOrder(str: string): DBOrder | undefined {
   }
 }
 
-export type Pagination = {
-  page: number;
-  limit: number;
-  order: DBOrder;
-  orderBy: string;
-};
-
 /**
  * ページネーションパラメータの型定義
  */
-export interface PaginationParams {
-  page: number;
-  limit: number;
-}
+export const paginationParamsSchema = z.object({
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().default(30),
+  order: z.enum([DBOrder.ASC, DBOrder.DESC]).default(DBOrder.DESC),
+  orderBy: z.string().default("createdAt"),
+});
+export type PaginationParams = z.infer<typeof paginationParamsSchema>;

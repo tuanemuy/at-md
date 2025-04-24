@@ -12,7 +12,7 @@ export interface GitHubAppProvider {
   /**
    * GitHubアプリのインストール一覧を取得する
    */
-  getInstallations(
+  listInstallations(
     accessToken: string,
   ): ResultAsync<GitHubInstallation[], ExternalServiceError>;
 
@@ -23,6 +23,19 @@ export interface GitHubAppProvider {
     {
       accessToken: string;
       refreshToken?: string;
+      expiresAt?: Date;
+    },
+    ExternalServiceError
+  >;
+
+  /**
+   * GitHub OAuthのアクセストークンを更新する
+   */
+  refreshAccessToken(refreshToken: string): ResultAsync<
+    {
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt?: Date;
     },
     ExternalServiceError
   >;

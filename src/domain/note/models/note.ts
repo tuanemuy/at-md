@@ -44,3 +44,5 @@ export const noteSchema = z.object({
  * ノートの型定義
  */
 export type Note = z.infer<typeof noteSchema>;
+
+export const separator = "--";

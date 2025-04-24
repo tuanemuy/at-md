@@ -13,6 +13,7 @@ export const createGitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().nonempty().nullable(),
+  expiresAt: z.date().nullable(),
 });
 
 /**
@@ -23,6 +24,7 @@ export const updateGitHubConnectionSchema = z.object({
   userId: z.string().uuid(),
   accessToken: z.string().nonempty(),
   refreshToken: z.string().nonempty().nullable(),
+  expiresAt: z.date().nullable(),
 });
 
 /**

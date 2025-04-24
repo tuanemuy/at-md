@@ -1,7 +1,7 @@
 /**
  * ノート管理コンテキストのエラー定義
  */
-import { AnyError } from "@/domain/types/error";
+import { AnyError } from "@/lib/error";
 
 /**
  * ノート管理関連のエラーコード
@@ -48,10 +48,13 @@ export type NoteErrorCode = (typeof NoteErrorCode)[keyof typeof NoteErrorCode];
  * ノート管理コンテキスト固有のエラー
  */
 export class NoteError extends AnyError {
+  public readonly name = "NoteError";
+  public readonly cause?: Error;
+
   constructor(
     public code: NoteErrorCode,
     public message: string,
-    public cause?: Error | unknown,
+    cause?: unknown,
   ) {
     super(code, message, cause);
   }

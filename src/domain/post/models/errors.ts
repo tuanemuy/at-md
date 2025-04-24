@@ -1,7 +1,7 @@
 /**
  * 投稿管理コンテキストのエラー定義
  */
-import { AnyError } from "@/domain/types/error";
+import { AnyError } from "@/lib/error";
 
 /**
  * 投稿管理関連のエラーコード
@@ -27,10 +27,13 @@ export type PostErrorCode = (typeof PostErrorCode)[keyof typeof PostErrorCode];
  * 投稿管理コンテキスト固有のエラー
  */
 export class PostError extends AnyError {
+  public readonly name = "PostError";
+  public readonly cause?: Error;
+
   constructor(
     public code: PostErrorCode,
     public message: string,
-    public cause?: Error | unknown,
+    cause?: unknown,
   ) {
     super(code, message, cause);
   }

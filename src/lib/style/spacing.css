@@ -1,0 +1,15 @@
+:root {
+  --spacing-layout-sm: 2rem;
+  --spacing-layout-md: 3rem;
+  --spacing-layout-lg: 4rem;
+  --spacing-layout-xl: 6rem;
+  --spacing-layout-2xl: 8rem;
+
+  @media (width < 48rem) {
+    --spacing-layout-sm: 1.6rem;
+    --spacing-layout-md: 2.2rem;
+    --spacing-layout-lg: 2.8rem;
+    --spacing-layout-xl: 4.6rem;
+    --spacing-layout-2xl: 5.4rem;
+  }
+}

@@ -24,11 +24,11 @@ export const postStatusSchema = z.enum([PostStatus.POSTED, PostStatus.ERROR]);
 export const postSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  noteId: z.string().uuid(),
-  postUri: z.string().nonempty().nullable(),
-  postCid: z.string().nonempty().nullable(),
+  bookId: z.string().uuid(),
+  notePath: z.string().nonempty(),
+  postUri: z.string().nonempty(),
+  postCid: z.string().nonempty(),
   status: postStatusSchema,
-  errorMessage: z.string().nonempty().nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -37,17 +37,3 @@ export const postSchema = z.object({
  * 投稿の型定義
  */
 export type Post = z.infer<typeof postSchema>;
-
-/**
- * 投稿が成功したかどうかを判定する
- */
-export function isPostSuccessful(post: Post): boolean {
-  return post.status === PostStatus.POSTED;
-}
-
-/**
- * 投稿がエラーかどうかを判定する
- */
-export function isPostError(post: Post): boolean {
-  return post.status === PostStatus.ERROR;
-}

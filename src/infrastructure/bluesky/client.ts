@@ -7,13 +7,14 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { logger } from "@/lib/logger";
-import { type Result, ResultAsync, err, ok } from "@/lib/result";
+import { ResultAsync } from "@/lib/result";
 import { Agent } from "@atproto/api";
 import {
   NodeOAuthClient,
   type NodeSavedSession,
   type NodeSavedState,
 } from "@atproto/oauth-client-node";
+const enc = encodeURIComponent;
 
 async function _getAgent(oauthClient: NodeOAuthClient, did: string) {
   const session = await oauthClient.restore(did);
@@ -45,7 +46,10 @@ export function getOAuthClient(params: {
   return new NodeOAuthClient({
     clientMetadata: {
       client_name: "@md",
-      client_id: `${params.config.publicUrl}/api/auth/client-metadata.json`,
+      client_id:
+        process.env.NODE_ENV === "production"
+          ? `${params.config.publicUrl}/api/auth/client-metadata.json`
+          : `http://localhost?redirect_uri=${enc(`${params.config.publicUrl}/api/auth/callback`)}&scope=${enc("atproto transition:generic")}`,
       client_uri: params.config.publicUrl,
       redirect_uris: [`${params.config.publicUrl}/api/auth/callback`],
       scope: "atproto transition:generic",
@@ -68,7 +72,7 @@ const createStateStore = (authStateRepository: AuthStateRepository) => {
     set: async (key: string, state: NodeSavedState): Promise<void> => {
       const result = await authStateRepository.create({
         key,
-        state: JSON.stringify(state),
+        state,
       });
 
       if (result.isErr()) {
@@ -95,7 +99,7 @@ const createStateStore = (authStateRepository: AuthStateRepository) => {
       if (!authState) return undefined;
 
       try {
-        return JSON.parse(authState.state);
+        return authState.state as NodeSavedState;
       } catch (e) {
         logger.error("Failed to parse auth state", { key });
         return undefined;
@@ -123,7 +127,7 @@ const createSessionStore = (authSessionRepository: AuthSessionRepository) => {
     set: async (sub: string, session: NodeSavedSession): Promise<void> => {
       const result = await authSessionRepository.create({
         key: sub,
-        session: JSON.stringify(session),
+        session,
       });
 
       if (result.isErr()) {
@@ -150,7 +154,7 @@ const createSessionStore = (authSessionRepository: AuthSessionRepository) => {
       if (!authSession) return undefined;
 
       try {
-        return JSON.parse(authSession.session);
+        return authSession.session as NodeSavedSession;
       } catch (e) {
         logger.error("Failed to parse auth session", { sub });
         return undefined;

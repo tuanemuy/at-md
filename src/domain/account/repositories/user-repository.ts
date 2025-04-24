@@ -1,4 +1,5 @@
 import type { RepositoryError } from "@/domain/types/error";
+import type { PaginationParams } from "@/domain/types/pagination";
 import type { ResultAsync } from "neverthrow";
 /**
  * ユーザーリポジトリのインターフェース
@@ -11,6 +12,7 @@ import type { User } from "../models";
  */
 export const createUserSchema = z.object({
   did: z.string().nonempty(),
+  handle: z.string().nonempty(),
   profile: z.object({
     displayName: z.string().nonempty().nullable(),
     description: z.string().nonempty().nullable(),
@@ -24,13 +26,16 @@ export const createUserSchema = z.object({
  */
 export const updateUserSchema = z.object({
   id: z.string().uuid(),
-  did: z.string().nonempty(),
-  profile: z.object({
-    displayName: z.string().nonempty().nullable(),
-    description: z.string().nonempty().nullable(),
-    avatarUrl: z.string().url().nullable(),
-    bannerUrl: z.string().url().nullable(),
-  }),
+  did: z.string().nonempty().optional(),
+  handle: z.string().nonempty().optional(),
+  profile: z
+    .object({
+      displayName: z.string().nonempty().nullish(),
+      description: z.string().nonempty().nullish(),
+      avatarUrl: z.string().url().nullish(),
+      bannerUrl: z.string().url().nullish(),
+    })
+    .optional(),
 });
 
 /**
@@ -68,7 +73,19 @@ export interface UserRepository {
   findByDid(did: string): ResultAsync<User, RepositoryError>;
 
   /**
+   * 指定したhandleのユーザーを取得する
+   */
+  findByHandle(handle: string): ResultAsync<User, RepositoryError>;
+
+  /**
    * 指定したIDのユーザーを削除する
    */
   delete(id: string): ResultAsync<void, RepositoryError>;
+
+  count(): ResultAsync<number, RepositoryError>;
+
+  list(
+    page: number,
+    limit: number,
+  ): ResultAsync<Omit<User, "profile">[], RepositoryError>;
 }

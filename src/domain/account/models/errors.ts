@@ -1,7 +1,7 @@
 /**
  * アカウント管理コンテキストのエラー定義
  */
-import { AnyError } from "@/domain/types/error";
+import { AnyError } from "@/lib/error";
 
 /**
  * アカウント管理関連のエラーコード
@@ -38,10 +38,13 @@ export type AccountErrorCode =
  * アカウント管理コンテキスト固有のエラー
  */
 export class AccountError extends AnyError {
+  public readonly name = "AccountError";
+  public readonly cause?: Error;
+
   constructor(
     public code: AccountErrorCode,
     public message: string,
-    public cause?: Error | unknown,
+    cause?: unknown,
   ) {
     super(code, message, cause);
   }

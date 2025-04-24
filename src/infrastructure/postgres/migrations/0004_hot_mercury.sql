@@ -1,0 +1,1 @@
+ALTER TABLE "books" ADD COLUMN "webhook_id" integer NOT NULL;
