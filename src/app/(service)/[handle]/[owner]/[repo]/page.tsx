@@ -27,8 +27,15 @@ type Props = {
 
 export const revalidate = 300;
 
-export const generateStaticParams = async ({ params }: Props) => {
-  const { handle } = await params;
+type ParentProps = {
+  params: {
+    handle: string;
+  };
+};
+
+export const generateStaticParams = async ({
+  params: { handle },
+}: ParentProps) => {
   const user = await getUserByHandle(handle);
   if (!user) {
     return [];
