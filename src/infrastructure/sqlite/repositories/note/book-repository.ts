@@ -5,8 +5,8 @@ import type {
 } from "@/domain/note/repositories/book-repository";
 import type { BookRepository } from "@/domain/note/repositories/book-repository";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { and, asc, count, eq } from "drizzle-orm";
+import { ResultAsync, err, ok } from "neverthrow";
 import { type Database, mapRepositoryError } from "../../client";
 import { users } from "../../schema/account";
 import { bookDetails, books, syncStatuses } from "../../schema/note";

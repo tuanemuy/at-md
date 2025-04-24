@@ -9,9 +9,9 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { Agent, AppBskyFeedDefs, RichText } from "@atproto/api";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { ResultAsync, err, ok } from "neverthrow";
 import { getAgent, getOAuthClient } from "./client";
 
 export class DefaultBlueskyPostProvider implements BlueskyPostProvider {

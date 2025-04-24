@@ -1,6 +1,6 @@
 import type { Engagement, Post } from "@/domain/post/models";
 import type { ApplicationServiceError } from "@/domain/types/error";
-import type { ResultAsync } from "@/lib/result";
+import type { ResultAsync } from "neverthrow";
 
 export interface PostUsecase {
   /**

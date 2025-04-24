@@ -1,7 +1,7 @@
-import { Suspense } from "react";
 import { Icon } from "@/components/brand/Icon";
 import { ForUser } from "@/components/domain/account/ForUser";
 import { ErrorToaster } from "@/components/notification/ErrorToaster";
+import { Suspense } from "react";
 import { Nav } from "./_components/Nav";
 
 type Props = {

@@ -1,5 +1,5 @@
-import { nl2br } from "@/lib/utils";
 import { getUserByHandle } from "@/actions/account";
+import { nl2br } from "@/lib/utils";
 import xss from "xss";
 
 import { ForUser } from "./ForUser";

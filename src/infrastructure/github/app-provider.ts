@@ -7,7 +7,7 @@ import {
   ExternalServiceError,
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
-import { ResultAsync, err, errAsync, ok } from "@/lib/result";
+import { ResultAsync, err, errAsync, ok } from "neverthrow";
 import { Octokit } from "octokit";
 
 export class DefaultGitHubAppProvider implements GitHubAppProvider {

@@ -4,8 +4,8 @@ import type {
   UpdateGitHubConnection,
 } from "@/domain/account/repositories";
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
-import { ResultAsync, err, ok } from "@/lib/result";
 import { and, eq } from "drizzle-orm";
+import { ResultAsync, err, ok } from "neverthrow";
 import { type PgDatabase, mapRepositoryError } from "../../client";
 import { githubConnections } from "../../schema/account";
 

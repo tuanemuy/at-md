@@ -7,7 +7,7 @@ import {
   type PaginationParams,
   paginationParamsSchema,
 } from "@/domain/types/pagination";
-import type { ResultAsync } from "@/lib/result";
+import type { ResultAsync } from "neverthrow";
 import { z } from "zod";
 
 export const searchNotesInputSchema = z.object({

@@ -8,7 +8,7 @@ import {
   ExternalServiceErrorCode,
 } from "@/domain/types/error";
 import type { PaginationParams } from "@/domain/types/pagination";
-import { ResultAsync, err, ok } from "@/lib/result";
+import { ResultAsync, err, ok } from "neverthrow";
 import { App, Octokit } from "octokit";
 
 export class DefaultGitHubContentProvider implements GitHubContentProvider {
