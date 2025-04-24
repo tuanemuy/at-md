@@ -6,8 +6,8 @@ import type { Engagement as EngagementModel } from "@/domain/post/models/engagem
 import { useTransition } from "react";
 import { useEffect, useState } from "react";
 
-import { Heart, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Heart, MessageCircle } from "lucide-react";
 
 type Props = {
   note: Note;
