@@ -25,6 +25,8 @@ type Props = {
   }>;
 };
 
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: Props) {
   const { handle, owner, repo } = await params;
   const user = await getUserByHandle(handle);
