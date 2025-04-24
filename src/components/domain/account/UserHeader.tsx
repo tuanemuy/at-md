@@ -50,6 +50,7 @@ export async function UserHeader({ handle }: Props) {
         </h1>
         <p className="text-muted-foreground">@{user.handle}</p>
         <p
+          className="mt-2"
           dangerouslySetInnerHTML={{
             __html: xss(nl2br(user.profile.description || "")),
           }}
