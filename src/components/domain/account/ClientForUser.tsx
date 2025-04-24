@@ -1,7 +1,7 @@
 "use client";
 
-import type { SessionData } from "@/domain/account/models/session-data";
 import { auth } from "@/actions/account";
+import type { SessionData } from "@/domain/account/models/session-data";
 import { useTransition } from "react";
 import { useEffect, useState } from "react";
 

@@ -1,7 +1,7 @@
 "use client";
 
-import type { User } from "@/domain/account/models/user";
 import { auth, getUser } from "@/actions/account";
+import type { User } from "@/domain/account/models/user";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
