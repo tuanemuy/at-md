@@ -26,6 +26,8 @@ type Props = {
   }>;
 };
 
+export const revalidate = 60;
+
 export async function generateMetadata({ params }: Props) {
   const { owner, repo, notePath } = await params;
   const book = await getBook(owner, repo);
