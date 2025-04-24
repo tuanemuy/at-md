@@ -467,6 +467,23 @@ export class NoteService implements NoteUsecase {
       .orTee((error) => logger.debug("Failed to list notes", error));
   }
 
+  public listAllNotes(input: {
+    bookId: string;
+  }) {
+    return this.noteRepository
+      .listAllByBookId(input.bookId)
+      .mapErr(
+        (error) =>
+          new ApplicationServiceError(
+            "ListNotes",
+            ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
+            "Failed to list notes",
+            error,
+          ),
+      )
+      .orTee((error) => logger.debug("Failed to list notes", error));
+  }
+
   public searchNotes(input: SearchNotesInput) {
     return this.noteRepository
       .search(input.bookId, input.query, input.pagination)

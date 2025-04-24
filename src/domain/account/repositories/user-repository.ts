@@ -1,5 +1,4 @@
 import type { RepositoryError } from "@/domain/types/error";
-import type { PaginationParams } from "@/domain/types/pagination";
 import type { ResultAsync } from "neverthrow";
 /**
  * ユーザーリポジトリのインターフェース
@@ -88,4 +87,6 @@ export interface UserRepository {
     page: number,
     limit: number,
   ): ResultAsync<Omit<User, "profile">[], RepositoryError>;
+
+  listAll(): ResultAsync<Omit<User, "profile">[], RepositoryError>;
 }

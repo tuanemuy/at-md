@@ -60,6 +60,10 @@ export interface NoteRepository {
     pagination?: PaginationParams,
   ): ResultAsync<{ items: Note[]; count: number }, RepositoryError>;
 
+  listAllByBookId(
+    bookId: string,
+  ): ResultAsync<Omit<Note, "tags">[], RepositoryError>;
+
   /**
    * 指定したブックID、タグIDのノート一覧を取得する
    */

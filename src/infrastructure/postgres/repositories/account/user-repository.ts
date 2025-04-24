@@ -210,4 +210,11 @@ export class DrizzleUserRepository implements UserRepository {
       mapRepositoryError,
     );
   }
+
+  listAll() {
+    return ResultAsync.fromPromise(
+      this.db.select().from(users),
+      mapRepositoryError,
+    );
+  }
 }

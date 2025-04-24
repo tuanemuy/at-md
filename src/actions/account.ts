@@ -173,3 +173,9 @@ export async function listUsers(page: number, limit: number) {
     .bind(container.accountService)({ page, limit })
     .unwrapOr([]);
 }
+
+export async function listAllUsers() {
+  return container.accountService.listAllUsers
+    .bind(container.accountService)()
+    .unwrapOr([]);
+}

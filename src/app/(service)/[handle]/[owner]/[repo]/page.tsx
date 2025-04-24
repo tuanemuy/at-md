@@ -1,5 +1,5 @@
-import { getBook } from "@/actions/note";
-import { listNotes } from "@/actions/note";
+import { getBook, listBooks, listNotes } from "@/actions/note";
+import { getUserByHandle } from "@/actions/account";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { format } from "date-fns";
 import { marked } from "marked";
@@ -26,6 +26,20 @@ type Props = {
 };
 
 export const revalidate = 300;
+
+export const generateStaticParams = async ({ params }: Props) => {
+  const { handle } = await params;
+  const user = await getUserByHandle(handle);
+  if (!user) {
+    return [];
+  }
+  const books = await listBooks(user.id);
+  return books.map((book) => ({
+    handle,
+    owner: book.owner,
+    repo: book.repo,
+  }));
+};
 
 export async function generateMetadata({ params }: Props) {
   const { handle, owner, repo } = await params;

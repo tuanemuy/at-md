@@ -262,6 +262,13 @@ export class DrizzleNoteRepository implements NoteRepository {
     }));
   }
 
+  listAllByBookId(bookId: string) {
+    return ResultAsync.fromPromise(
+      this.db.select().from(notes).where(eq(notes.bookId, bookId)),
+      mapRepositoryError,
+    );
+  }
+
   /**
    * 指定したブックID、タグIDのノート一覧を取得する
    */
