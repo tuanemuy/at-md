@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Icon } from "@/components/brand/Icon";
 import { ForUser } from "@/components/domain/account/ForUser";
 import { ErrorToaster } from "@/components/notification/ErrorToaster";
@@ -49,7 +50,9 @@ export default function Layout({ children }: Props) {
         </ul>
       </footer>
 
-      <ErrorToaster />
+      <Suspense>
+        <ErrorToaster />
+      </Suspense>
     </>
   );
 }
