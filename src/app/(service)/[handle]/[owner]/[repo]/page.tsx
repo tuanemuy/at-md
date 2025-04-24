@@ -1,11 +1,9 @@
-import { getBook, listBooks, listNotes } from "@/actions/note";
-import { getUserByHandle } from "@/actions/account";
+import { getBook, listNotes } from "@/actions/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { format } from "date-fns";
-import { marked } from "marked";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/ForOwner";
+import { ForOwner } from "@/components/domain/account/ClientForOwner";
 import { UserBanner } from "@/components/domain/account/UserBanner";
 import { UserInfo } from "@/components/domain/account/UserInfo";
 import { Article } from "@/components/domain/note/Article";
@@ -57,8 +55,6 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const description = await marked.parse(book.details.description);
-
   return (
     <main>
       <UserBanner user={book.user} />
@@ -90,7 +86,7 @@ export default async function Page({ params }: Props) {
         </section>
 
         <section className="py-(--spacing-layout-md)">
-          <Article text={description} />
+          <Article text={book.details.description} />
           <Highlight />
         </section>
 
