@@ -1,4 +1,4 @@
-import { getUserByHandle, listAllUsers } from "@/actions/account";
+import { getUserByHandle } from "@/actions/account";
 import { notFound } from "next/navigation";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
@@ -12,15 +12,6 @@ type Props = {
   params: Promise<{
     handle: string;
   }>;
-};
-
-export const revalidate = 300;
-
-export const generateStaticParams = async () => {
-  const users = await listAllUsers();
-  return users.map((user) => ({
-    handle: user.handle,
-  }));
 };
 
 export async function generateMetadata({ params }: Props) {
