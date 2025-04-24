@@ -4,15 +4,17 @@ import { mdToHtml } from "@/lib/markdown";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/AsyncForOwner";
+import { ForOwner } from "@/components/domain/account/ForOwner";
 import { UserInfo } from "@/components/domain/account/UserInfo";
 import { Article } from "@/components/domain/note/Article";
 import { DeleteNote } from "@/components/domain/note/DeleteNote";
 import { Highlight } from "@/components/domain/note/Highlight";
 import { Engagement } from "@/components/domain/post/Engagement";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 type Props = {
   params: Promise<{
@@ -83,14 +85,21 @@ export default async function Page({ params }: Props) {
         )}
 
         <div className="flex items-center gap-4 mt-4">
-          <Engagement note={note} />
-
-          <ForOwner userId={note.userId}>
-            <DeleteNote
+          <Suspense fallback={<Skeleton className="w-24 h-4" />}>
+            <Engagement
               note={note}
-              redirectPath={`/${handle}/${owner}/${repo}`}
+              fullPath={`/${handle}/${owner}/${repo}/${notePath}`}
             />
-          </ForOwner>
+          </Suspense>
+
+          <Suspense>
+            <ForOwner userId={note.userId}>
+              <DeleteNote
+                note={note}
+                redirectPath={`/${handle}/${owner}/${repo}`}
+              />
+            </ForOwner>
+          </Suspense>
         </div>
 
         <section className="mt-(--spacing-layout-sm) pt-(--spacing-layout-sm) border-t">

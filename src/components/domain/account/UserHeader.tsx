@@ -2,7 +2,7 @@ import type { User } from "@/domain/account/models/user";
 import { nl2br } from "@/lib/utils";
 import xss from "xss";
 
-import { ForUser } from "./AsyncForUser";
+import { ForUser } from "./ForUser";
 import { SignOut } from "./SignOut";
 import { SyncProfile } from "./SyncProfile";
 

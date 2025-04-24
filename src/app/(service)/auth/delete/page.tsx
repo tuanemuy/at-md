@@ -1,6 +1,6 @@
-import { ForGuest } from "@/components/domain/account/AsyncForGuest";
-import { ForUser } from "@/components/domain/account/AsyncForUser";
 import { DeleteAccount } from "@/components/domain/account/DeleteAccount";
+import { ForGuest } from "@/components/domain/account/ForGuest";
+import { ForUser } from "@/components/domain/account/ForUser";
 
 export default function Page() {
   return (
