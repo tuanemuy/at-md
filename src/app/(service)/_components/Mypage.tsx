@@ -1,11 +1,25 @@
+"use client";
+
+import type { User } from "@/domain/account/models/user";
+import { auth, getUser } from "@/actions/account";
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
-import { auth, getUser } from "@/actions/account";
-
 export async function Mypage() {
-  const session = await auth();
-  const user = session ? await getUser(session.user.id) : null;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const session = await auth();
+
+      if (session) {
+        const user = await getUser(session.user.id);
+        setUser(user);
+      }
+    })();
+  }, []);
 
   if (!user) {
     return (
