@@ -111,6 +111,14 @@ export async function listNotes(bookId: string, pagination: PaginationParams) {
     });
 }
 
+export async function listAllNotes(bookId: string) {
+  return container.noteService.listAllNotes
+    .bind(container.noteService)({
+      bookId,
+    })
+    .unwrapOr([]);
+}
+
 export async function searchNotes(input: SearchNotesInput) {
   return container.noteService.searchNotes
     .bind(container.noteService)(input)

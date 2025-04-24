@@ -102,6 +102,10 @@ export interface NoteUsecase {
     pagination: PaginationParams;
   }) => ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
 
+  listAllNotes: (input: {
+    bookId: string;
+  }) => ResultAsync<Omit<Note, "tags">[], ApplicationServiceError>;
+
   /**
    * ノートを検索する
    */

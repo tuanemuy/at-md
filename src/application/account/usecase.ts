@@ -125,4 +125,9 @@ export interface AccountUsecase<T> {
     page: number;
     limit: number;
   }) => ResultAsync<Omit<User, "profile">[], ApplicationServiceError>;
+
+  listAllUsers: () => ResultAsync<
+    Omit<User, "profile">[],
+    ApplicationServiceError
+  >;
 }

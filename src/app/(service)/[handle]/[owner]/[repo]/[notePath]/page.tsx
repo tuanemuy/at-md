@@ -1,4 +1,4 @@
-import { getNote } from "@/actions/note";
+import { getBook, getNote, listAllNotes } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
 import { mdToHtml } from "@/lib/markdown";
 import { format } from "date-fns";
@@ -26,6 +26,21 @@ type Props = {
 };
 
 export const revalidate = 60;
+
+export const generateStaticParams = async ({ params }: Props) => {
+  const { handle, owner, repo } = await params;
+  const book = await getBook(owner, repo);
+  if (!book) {
+    return [];
+  }
+  const notes = await listAllNotes(book.id);
+  return notes.map((note) => ({
+    handle,
+    owner,
+    repo,
+    notePath: note.path,
+  }));
+};
 
 export async function generateMetadata({ params }: Props) {
   const { owner, repo, notePath } = await params;

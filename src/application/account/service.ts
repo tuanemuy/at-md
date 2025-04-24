@@ -493,4 +493,19 @@ export class AccountService<T> implements AccountUsecase<T> {
       )
       .orTee((error) => logger.debug("Failed to list users", error));
   }
+
+  public listAllUsers() {
+    return this.userRepository
+      .listAll()
+      .mapErr(
+        (error) =>
+          new ApplicationServiceError(
+            "ListUsers",
+            ApplicationServiceErrorCode.ACCOUNT_CONTEXT_ERROR,
+            "Failed to list users",
+            error,
+          ),
+      )
+      .orTee((error) => logger.debug("Failed to list users", error));
+  }
 }
