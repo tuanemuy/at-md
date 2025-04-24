@@ -5,7 +5,8 @@ import type { Note } from "@/domain/note/models/note";
 import { format } from "date-fns";
 
 import { Pagination } from "@/components/button/Pagination";
-import { Engagement } from "@/components/domain/post/Engagement";
+import { UserInfo } from "@/components/domain/account/UserInfo";
+import { Engagement } from "@/components/domain/post/ClientEngagement";
 import Link from "next/link";
 import { NotesViewSkeleton } from "./NotesViewSkeleton";
 

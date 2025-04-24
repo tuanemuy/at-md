@@ -1,11 +1,12 @@
 import { getUserByHandle } from "@/actions/account";
-import { listBooks } from "@/actions/note";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/AsyncForOwner";
+import { ForOwner } from "@/components/domain/account/ForOwner";
 import { UserHeader } from "@/components/domain/account/UserHeader";
 import { Books } from "@/components/domain/note/Books";
+import { BooksSkeleton } from "@/components/domain/note/BooksSkeleton";
 import { GitHubConnection } from "@/components/domain/note/GitHubConnection";
+import { Suspense } from "react";
 
 type Props = {
   params: Promise<{
@@ -46,8 +47,6 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
-  const books = await listBooks(user.id);
-
   return (
     <main>
       <section className="pb-(--spacing-layout-md)">
@@ -55,13 +54,17 @@ export default async function Page({ params }: Props) {
       </section>
 
       <section className="content pt-(--spacing-layout-md) border-t">
-        <Books userId={user.id} handle={handle} books={books} />
+        <Suspense fallback={<BooksSkeleton />}>
+          <Books userId={user.id} handle={handle} />
+        </Suspense>
       </section>
 
       <section className="content py-(--spacing-layout-md)">
-        <ForOwner userId={user.id}>
-          <GitHubConnection />
-        </ForOwner>
+        <Suspense>
+          <ForOwner userId={user.id}>
+            <GitHubConnection />
+          </ForOwner>
+        </Suspense>
       </section>
     </main>
   );

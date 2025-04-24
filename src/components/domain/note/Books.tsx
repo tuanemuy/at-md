@@ -1,8 +1,8 @@
-import type { Book } from "@/domain/note/models/book";
+import { listBooks } from "@/actions/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { format } from "date-fns";
 
-import { ForOwner } from "@/components/domain/account/AsyncForOwner";
+import { ForOwner } from "@/components/domain/account/ForOwner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
@@ -12,10 +12,11 @@ import { BookMenu } from "./BookMenu";
 type Props = {
   userId: string;
   handle: string;
-  books: Book[];
 };
 
-export function Books({ userId, handle, books }: Props) {
+export async function Books({ userId, handle }: Props) {
+  const books = await listBooks(userId);
+
   return (
     <div className="flex flex-col gap-10">
       {books.map(async (book) => {

@@ -1,24 +1,27 @@
+"use client";
+
 import { getEngagementByNotePath } from "@/actions/post";
 import type { Note } from "@/domain/note/models/note";
+import type { Engagement as EngagementModel } from "@/domain/post/models/engagement";
+import { useEffect, useState } from "react";
 
-import { ForOwner } from "@/components/domain/account/ForOwner";
 import { Heart, MessageCircle } from "lucide-react";
-import { Post } from "./Post";
 
 type Props = {
   note: Note;
-  fullPath: string;
 };
 
-export async function Engagement({ note, fullPath }: Props) {
-  const engagement = await getEngagementByNotePath(note.bookId, note.path);
+export function Engagement({ note }: Props) {
+  const [engagement, setEngagement] = useState<EngagementModel | null>(null);
+  useEffect(() => {
+    (async () => {
+      const engagement = await getEngagementByNotePath(note.bookId, note.path);
+      setEngagement(engagement);
+    })();
+  }, [note.bookId, note.path]);
 
   if (!engagement) {
-    return (
-      <ForOwner userId={note.userId}>
-        <Post note={note} fullPath={fullPath} />
-      </ForOwner>
-    );
+    return null;
   }
 
   return (
