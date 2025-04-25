@@ -2,6 +2,7 @@ import { getBook, getNote, listAllNotes } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
+import { mdToHtml } from "@/lib/markdown";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
 import {
@@ -91,6 +92,7 @@ export default async function Page({ params }: Props) {
     notFound();
   }
 
+  const body = await mdToHtml(note.body);
   const createdAt = format(note.createdAt, "yyyy-MM-dd HH:mm");
   const updatedAt = format(note.updatedAt, "yyyy-MM-dd HH:mm");
 
@@ -143,7 +145,7 @@ export default async function Page({ params }: Props) {
         </section>
 
         <section className="py-(--spacing-layout-md)">
-          <Article text={note.body} />
+          <Article text={body} />
           <Highlight />
         </section>
       </div>

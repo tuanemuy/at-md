@@ -4,6 +4,7 @@ import { SyncStatusCode } from "@/domain/note/models/sync-status";
 import { type RawSearchParams, SearchParams } from "@/lib/router";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
+import { mdToHtml } from "@/lib/markdown";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
 import {
@@ -66,6 +67,8 @@ export default async function Page({ params, searchParams }: Props) {
     notFound();
   }
 
+  const description = await mdToHtml(book.details.description);
+
   return (
     <main>
       <Suspense fallback={<UserBannerSkeleton />}>
@@ -101,7 +104,7 @@ export default async function Page({ params, searchParams }: Props) {
         </section>
 
         <section className="py-(--spacing-layout-md)">
-          <Article text={book.details.description} />
+          <Article text={description} />
           <Highlight />
         </section>
 

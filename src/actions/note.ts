@@ -50,22 +50,9 @@ async function _listBooks(userId: string) {
 
 export const getBook = cache(_getBook);
 async function _getBook(owner: string, repo: string) {
-  const book = await container.noteService.getBookByRepo
+  return await container.noteService.getBookByRepo
     .bind(container.noteService)({ owner, repo })
     .unwrapOr(null);
-
-  if (!book) {
-    return null;
-  }
-
-  const description = await mdToHtml(book?.details.description || "");
-  return {
-    ...book,
-    details: {
-      ...book?.details,
-      description,
-    },
-  };
 }
 
 export async function syncNotes(owner: string, repo: string) {
@@ -144,19 +131,9 @@ export async function searchNotes(input: SearchNotesInput) {
 
 export const getNote = cache(_getNote);
 async function _getNote(notePath: string) {
-  const note = await container.noteService.getNote
+  return container.noteService.getNote
     .bind(container.noteService)({ notePath })
     .unwrapOr(null);
-
-  if (!note) {
-    return null;
-  }
-
-  const body = await mdToHtml(note.body);
-  return {
-    ...note,
-    body,
-  };
 }
 
 export async function deleteNote(noteId: string, redirectPath?: string) {
