@@ -1,10 +1,18 @@
-import type { User } from "@/domain/account/models/user";
+import { getUser } from "@/actions/account";
+
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Props = {
-  user: User;
+  userId: string;
 };
 
-export function UserBanner({ user }: Props) {
+export async function UserBanner({ userId }: Props) {
+  const user = await getUser(userId);
+
+  if (!user) {
+    return <UserBannerSkeleton />;
+  }
+
   return (
     <div className="relative w-full aspect-[1440/360] bg-muted-foreground">
       {user.profile.bannerUrl && (
@@ -15,6 +23,14 @@ export function UserBanner({ user }: Props) {
           loading="lazy"
         />
       )}
+    </div>
+  );
+}
+
+export function UserBannerSkeleton() {
+  return (
+    <div className="relative w-full aspect-[1440/360] bg-muted-foreground">
+      <Skeleton className="w-full h-full" />
     </div>
   );
 }

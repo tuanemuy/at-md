@@ -6,14 +6,14 @@ import type {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { and, eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { posts } from "../../schema/post";
 
 /**
  * PostRepositoryの実装
  */
 export class DrizzlePostRepository implements PostRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * 投稿を作成する

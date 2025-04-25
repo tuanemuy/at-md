@@ -1,12 +1,19 @@
-import type { User } from "@/domain/account/models/user";
+import { getUser } from "@/actions/account";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
 type Props = {
-  user: User;
+  userId: string;
 };
 
-export function UserInfo({ user }: Props) {
+export async function UserInfo({ userId }: Props) {
+  const user = await getUser(userId);
+
+  if (!user) {
+    return <UserInfoSkeleton />;
+  }
+
   return (
     <Link href={`/${user.handle}`} className="flex items-center gap-3">
       {user.profile.avatarUrl && (
@@ -25,5 +32,17 @@ export function UserInfo({ user }: Props) {
         <p className="text-sm text-muted-foreground">@{user.handle}</p>
       </div>
     </Link>
+  );
+}
+
+export function UserInfoSkeleton() {
+  return (
+    <div className="flex items-center gap-3">
+      <Skeleton className="size-14 md:size-16 border-2 object-cover border-border bg-muted-foreground rounded-full" />
+      <div className="flex flex-col">
+        <Skeleton className="w-40 h-5" />
+        <Skeleton className="mt-2 w-32 h-4" />
+      </div>
+    </div>
   );
 }

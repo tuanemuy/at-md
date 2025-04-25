@@ -1,25 +1,16 @@
-"use client";
-
 import { auth, getUser } from "@/actions/account";
-import type { User } from "@/domain/account/models/user";
-import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export async function Mypage() {
-  const [user, setUser] = useState<User | null>(null);
+  const session = await auth();
 
-  useEffect(() => {
-    (async () => {
-      const session = await auth();
+  if (!session) {
+    return null;
+  }
 
-      if (session) {
-        const user = await getUser(session.user.id);
-        setUser(user);
-      }
-    })();
-  }, []);
+  const user = await getUser(session.user.id);
 
   if (!user) {
     return (

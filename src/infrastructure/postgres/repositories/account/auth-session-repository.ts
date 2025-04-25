@@ -7,14 +7,14 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
 import { eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { authSessions } from "../../schema/account";
 
 /**
  * AuthSessionRepositoryの実装
  */
 export class DrizzleAuthSessionRepository implements AuthSessionRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * AuthSessionを作成する

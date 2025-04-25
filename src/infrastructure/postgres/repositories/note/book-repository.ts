@@ -7,15 +7,15 @@ import type { BookRepository } from "@/domain/note/repositories/book-repository"
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { and, asc, count, eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
-import { profiles, users } from "../../schema/account";
+import { type Database, mapRepositoryError } from "../../client";
+import { users } from "../../schema/account";
 import { bookDetails, books, syncStatuses } from "../../schema/note";
 
 /**
  * BookRepositoryの実装
  */
 export class DrizzleBookRepository implements BookRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * ブックを作成する
@@ -198,44 +198,6 @@ export class DrizzleBookRepository implements BookRepository {
             ...book.book,
             details: book.details,
             syncStatus: book.syncStatus,
-          })
-        : err(
-            new RepositoryError(
-              RepositoryErrorCode.NOT_FOUND,
-              "Book not found",
-            ),
-          ),
-    );
-  }
-
-  findByOwnerAndRepoWithUser(owner: string, repo: string) {
-    return ResultAsync.fromPromise(
-      this.db
-        .select({
-          book: books,
-          details: bookDetails,
-          syncStatus: syncStatuses,
-          user: users,
-          profile: profiles,
-        })
-        .from(books)
-        .innerJoin(bookDetails, eq(books.id, bookDetails.bookId))
-        .innerJoin(syncStatuses, eq(books.id, syncStatuses.bookId))
-        .innerJoin(users, eq(books.userId, users.id))
-        .innerJoin(profiles, eq(users.id, profiles.userId))
-        .where(and(eq(books.owner, owner), eq(books.repo, repo)))
-        .limit(1),
-      mapRepositoryError,
-    ).andThen(([book]) =>
-      book
-        ? ok({
-            ...book.book,
-            details: book.details,
-            syncStatus: book.syncStatus,
-            user: {
-              ...book.user,
-              profile: book.profile,
-            },
           })
         : err(
             new RepositoryError(

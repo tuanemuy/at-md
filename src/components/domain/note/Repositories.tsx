@@ -5,7 +5,7 @@ import type { GitHubRepository } from "@/domain/note/dtos";
 import { useDebounceValue } from "@/hooks/use-debounce-value";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
-import { Pagination } from "@/components/button/Pagination";
+import { Pagination } from "@/components/navigation/ClientPagination";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {

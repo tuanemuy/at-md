@@ -1,14 +1,14 @@
 import type { TagRepository } from "@/domain/note/repositories";
 import { eq, inArray } from "drizzle-orm";
 import { ResultAsync } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { noteTags, tags } from "../../schema/note";
 
 /**
  * TagRepositoryの実装
  */
 export class DrizzleTagRepository implements TagRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * 指定したノートIDのタグ一覧を取得する

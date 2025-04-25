@@ -1,16 +1,23 @@
-import { getBook, listNotes } from "@/actions/note";
+import { getUserByHandle } from "@/actions/account";
+import { getBook } from "@/actions/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { type RawSearchParams, SearchParams } from "@/lib/router";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/ClientForOwner";
-import { UserBanner } from "@/components/domain/account/UserBanner";
-import { UserInfo } from "@/components/domain/account/UserInfo";
+import { ForOwner } from "@/components/domain/account/ForOwner";
+import {
+  UserBanner,
+  UserBannerSkeleton,
+} from "@/components/domain/account/UserBanner";
+import {
+  UserInfo,
+  UserInfoSkeleton,
+} from "@/components/domain/account/UserInfo";
 import { Article } from "@/components/domain/note/Article";
 import { BookMenu } from "@/components/domain/note/BookMenu";
 import { Highlight } from "@/components/domain/note/Highlight";
-import { Notes as ClientNotes } from "@/components/domain/note/Notes";
-import { NotesViewSkeleton } from "@/components/domain/note/NotesViewSkeleton";
+import { Notes, NotesSkeleton } from "@/components/domain/note/Notes";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense } from "react";
@@ -21,14 +28,16 @@ type Props = {
     owner: string;
     repo: string;
   }>;
+  searchParams: Promise<RawSearchParams>;
 };
 
 export async function generateMetadata({ params }: Props) {
   const { handle, owner, repo } = await params;
   const book = await getBook(owner, repo);
+  const user = await getUserByHandle(handle);
 
   const bookName = book?.details.name || `${owner}/${repo}`;
-  const userName = book?.user.profile.displayName || handle;
+  const userName = user?.profile.displayName || handle;
   const title = `${bookName} | ${userName}`;
   const description = book?.details.description || bookName;
 
@@ -47,7 +56,9 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page({ params, searchParams }: Props) {
+  const sp = SearchParams.fromRaw(await searchParams);
+  const page = sp.getOne("page") || "1";
   const { handle, owner, repo } = await params;
   const book = await getBook(owner, repo);
 
@@ -57,11 +68,13 @@ export default async function Page({ params }: Props) {
 
   return (
     <main>
-      <UserBanner user={book.user} />
+      <Suspense fallback={<UserBannerSkeleton />}>
+        <UserBanner userId={book.userId} />
+      </Suspense>
 
       <div className="content py-(--spacing-layout-lg)">
         <h1 className="text-3xl md:text-4xl font-bold">{book.details.name}</h1>
-        <Suspense fallback={<Skeleton className="w-32 h-6 mt-2" />}>
+        <Suspense fallback={<Skeleton className="w-32 h-8 mt-2" />}>
           <ForOwner userId={book.userId}>
             <div className="flex items-center gap-4 mt-2">
               <dl className="flex items-center gap-2 text-muted-foreground">
@@ -82,7 +95,9 @@ export default async function Page({ params }: Props) {
         </Suspense>
 
         <section className="mt-6">
-          <UserInfo user={book.user} />
+          <Suspense fallback={<UserInfoSkeleton />}>
+            <UserInfo userId={book.userId} />
+          </Suspense>
         </section>
 
         <section className="py-(--spacing-layout-md)">
@@ -91,34 +106,15 @@ export default async function Page({ params }: Props) {
         </section>
 
         <section className="pt-(--spacing-layout-md) border-t">
-          <Suspense fallback={<NotesViewSkeleton items={5} />}>
-            <Notes bookId={book.id} basePath={`/${handle}/${owner}/${repo}`} />
+          <Suspense fallback={<NotesSkeleton items={5} />}>
+            <Notes
+              bookId={book.id}
+              basePath={`/${handle}/${owner}/${repo}`}
+              page={Number.parseInt(page, 10)}
+            />
           </Suspense>
         </section>
       </div>
     </main>
-  );
-}
-
-type NotesProps = {
-  bookId: string;
-  basePath: string;
-};
-
-async function Notes({ bookId, basePath }: NotesProps) {
-  const { items, count } = await listNotes(bookId, {
-    order: "desc",
-    orderBy: "updatedAt",
-    limit: Number.parseInt(process.env.NEXT_PUBLIC_PAGINATION_LIMIT, 10),
-    page: 1,
-  });
-
-  return (
-    <ClientNotes
-      initialNotes={items}
-      initialCount={count}
-      bookId={bookId}
-      basePath={basePath}
-    />
   );
 }

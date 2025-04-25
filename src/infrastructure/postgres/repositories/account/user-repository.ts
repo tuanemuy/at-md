@@ -7,14 +7,14 @@ import type {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { asc, count, eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { profiles, users } from "../../schema/account";
 
 /**
  * UserRepositoryの実装
  */
 export class DrizzleUserRepository implements UserRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * ユーザーを作成する
