@@ -16,7 +16,7 @@ type Props = {
 export function BookLink({ book, basePath }: Props) {
   return (
     <div key={book.id} className="">
-      <Link href={`/${basePath}/${book.owner}/${book.repo}`}>
+      <Link href={`${basePath}/${book.owner}/${book.repo}`}>
         <h2 className="text-xl md:text-2xl font-bold">{book.details.name}</h2>
 
         <dl className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
