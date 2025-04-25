@@ -7,14 +7,14 @@ import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { validate } from "@/domain/types/validation";
 import { eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { authStates } from "../../schema/account";
 
 /**
  * AuthStateRepositoryの実装
  */
 export class DrizzleAuthStateRepository implements AuthStateRepository {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * AuthStateを作成する

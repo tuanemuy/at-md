@@ -1,31 +1,24 @@
-import { searchNotes } from "@/actions/note";
+import { type RawSearchParams, SearchParams } from "@/lib/router";
 
-import { NotesViewSkeleton } from "@/components/domain/note/NotesViewSkeleton";
 import { Suspense } from "react";
-import { Timeline as ClientTimeline } from "./_components/Timeline";
+import { Timeline, TimelineSkeleton } from "./_components/Timeline";
 
-export default function Page() {
+type Props = {
+  searchParams: Promise<RawSearchParams>;
+};
+
+export default async function Page({ searchParams }: Props) {
+  const sp = SearchParams.fromRaw(await searchParams);
+  const page = sp.getOne("page") || "1";
+  const query = sp.getOne("query") || "";
+
   return (
     <main>
       <div className="content py-(--spacing-layout-md)">
-        <Suspense fallback={<NotesViewSkeleton items={5} />}>
-          <Timeline />
+        <Suspense fallback={<TimelineSkeleton items={5} />}>
+          <Timeline page={Number.parseInt(page, 10)} query={query} />
         </Suspense>
       </div>
     </main>
   );
-}
-
-async function Timeline() {
-  const { items, count } = await searchNotes({
-    query: "",
-    pagination: {
-      order: "desc",
-      orderBy: "updatedAt",
-      limit: Number.parseInt(process.env.NEXT_PUBLIC_PAGINATION_LIMIT, 10),
-      page: 1,
-    },
-  });
-
-  return <ClientTimeline initialNotes={items} initialCount={count} />;
 }

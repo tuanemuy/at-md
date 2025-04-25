@@ -2,6 +2,7 @@ import { getEngagementByNotePath } from "@/actions/post";
 import type { Note } from "@/domain/note/models/note";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Heart, MessageCircle } from "lucide-react";
 import { Post } from "./Post";
 
@@ -34,4 +35,8 @@ export async function Engagement({ note, fullPath }: Props) {
       </div>
     </div>
   );
+}
+
+export function EngagementSkeleton() {
+  return <Skeleton className="h-9 w-32" />;
 }

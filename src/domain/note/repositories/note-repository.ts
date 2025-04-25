@@ -44,14 +44,6 @@ export interface NoteRepository {
    */
   findByPath(path: string): ResultAsync<Note, RepositoryError>;
 
-  findByPathWithUserBook(path: string): ResultAsync<
-    Note & {
-      user: User;
-      book: Omit<Book, "syncStatus">;
-    },
-    RepositoryError
-  >;
-
   /**
    * 指定したブックIDのノート一覧を取得する
    */
@@ -60,9 +52,7 @@ export interface NoteRepository {
     pagination?: PaginationParams,
   ): ResultAsync<{ items: Note[]; count: number }, RepositoryError>;
 
-  listAllByBookId(
-    bookId: string,
-  ): ResultAsync<Omit<Note, "tags">[], RepositoryError>;
+  listAllByBookId(bookId: string): ResultAsync<Note[], RepositoryError>;
 
   /**
    * 指定したブックID、タグIDのノート一覧を取得する
@@ -81,7 +71,7 @@ export interface NoteRepository {
     query?: string | null,
     pagination?: PaginationParams,
   ): ResultAsync<
-    { items: (Note & { fullPath: string; user: User })[]; count: number },
+    { items: (Note & { fullPath: string })[]; count: number },
     RepositoryError
   >;
 

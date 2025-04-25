@@ -171,7 +171,7 @@ export class NoteService implements NoteUsecase {
     repo: string;
   }) {
     return this.bookRepository
-      .findByOwnerAndRepoWithUser(input.owner, input.repo)
+      .findByOwnerAndRepo(input.owner, input.repo)
       .mapErr((error) => {
         return new ApplicationServiceError(
           "GetBookByRepo",
@@ -503,7 +503,7 @@ export class NoteService implements NoteUsecase {
     notePath: string;
   }) {
     return this.noteRepository
-      .findByPathWithUserBook(input.notePath)
+      .findByPath(input.notePath)
       .mapErr(
         (error) =>
           new ApplicationServiceError(
@@ -621,7 +621,7 @@ export class NoteService implements NoteUsecase {
       .mapErr(
         (error) =>
           new ApplicationServiceError(
-            "ListBookNotesWithoutTags",
+            "ListNotesForSitemap",
             ApplicationServiceErrorCode.NOTE_CONTEXT_ERROR,
             "Failed to list  book notes without tags",
             error,

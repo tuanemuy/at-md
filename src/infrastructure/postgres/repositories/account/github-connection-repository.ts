@@ -6,7 +6,7 @@ import type {
 import { RepositoryError, RepositoryErrorCode } from "@/domain/types/error";
 import { and, eq } from "drizzle-orm";
 import { ResultAsync, err, ok } from "neverthrow";
-import { type PgDatabase, mapRepositoryError } from "../../client";
+import { type Database, mapRepositoryError } from "../../client";
 import { githubConnections } from "../../schema/account";
 
 /**
@@ -15,7 +15,7 @@ import { githubConnections } from "../../schema/account";
 export class DrizzleGitHubConnectionRepository
   implements GitHubConnectionRepository
 {
-  constructor(private readonly db: PgDatabase) {}
+  constructor(private readonly db: Database) {}
 
   /**
    * GitHub連携情報を作成する

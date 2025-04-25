@@ -60,7 +60,7 @@ export interface NoteUsecase {
   getBookByRepo: (input: {
     owner: string;
     repo: string;
-  }) => ResultAsync<Book & { user: User }, ApplicationServiceError>;
+  }) => ResultAsync<Book, ApplicationServiceError>;
 
   /**
    * ブックを削除する
@@ -104,7 +104,7 @@ export interface NoteUsecase {
 
   listAllNotes: (input: {
     bookId: string;
-  }) => ResultAsync<Omit<Note, "tags">[], ApplicationServiceError>;
+  }) => ResultAsync<Note[], ApplicationServiceError>;
 
   /**
    * ノートを検索する
@@ -112,7 +112,7 @@ export interface NoteUsecase {
   searchNotes: (
     input: SearchNotesInput,
   ) => ResultAsync<
-    { items: (Note & { fullPath: string; user: User })[]; count: number },
+    { items: (Note & { fullPath: string })[]; count: number },
     ApplicationServiceError
   >;
 
@@ -121,28 +121,7 @@ export interface NoteUsecase {
    */
   getNote: (input: {
     notePath: string;
-  }) => ResultAsync<
-    Note & {
-      user: User;
-      book: Omit<Book, "syncStatus">;
-    },
-    ApplicationServiceError
-  >;
-
-  /**
-   * タグ一覧を取得する
-   */
-  listTags: (input: {
-    bookId: string;
-  }) => ResultAsync<Note["tags"], ApplicationServiceError>;
-
-  /**
-   * タグでノートをフィルタリングする
-   */
-  listNotesByTag: (input: {
-    bookId: string;
-    tagId: string;
-  }) => ResultAsync<{ items: Note[]; count: number }, ApplicationServiceError>;
+  }) => ResultAsync<Note, ApplicationServiceError>;
 
   /**
    * ノートを削除する
@@ -169,7 +148,7 @@ export interface NoteUsecase {
     page: number;
     limit: number;
   }) => ResultAsync<
-    (Omit<Note, "tags"> & {
+    (Note & {
       user: Omit<User, "profile">;
       book: Omit<Book, "details" | "syncStatus">;
     })[],

@@ -1,10 +1,9 @@
 import { getUserByHandle } from "@/actions/account";
 import { notFound } from "next/navigation";
 
-import { ForOwner } from "@/components/domain/account/ClientForOwner";
+import { ForOwner } from "@/components/domain/account/ForOwner";
 import { UserHeader } from "@/components/domain/account/UserHeader";
-import { Books } from "@/components/domain/note/Books";
-import { BooksSkeleton } from "@/components/domain/note/BooksSkeleton";
+import { Books, BooksSkeleton } from "@/components/domain/note/Books";
 import { GitHubConnection } from "@/components/domain/note/GitHubConnection";
 import { Suspense } from "react";
 

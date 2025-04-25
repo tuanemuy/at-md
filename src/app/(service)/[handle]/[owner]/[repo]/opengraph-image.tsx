@@ -1,4 +1,5 @@
 import { getBook } from "@/actions/note";
+import { getUserByHandle } from "@/actions/account";
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
@@ -21,9 +22,10 @@ type Props = {
 export default async function Image({ params }: Props) {
   const { handle, owner, repo } = await params;
   const book = await getBook(owner, repo);
+  const user = await getUserByHandle(handle);
 
   const bookName = book?.details.name || `${owner}/${repo}`;
-  const userName = book?.user.profile.displayName || handle;
+  const userName = user?.profile.displayName || handle;
 
   return new ImageResponse(
     <div

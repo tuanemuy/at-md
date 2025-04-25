@@ -1,73 +1,54 @@
-"use client";
-
 import { searchNotes } from "@/actions/note";
-import type { User } from "@/domain/account/models/user";
-import type { Note } from "@/domain/note/models/note";
-import { useCallback, useState, useTransition } from "react";
 
-import { NotesView } from "@/components/domain/note/NotesView";
+import { Note } from "@/components/domain/note/Note";
+import { Pagination } from "@/components/navigation/Pagination";
+import { QueryInput } from "@/components/navigation/QueryInput";
 import { Alert, AlertTitle } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Info } from "lucide-react";
 
 const limit = Number.parseInt(process.env.NEXT_PUBLIC_PAGINATION_LIMIT, 10);
 
 type Props = {
-  initialNotes: (Note & { user: User })[];
-  initialCount: number;
+  page: number;
+  query: string;
 };
 
-export function Timeline({ initialCount, initialNotes }: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [notes, setNotes] = useState(initialNotes);
-  const [count, setCount] = useState(initialCount);
-  const [page, setPage] = useState(1);
-  const [query, setQuery] = useState("");
+export async function Timeline({ page, query }: Props) {
+  const { items, count } = await searchNotes({
+    query,
+    pagination: {
+      order: "desc",
+      orderBy: "updatedAt",
+      limit,
+      page,
+    },
+  });
 
   const totalPages = Math.ceil(count / limit);
-
-  const fetch = useCallback((query: string, page: number) => {
-    startTransition(async () => {
-      const { items, count } = await searchNotes({
-        query,
-        pagination: {
-          order: "desc",
-          orderBy: "updatedAt",
-          limit,
-          page,
-        },
-      });
-
-      setNotes(items);
-      setCount(count);
-    });
-  }, []);
 
   return (
     <>
       <section>
-        <QueryInput
-          onChange={(input) => {
-            setQuery(input);
-            fetch(input, page);
-          }}
-        />
+        <QueryInput />
       </section>
 
       <section className="mt-(--spacing-layout-md)">
-        <NotesView
-          notes={notes}
-          isPending={isPending}
-          totalPages={totalPages}
-          page={page}
-          setPage={(page) => {
-            setPage(page);
-            fetch(query, page);
-          }}
-          showUser={true}
-        />
+        {items.length > 0 && (
+          <div className="flex flex-col gap-12">
+            {items.map((note) => (
+              <Note key={note.path} note={note} showUser={true} />
+            ))}
+          </div>
+        )}
 
-        {notes.length === 0 && (
+        {totalPages > 1 && (
+          <div className="mt-(--spacing-layout-md)">
+            <Pagination totalPages={totalPages} />
+          </div>
+        )}
+
+        {items.length === 0 && (
           <Alert>
             <Info />
             <AlertTitle>There are no notes yet.</AlertTitle>
@@ -78,30 +59,23 @@ export function Timeline({ initialCount, initialNotes }: Props) {
   );
 }
 
-type InputProps = {
-  onChange: (query: string) => void;
+type TimelineSkeletonProps = {
+  items: number;
 };
 
-function QueryInput({ onChange }: InputProps) {
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
-
+export function TimelineSkeleton({ items }: TimelineSkeletonProps) {
   return (
-    <Input
-      type="text"
-      placeholder="Search notes..."
-      className="w-full"
-      onChange={(e) => {
-        if (timer) {
-          clearTimeout(timer);
-          setTimer(null);
-        }
-
-        setTimer(
-          setTimeout(() => {
-            onChange(e.target.value || "");
-          }, 500),
-        );
-      }}
-    />
+    <div className="flex flex-col gap-12">
+      {Array.from({ length: items }, (_, i) => i).map((i) => (
+        <div key={i} className="flex flex-col gap-2">
+          <Skeleton className="h-10 w-full mb-4" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="mt-3 h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-full" />
+        </div>
+      ))}
+    </div>
   );
 }

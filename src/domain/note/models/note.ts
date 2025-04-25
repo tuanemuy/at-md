@@ -2,7 +2,6 @@
  * ノートエンティティ
  */
 import { z } from "zod";
-import { tagSchema } from "./tag";
 
 /**
  * ノートスコープ
@@ -35,7 +34,6 @@ export const noteSchema = z.object({
   title: z.string().nonempty(),
   body: z.string(),
   scope: noteScopeSchema,
-  tags: z.array(tagSchema).default([]),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
