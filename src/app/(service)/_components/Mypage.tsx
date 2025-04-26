@@ -7,7 +7,11 @@ export async function Mypage() {
   const session = await auth();
 
   if (!session) {
-    return null;
+    return (
+      <Button asChild size="sm" className="cursor-pointer">
+        <Link href="/auth/signin">Signin</Link>
+      </Button>
+    );
   }
 
   const user = await getUser(session.user.id);
