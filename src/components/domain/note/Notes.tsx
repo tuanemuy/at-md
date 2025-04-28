@@ -17,7 +17,7 @@ const limit = Number.parseInt(process.env.NEXT_PUBLIC_PAGINATION_LIMIT, 10);
 export async function Notes({ bookId, basePath, page }: Props) {
   const { items, count } = await listNotes(bookId, {
     order: "desc",
-    orderBy: "updatedAt",
+    orderBy: "createdAt",
     limit,
     page,
   });
