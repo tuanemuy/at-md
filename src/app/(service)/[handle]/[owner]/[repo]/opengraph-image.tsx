@@ -1,5 +1,5 @@
-import { getBook } from "@/actions/note";
 import { getUserByHandle } from "@/actions/account";
+import { getBook } from "@/actions/note";
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";

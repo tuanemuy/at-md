@@ -1,10 +1,10 @@
 import { getUserByHandle } from "@/actions/account";
 import { getBook } from "@/actions/note";
 import { SyncStatusCode } from "@/domain/note/models/sync-status";
+import { mdToHtml } from "@/lib/markdown";
 import { type RawSearchParams, SearchParams } from "@/lib/router";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
-import { mdToHtml } from "@/lib/markdown";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
 import {
