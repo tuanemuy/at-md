@@ -1,7 +1,5 @@
 import { getUser } from "@/actions/account";
 
-import { Skeleton } from "@/components/ui/skeleton";
-
 type Props = {
   userId: string;
 };
@@ -29,8 +27,6 @@ export async function UserBanner({ userId }: Props) {
 
 export function UserBannerSkeleton() {
   return (
-    <div className="relative w-full aspect-[1440/360] bg-muted-foreground">
-      <Skeleton className="w-full h-full" />
-    </div>
+    <div className="relative w-full aspect-[1440/360] bg-muted-foreground" />
   );
 }
