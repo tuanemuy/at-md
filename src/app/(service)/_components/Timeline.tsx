@@ -19,7 +19,7 @@ export async function Timeline({ page, query }: Props) {
     query,
     pagination: {
       order: "desc",
-      orderBy: "updatedAt",
+      orderBy: "createdAt",
       limit,
       page,
     },
