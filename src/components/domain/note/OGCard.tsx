@@ -4,6 +4,7 @@ import { getOG } from "@/lib/open-graph";
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 
 export function OGCard() {
@@ -53,6 +54,7 @@ export function OGCard() {
         const root = createRoot(container);
         root.render(
           <Component
+            href={url}
             title={og.title}
             description={og.description}
             imageUrl={og.imageUrl}
@@ -73,46 +75,34 @@ export function OGCard() {
 }
 
 type Props = {
+  href: string;
   title: string;
   description: string;
   imageUrl: string;
 };
 
-function Component({ title, description, imageUrl }: Props) {
+function Component({ href, title, description, imageUrl }: Props) {
   return (
     <Card className="py-0">
-      <article className="flex flex-col md:flex-row items-start gap-4 w-full p-4">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full md:w-54 aspect-[1200/630] rounded-md"
-          loading="lazy"
-        />
-        <div
-          style={{
-            margin: "0",
-          }}
-        >
-          <h1
-            style={{
-              margin: "0",
-              fontSize: "1rem",
-              lineHeight: "1.4",
-            }}
-          >
-            {title}
-          </h1>
-          <p
-            style={{
-              marginTop: "0.5rem",
-              fontSize: "0.875rem",
-              lineHeight: "1.5",
-            }}
-          >
-            {description}
-          </p>
-        </div>
-      </article>
+      <Link
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="no-underline!"
+      >
+        <article className="flex flex-col md:flex-row items-start gap-4 w-full p-4">
+          <img
+            src={imageUrl}
+            alt={title}
+            className="w-full md:w-54 aspect-[1200/630] rounded-md"
+            loading="lazy"
+          />
+          <div className="margin-0">
+            <h1 className="margin-0 text-base! leading-[1.4]">{title}</h1>
+            <p className="mt-1! text-xs leading-[1.5]!">{description}</p>
+          </div>
+        </article>
+      </Link>
     </Card>
   );
 }
