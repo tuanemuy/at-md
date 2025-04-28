@@ -1,5 +1,5 @@
-import { getNote, getBook } from "@/actions/note";
 import { getUserByHandle } from "@/actions/account";
+import { getBook, getNote } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
 import { ImageResponse } from "next/og";
 

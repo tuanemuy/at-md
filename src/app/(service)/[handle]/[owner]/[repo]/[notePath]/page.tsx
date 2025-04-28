@@ -1,8 +1,8 @@
 import { getBook, getNote, listAllNotes } from "@/actions/note";
 import { separator } from "@/domain/note/models/note";
+import { mdToHtml } from "@/lib/markdown";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
-import { mdToHtml } from "@/lib/markdown";
 
 import { ForOwner } from "@/components/domain/account/ForOwner";
 import {
@@ -13,6 +13,7 @@ import { Article } from "@/components/domain/note/Article";
 import { BackToBook } from "@/components/domain/note/BackToBook";
 import { DeleteNote } from "@/components/domain/note/DeleteNote";
 import { Highlight } from "@/components/domain/note/Highlight";
+import { OGCard } from "@/components/domain/note/OGCard";
 import {
   Engagement,
   EngagementSkeleton,
@@ -144,10 +145,11 @@ export default async function Page({ params }: Props) {
           </Suspense>
         </section>
 
-        <section className="py-(--spacing-layout-md)">
+        <article className="py-(--spacing-layout-md)">
           <Article text={body} />
           <Highlight />
-        </section>
+          <OGCard />
+        </article>
       </div>
     </main>
   );
