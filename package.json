@@ -75,7 +75,7 @@
     "open-graph-scraper": "^6.10.0",
     "pg": "^8.14.1",
     "react": "^19.0.0",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "8.10.2",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
