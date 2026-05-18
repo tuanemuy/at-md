@@ -130,7 +130,7 @@ importers:
         version: 16.5.0
       drizzle-orm:
         specifier: ^0.45.0
-        version: 0.45.2(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.4)(@types/pg@8.11.13)(pg@8.14.1)
+        version: 0.45.2(@electric-sql/pglite@0.4.5)(@libsql/client@0.15.4)(@types/pg@8.11.13)(pg@8.14.1)
       embla-carousel-react:
         specifier: ^8.5.2
         version: 8.6.0(react@19.1.0)
@@ -217,8 +217,8 @@ importers:
         version: 3.24.3
     devDependencies:
       '@electric-sql/pglite':
-        specifier: ^0.2.17
-        version: 0.2.17
+        specifier: ^0.4.0
+        version: 0.4.5
       '@libsql/client':
         specifier: ^0.15.4
         version: 0.15.4
@@ -552,8 +552,8 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@electric-sql/pglite@0.2.17':
-    resolution: {integrity: sha512-qEpKRT2oUaWDH6tjRxLHjdzMqRUGYDnGZlKrnL4dJ77JVMcP2Hpo3NYnOSPKdZdeec57B6QPprCUFg0picx5Pw==}
+  '@electric-sql/pglite@0.4.5':
+    resolution: {integrity: sha512-aGG2zGEyZzGWKy8P+9ZoNUV0jxt1+hgbeTf+bVAYyxVZZLXg3/9aFlfLxb08AYZVAfAkQlQIysmWjhc5hwDG8g==}
 
   '@emnapi/runtime@1.7.1':
     resolution: {integrity: sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==}
@@ -4759,7 +4759,7 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@electric-sql/pglite@0.2.17': {}
+  '@electric-sql/pglite@0.4.5': {}
 
   '@emnapi/runtime@1.7.1':
     dependencies:
@@ -6912,9 +6912,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.22.0
 
-  drizzle-orm@0.45.2(@electric-sql/pglite@0.2.17)(@libsql/client@0.15.4)(@types/pg@8.11.13)(pg@8.14.1):
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.4.5)(@libsql/client@0.15.4)(@types/pg@8.11.13)(pg@8.14.1):
     optionalDependencies:
-      '@electric-sql/pglite': 0.2.17
+      '@electric-sql/pglite': 0.4.5
       '@libsql/client': 0.15.4
       '@types/pg': 8.11.13
       pg: 8.14.1
