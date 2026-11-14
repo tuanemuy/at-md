@@ -156,7 +156,7 @@ function init() {
   return async (c: Context<HonoEnv>, next: Next) => {
     const env = envSchema.safeParse(process.env);
     if (!env.success) {
-      throw new Error(env.error.errors[0].message);
+      throw new Error(env.error.issues[0].message);
     }
     const container = new Container(env.data);
     c.set("container", container);

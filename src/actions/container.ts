@@ -142,6 +142,6 @@ export class Container {
 
 const env = envSchema.safeParse(process.env);
 if (!env.success) {
-  throw new Error(env.error.errors[0].message);
+  throw new Error(env.error.issues[0].message);
 }
 export const container = new Container(env.data);

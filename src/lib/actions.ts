@@ -1,12 +1,12 @@
 import type { ErrorResponse } from "@/api/error";
 import type { ApplicationServiceError } from "@/domain/types/error";
 import type { SubmissionResult } from "@conform-to/react";
-import { parseWithZod } from "@conform-to/zod";
+import { parseWithZod } from "@conform-to/zod/v4";
 import type { ValidationTargets } from "hono";
 import type { ClientRequestOptions, ClientResponse } from "hono/client";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { ResultAsync } from "neverthrow";
-import type { ZodSchema, z } from "zod";
+import type { ZodType, z } from "zod";
 
 export const SuccessfulActionStatus = {
   Success: "success",
@@ -66,7 +66,7 @@ export type HonoAction<
 >;
 
 export function honoWithConform<
-  TSchema extends ZodSchema,
+  TSchema extends ZodType,
   TTarget extends keyof ValidationTargets,
   TResponse extends JsonObject,
 >(
@@ -175,7 +175,7 @@ export type ConformActionState<TResponse> =
   | ConformIdleActionState;
 
 export function usecaseToActionWithConform<
-  TSchema extends ZodSchema,
+  TSchema extends ZodType,
   TResponse,
 >(
   action: (
@@ -245,7 +245,7 @@ export type ActionState<TResponse> =
   | FailedActionState
   | IdleActionState;
 
-export function usecaseToAction<TSchema extends ZodSchema, TResponse>(
+export function usecaseToAction<TSchema extends ZodType, TResponse>(
   action: (
     input: z.infer<TSchema>,
   ) => ResultAsync<TResponse, ApplicationServiceError>,

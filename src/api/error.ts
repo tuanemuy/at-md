@@ -1,8 +1,7 @@
 import type { AnyError } from "@/lib/error";
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import type { ZodError } from "zod";
-import type { HonoEnv } from "./app";
+import type { core } from "zod";
 
 export type ErrorResponse = {
   error: {
@@ -66,9 +65,9 @@ export const handleZodError = (
       }
     | {
         success: false;
-        error: ZodError;
+        error: core.$ZodError;
       },
-  c: Context<HonoEnv>,
+  c: Context,
 ) => {
   if (!result.success) {
     return c.json(
@@ -82,15 +81,10 @@ export const handleZodError = (
   }
 };
 
-function parseZodErrorMessage(err: ZodError) {
-  try {
-    const arr = JSON.parse(err.message) as Array<{
-      message: string;
-      path: Array<string>;
-    }>;
-    const { path, message } = arr[0];
-    return `${path.join(".")}: ${message}`;
-  } catch {
+function parseZodErrorMessage(err: core.$ZodError) {
+  const issue = err.issues[0];
+  if (!issue) {
     return err.message;
   }
+  return `${issue.path.join(".")}: ${issue.message}`;
 }

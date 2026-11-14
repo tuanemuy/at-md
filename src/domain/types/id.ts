@@ -12,7 +12,7 @@ export type ID<T extends string> = string & { readonly __brand: T };
  */
 export const idSchema = <T extends string>(
   entityName: T,
-): z.ZodEffects<z.ZodString, ID<T>, string> =>
+): z.ZodType<ID<T>, string> =>
   z
     .string()
     .uuid({ message: `${entityName} ID must be a valid UUID format` })
