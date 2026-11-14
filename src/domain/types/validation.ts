@@ -39,7 +39,7 @@ export function validate<T extends z.ZodType>(
   const validationErrors: Record<string, string[]> = {};
 
   // Format zod errors
-  for (const error of result.error.errors) {
+  for (const error of result.error.issues) {
     const path = error.path.join(".") || "_";
     if (!validationErrors[path]) {
       validationErrors[path] = [];
