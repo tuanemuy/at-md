@@ -99,7 +99,7 @@
     "@types/pg": "^8.11.13",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.0",
     "dotenv-cli": "^8.0.0",
     "drizzle-kit": "^0.31.0",
     "jsdom": "^26.0.0",
